@@ -1,0 +1,10 @@
+brew "zsh"
+brew "tmux"
+brew "ripgrep"
+brew "fzf"
+brew "vim"
+brew "neovim"
+brew "git"
+brew "python@3.12"
+
+
