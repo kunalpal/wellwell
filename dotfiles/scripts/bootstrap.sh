@@ -52,7 +52,6 @@ detect_os() {
     . /etc/os-release
     case "$ID" in
       ubuntu|debian) echo "debian";;
-      amzn) echo "amazon";;
       fedora) echo "fedora";;
       *) echo "linux";;
     esac
@@ -76,17 +75,10 @@ install_packages_debian() {
   sudo apt-get install -y git zsh tmux curl unzip ripgrep fzf vim neovim build-essential python3 python3-pip
 }
 
-install_packages_amazon() {
-  sudo yum update -y || sudo dnf -y update || true
-  sudo yum install -y git zsh tmux curl unzip ripgrep fzf vim neovim python3 python3-pip || \
-  sudo dnf install -y git zsh tmux curl unzip ripgrep fzf vim neovim python3 python3-pip || true
-}
-
 install_packages() {
   case "$(detect_os)" in
     macos) install_packages_macos ;;
     debian) install_packages_debian ;;
-    amazon) install_packages_amazon ;;
     *) log "Skipping package install for $(detect_os)" ;;
   esac
 }

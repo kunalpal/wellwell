@@ -1,6 +1,6 @@
 ## Dotfiles
 
-Portable dotfiles to bootstrap a consistent terminal-centric development environment on macOS and Linux (Ubuntu, Amazon Linux/EC2).
+Portable dotfiles to bootstrap a consistent terminal-centric development environment on macOS and Linux (Ubuntu).
 
 ### Features
 - Shell: zsh with fzf integration and sensible defaults
@@ -8,7 +8,7 @@ Portable dotfiles to bootstrap a consistent terminal-centric development environ
 - tmux: sane defaults, mouse mode, vi keybindings
 - git: opinionated defaults, local overlay support
 - Bootstrap: cross-platform package install and safe symlink linking with backups
-- Testing: Docker-based test targets for Ubuntu and Amazon Linux
+- Testing: Docker-based test target for Ubuntu
 
 ### Quick start (local)
 ```sh
@@ -27,8 +27,6 @@ make dry-run          # prints linking plan without changing your $HOME
 Requires Docker.
 ```sh
 make test-ubuntu
-make test-amazonlinux
-make test-all
 ```
 
 ### Structure
@@ -49,7 +47,7 @@ This repo ships a generic `~/.gitconfig`. To set your identity without committin
 Backups are made automatically on first link under `~/.dotfiles_backup/<timestamp>/`. To revert, move files back from a backup snapshot and remove symlinks as needed.
 
 ### Notes
-- macOS uses Homebrew; Linux uses apt/dnf/yum as detected
+- macOS uses Homebrew; Linux uses apt (Ubuntu)
 - Neovim config delegates to `~/.vimrc` to avoid duplication
 
 

@@ -1,4 +1,4 @@
-.PHONY: help bootstrap link packages dry-run test-ubuntu test-amazonlinux test-all
+.PHONY: help bootstrap link packages dry-run test-ubuntu
 
 help:
 	@echo "Targets:"
@@ -7,8 +7,7 @@ help:
 	@echo "  packages       Install packages only"
 	@echo "  dry-run        Show linking plan"
 	@echo "  test-ubuntu    Run bootstrap in Ubuntu container"
-	@echo "  test-amazonlinux Run bootstrap in Amazon Linux container"
-	@echo "  test-all       Run all container tests"
+	@echo "  test-ubuntu    Run bootstrap in Ubuntu container"
 
 bootstrap:
 	./scripts/bootstrap.sh
@@ -27,10 +26,6 @@ test-ubuntu:
 	docker build -f test/ubuntu.Dockerfile -t dotfiles-ubuntu .
 	docker run --rm -it dotfiles-ubuntu
 
-test-amazonlinux:
-	docker build -f test/amazonlinux.Dockerfile -t dotfiles-amzn .
-	docker run --rm -it dotfiles-amzn
 
-test-all: test-ubuntu test-amazonlinux
 
 
