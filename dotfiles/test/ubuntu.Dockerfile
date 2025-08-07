@@ -14,6 +14,6 @@ WORKDIR /home/dev/dotfiles
 
 RUN scripts/bootstrap.sh --packages-only && scripts/bootstrap.sh --link-only
 
-CMD ["zsh", "-lc", "zsh --version && tmux -V && rg --version && fzf --version && vim --version | head -n1 && nvim --version | head -n1 && echo 'OK'"]
+CMD ["zsh", "-lc", "export PATH=\"$HOME/.local/bin:$PATH\"; eval \"$(mise activate zsh)\"; zsh --version && tmux -V && rg --version && fzf --version && vim --version | head -n1 && nvim --version | head -n1 && mise --version && python --version && node --version && echo 'OK'"]
 
 

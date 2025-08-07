@@ -1,0 +1,6 @@
+[tools]
+python = "3.12"
+node = "21"
+
+[settings]
+auto_install = true

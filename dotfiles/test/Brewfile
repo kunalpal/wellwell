@@ -6,5 +6,6 @@ brew "vim"
 brew "neovim"
 brew "git"
 brew "python@3.12"
+brew "mise"
 
 

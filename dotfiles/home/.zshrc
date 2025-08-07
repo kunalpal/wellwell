@@ -6,7 +6,7 @@ setopt prompt_subst
 
 # Paths
 export DOTFILES="$HOME/.dotfiles"
-export PATH="$HOME/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
 # Homebrew shellenv (macOS)
 if [[ "$OSTYPE" == darwin* ]]; then
   if [[ -d /opt/homebrew ]]; then
@@ -37,6 +37,11 @@ for p in \
 ; do
   [[ -f "$p" ]] && source "$p" && break
 done
+
+# mise runtime manager
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate zsh)"
+fi
 
 # Load ~/.zshrc.local if present
 if [[ -f "$HOME/.zshrc.local" ]]; then

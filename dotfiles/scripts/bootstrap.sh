@@ -6,6 +6,7 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 HOME_DIR="$HOME"
 DOTFILES_HOME="$REPO_ROOT/home"
 BACKUP_DIR="$HOME_DIR/.dotfiles_backup/$(date +%Y%m%d_%H%M%S)"
+export PATH="$HOME_DIR/.local/bin:$PATH"
 
 log() { printf "[dotfiles] %s\n" "$*"; }
 err() { printf "[dotfiles][error] %s\n" "$*" >&2; }
@@ -68,11 +69,20 @@ install_packages_macos() {
   fi
   brew update
   brew bundle --file="$REPO_ROOT/test/Brewfile" || true
+  if ! command -v mise >/dev/null 2>&1; then
+    brew install mise
+  fi
 }
 
 install_packages_debian() {
   sudo apt-get update -y
-  sudo apt-get install -y git zsh tmux curl unzip ripgrep fzf vim neovim build-essential python3 python3-pip
+  sudo apt-get install -y \
+    git zsh tmux curl unzip ripgrep fzf vim neovim build-essential python3 python3-pip \
+    libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev \
+    llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+  if ! command -v mise >/dev/null 2>&1; then
+    curl -fsSL https://mise.jdx.dev/install.sh | sh
+  fi
 }
 
 install_packages() {
@@ -95,6 +105,10 @@ main() {
   fi
   install_packages
   link_all
+  if command -v mise >/dev/null 2>&1; then
+    log "installing runtimes via mise"
+    mise install || err "mise install failed"
+  fi
   log "Done. Start a new shell session to load changes."
 }
 
