@@ -1,21 +1,21 @@
-## Dotfiles
+## Dotfiles (chezmoi-managed)
 
-Portable dotfiles to bootstrap a consistent terminal-centric development environment on macOS and Linux (Ubuntu).
+Portable dotfiles managed by chezmoi for macOS and Ubuntu.
 
 ### Features
 - Shell: zsh with fzf integration and sensible defaults
 - Editors: vim/neovim baseline config
 - tmux: sane defaults, mouse mode, vi keybindings
 - git: opinionated defaults, local overlay support
-- Bootstrap: cross-platform package install and safe symlink linking with backups
-- Testing: Docker-based test target for Ubuntu
+- chezmoi: declarative, templated dotfiles with run-once scripts for package install
+- Testing: Docker-based test target for Ubuntu applying chezmoi state
 
 ### Quick start (local)
 ```sh
-make bootstrap        # installs packages and links dotfiles
-# or
-make link             # only link dotfiles
-make packages         # only install packages
+brew install chezmoi # macOS
+# or: sudo apt-get install -y chezmoi  # Ubuntu
+
+chezmoi init --apply .
 ```
 
 ### Dry run
@@ -30,9 +30,9 @@ make test-ubuntu
 ```
 
 ### Structure
-- `home/` — files and directories to be mirrored into `$HOME/`
-- `scripts/` — bootstrap and helper scripts
-- `bin/` — user utilities added to `PATH`
+- `dot_*` files — mapped into `$HOME` (e.g. `dot_zshrc` -> `~/.zshrc`)
+- `dot_config/**` — mapped into `~/.config/**`
+- `executable_*` — scripts run by chezmoi (e.g. `run_once_install-packages.sh.tmpl`)
 - `test/` — container test assets
 
 ### Local git identity
@@ -43,8 +43,9 @@ This repo ships a generic `~/.gitconfig`. To set your identity without committin
   email = your.email@example.com
 ```
 
-### Uninstall / revert symlinks
-Backups are made automatically on first link under `~/.dotfiles_backup/<timestamp>/`. To revert, move files back from a backup snapshot and remove symlinks as needed.
+### Apply and update
+- Re-apply latest changes: `chezmoi apply`
+- Edit and apply a single file: `chezmoi edit ~/.zshrc && chezmoi apply`
 
 ### Notes
 - macOS uses Homebrew; Linux uses apt (Ubuntu)

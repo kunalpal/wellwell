@@ -1,0 +1,17 @@
+[user]
+  useConfigOnly = true
+[core]
+  editor = vim
+  excludesfile = ~/.gitignore_global
+[init]
+  defaultBranch = main
+[push]
+  default = current
+[pull]
+  rebase = false
+[merge]
+  conflictstyle = diff3
+[rerere]
+  enabled = true
+[includeIf "gitdir:~/.*/"]
+  path = ~/.gitconfig.local

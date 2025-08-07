@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [ "{{ .chezmoi.os }}" = "darwin" ]; then
+  if ! command -v brew >/dev/null 2>&1; then
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    eval "$($(/usr/bin/which brew) shellenv)"
+  fi
+  brew update
+  brew install zsh tmux ripgrep fzf vim neovim git mise || true
+elif [ "{{ .chezmoi.os }}" = "linux" ]; then
+  if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update -y
+    sudo apt-get install -y git zsh tmux curl unzip ripgrep fzf vim neovim build-essential python3 python3-pip \
+      libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev \
+      llvm libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev libffi-dev liblzma-dev
+  fi
+  if ! command -v mise >/dev/null 2>&1; then
+    curl -fsSL https://mise.jdx.dev/install.sh | sh
+  fi
+fi
