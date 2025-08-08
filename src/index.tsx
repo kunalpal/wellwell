@@ -5,6 +5,7 @@ import ZshView from './ui/ZshView.js';
 import Root from './ui/Root.js';
 import * as theme from './modules/theme.js';
 import * as brew from './modules/brew.js';
+import { enterFullscreen, installFullscreenHandlers, leaveFullscreen } from './ui/fullscreen.js';
 
 const cli = meow(
   `
@@ -33,29 +34,22 @@ const cli = meow(
   }
 );
 
-const [command, subcommand, arg] = cli.input;
+const [command, subcommand] = cli.input;
 
 async function main() {
-  if (!command) {
-    render(<Root />);
-    return;
-  }
-  if (command === 'zsh') {
-    render(<ZshView />);
-    return;
-  }
-  if (command === 'theme') {
+  if (command === 'theme' && (subcommand === 'list' || subcommand)) {
+    // Non-UI commands should not switch to fullscreen
     if (subcommand === 'list' || !subcommand) {
       const palettes = await theme.listPalettes();
       process.stdout.write(palettes.join('\n') + '\n');
       return;
+    } else {
+      const res = await theme.switchPalette(subcommand);
+      process.stdout.write((res.message || '') + '\n');
+      return;
     }
-    const res = await theme.switchPalette(subcommand);
-    const msg = res.message || (res.ok ? `Switched to ${subcommand}` : 'Failed');
-    process.stdout.write(msg + '\n');
-    return;
   }
-  if (command === 'brew') {
+  if (command === 'brew' && subcommand) {
     if (subcommand === 'diff') {
       const res = await brew.diff();
       process.stdout.write((res.message || '') + '\n');
@@ -71,15 +65,22 @@ async function main() {
       process.stdout.write((res.message || '') + '\n');
       return;
     }
-    process.stdout.write('Unknown brew subcommand\n');
-    return;
   }
 
-  render(
+  // Fullscreen UI
+  enterFullscreen();
+  installFullscreenHandlers();
+
+  const ui = !command ? <Root /> : command === 'zsh' ? <ZshView /> : (
     <Box>
       <Text>Unknown module: {command}</Text>
     </Box>
   );
+
+  const { unmount, waitUntilExit } = render(ui);
+  await waitUntilExit();
+  unmount();
+  leaveFullscreen();
 }
 
 main();
