@@ -16,6 +16,6 @@ export FZF_CTRL_T_COMMAND='fd --type f --hidden --follow --exclude .git'
 # UI defaults
 export FZF_DEFAULT_OPTS='
   --border --height=80% --layout=reverse --info=inline-right
-  --color=fg:-1,fg+:#ffffff,bg:-1,bg+:#373737,hl:#7c3aed,hl+:#af6dff,info:#afaf87,marker:#16a34a
-  --color=prompt:#f97316,spinner:#f97316,pointer:#f97316,header:#06b6d4,border:#617085,label:#a1b0c5,query:#a1b0c5,gutter:-1
+  --color=fg:-1,fg+:#ffffff,bg:-1,bg+:#373737,hl:#007ACC,hl+:#33adff,info:#afaf87,marker:#6A9955
+  --color=prompt:#C586C0,spinner:#C586C0,pointer:#C586C0,header:#569CD6,border:#525252,label:#929292,query:#929292,gutter:-1
   --prompt="❯❯ " --marker=">" --pointer="*" --separator="" --scrollbar="│"'
