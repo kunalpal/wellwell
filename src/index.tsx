@@ -5,6 +5,7 @@ import ZshView from './ui/ZshView.js';
 import Root from './ui/Root.js';
 import * as theme from './modules/theme.js';
 import * as brew from './modules/brew.js';
+import { modules } from './modules/registry.js';
 import { enterFullscreen, installFullscreenHandlers, leaveFullscreen } from './ui/fullscreen.js';
 
 const cli = meow(
@@ -19,6 +20,9 @@ const cli = meow(
     brew diff             Show brew bundle/outdated summary
     brew install          Apply Brewfile (install missing)
     brew update           Update/upgrade and apply Brewfile
+
+  Automation
+    install all           Install all modules non-interactively
 
   Examples
     $ wellwell
@@ -48,6 +52,18 @@ async function main() {
       process.stdout.write((res.message || '') + '\n');
       return;
     }
+  }
+  if (command === 'install' && subcommand === 'all') {
+    // Non-UI command to install all modules
+    for (const m of modules) {
+      const res = await m.install();
+      process.stdout.write(`${m.label}: ${res.message || (res.ok ? 'Installed' : 'Failed')}` + '\n');
+      if (!res.ok) {
+        // Mark failure but continue others
+        process.exitCode = 1;
+      }
+    }
+    return;
   }
   if (command === 'brew' && subcommand) {
     if (subcommand === 'diff') {

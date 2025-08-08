@@ -1,6 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Args
+AUTO_INSTALL_ALL=false
+PRINT_HELP=false
+for arg in "$@"; do
+  case "$arg" in
+    --install-all|-a)
+      AUTO_INSTALL_ALL=true
+      ;;
+    --help|-h)
+      PRINT_HELP=true
+      ;;
+    *)
+      ;;
+  esac
+done
+
+if [[ "$PRINT_HELP" == true ]]; then
+  cat <<'USAGE'
+Usage: bootstrap.sh [--install-all]
+
+Options:
+  -a, --install-all   After building, run "wellwell install all" non-interactively
+  -h, --help          Show this help
+USAGE
+  exit 0
+fi
+
 # Bootstrap script to install Homebrew (macOS), mise, and Node for fresh machines
 
 # Use sudo only if available and not running as root
@@ -21,15 +48,27 @@ if [[ "$OSTYPE" == darwin* ]]; then
 else
   # Linux: attempt to install essential packages using apt/dnf/yum if available (non-interactive)
   if command -v apt-get >/dev/null 2>&1; then
-    echo "Detected apt-get; installing essentials (git, curl, unzip)..."
-    run_pkg_cmd apt-get update || true
-    run_pkg_cmd apt-get install -y git curl unzip || true
+    if [[ "${EUID:-$(id -u)}" -eq 0 || -n "$(command -v sudo 2>/dev/null)" ]]; then
+      echo "Detected apt-get; installing essentials (git, curl, unzip)..."
+      run_pkg_cmd apt-get update || true
+      run_pkg_cmd apt-get install -y git curl unzip || true
+    else
+      echo "apt-get detected but no privileges (no sudo and not root); skipping package install."
+    fi
   elif command -v dnf >/dev/null 2>&1; then
-    echo "Detected dnf; installing essentials (git, curl, unzip)..."
-    run_pkg_cmd dnf install -y git curl unzip || true
+    if [[ "${EUID:-$(id -u)}" -eq 0 || -n "$(command -v sudo 2>/dev/null)" ]]; then
+      echo "Detected dnf; installing essentials (git, curl, unzip)..."
+      run_pkg_cmd dnf install -y git curl unzip || true
+    else
+      echo "dnf detected but no privileges (no sudo and not root); skipping package install."
+    fi
   elif command -v yum >/dev/null 2>&1; then
-    echo "Detected yum; installing essentials (git, curl, unzip)..."
-    run_pkg_cmd yum install -y git curl unzip || true
+    if [[ "${EUID:-$(id -u)}" -eq 0 || -n "$(command -v sudo 2>/dev/null)" ]]; then
+      echo "Detected yum; installing essentials (git, curl, unzip)..."
+      run_pkg_cmd yum install -y git curl unzip || true
+    else
+      echo "yum detected but no privileges (no sudo and not root); skipping package install."
+    fi
   fi
 fi
 
@@ -47,10 +86,19 @@ export MISE_TRUSTED_CONFIG="1"
 if [[ -f "$HOME/.local/bin/mise" ]]; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
+if command -v mise >/dev/null 2>&1; then
+  eval "$(/home/${USER:-$(id -un)}/.local/bin/mise activate bash)" || true
+  # If a local repo is provided and contains a mise config, trust it to avoid prompts
+  if [[ -n "${LOCAL_REPO:-}" && -f "${LOCAL_REPO}/.mise.toml" ]]; then
+    mise trust "${LOCAL_REPO}/.mise.toml" || true
+  fi
+fi
 
 # Ensure Node is installed to run the repo via mise
 if command -v mise >/dev/null 2>&1; then
   mise install node@lts || true
+  # Ensure shims are wired by setting a global default when running in clean envs
+  mise use -g node@lts || true
 fi
 
 # Ensure npm is available (fallback to Homebrew Node if needed)
@@ -70,36 +118,45 @@ if ! command -v git >/dev/null 2>&1; then
   fi
 fi
 
-# Upstream repository
+# Upstream repository and resolve repo directory
 REPO_URL="https://github.com/kunalpal/wellwell.git"
-
-# Preferred clone target and repo dir
 DEFAULT_BASE="$HOME/Projects"
-REPO_DIR="$DEFAULT_BASE/wellwell"
+DEFAULT_REPO_DIR="$DEFAULT_BASE/wellwell"
 
-# If current directory isn't a git repo, clone a fresh copy into ~/Projects/wellwell
-if [[ ! -d "$REPO_DIR/.git" ]]; then
-  mkdir -p "$DEFAULT_BASE"
+# If LOCAL_REPO is provided (e.g., via Docker bind mount), use it and skip git fetch/clone
+if [[ -n "${LOCAL_REPO:-}" ]]; then
+  REPO_DIR="$LOCAL_REPO"
+  if [[ ! -d "$REPO_DIR" ]]; then
+    echo "LOCAL_REPO is set to $REPO_DIR but the directory does not exist." >&2
+    exit 1
+  fi
+  echo "Using local repository at $REPO_DIR (skipping git clone/pull)."
+else
+  REPO_DIR="$DEFAULT_REPO_DIR"
+  # If current directory isn't a git repo, clone a fresh copy into ~/Projects/wellwell
   if [[ ! -d "$REPO_DIR/.git" ]]; then
-    echo "Cloning repository from $REPO_URL into $REPO_DIR..."
-    git clone "$REPO_URL" "$REPO_DIR"
+    mkdir -p "$DEFAULT_BASE"
+    if [[ ! -d "$REPO_DIR/.git" ]]; then
+      echo "Cloning repository from $REPO_URL into $REPO_DIR..."
+      git clone "$REPO_URL" "$REPO_DIR"
+    else
+      echo "Repository already exists at $REPO_DIR. Updating..."
+      git -C "$REPO_DIR" fetch --all --prune || true
+      git -C "$REPO_DIR" pull --rebase --autostash || true
+    fi
   else
-    echo "Repository already exists at $REPO_DIR. Updating..."
+    # Ensure 'origin' remote is set to the upstream URL and pull latest
+    echo "Ensuring remote 'origin' points to $REPO_URL..."
+    CURRENT_ORIGIN="$(git -C "$REPO_DIR" remote get-url origin 2>/dev/null || echo '')"
+    if [[ -z "$CURRENT_ORIGIN" ]]; then
+      git -C "$REPO_DIR" remote add origin "$REPO_URL" || true
+    elif [[ "$CURRENT_ORIGIN" != "$REPO_URL" ]]; then
+      git -C "$REPO_DIR" remote set-url origin "$REPO_URL" || true
+    fi
+    echo "Updating repository at $REPO_DIR..."
     git -C "$REPO_DIR" fetch --all --prune || true
     git -C "$REPO_DIR" pull --rebase --autostash || true
   fi
-else
-  # Ensure 'origin' remote is set to the upstream URL and pull latest
-  echo "Ensuring remote 'origin' points to $REPO_URL..."
-  CURRENT_ORIGIN="$(git -C "$REPO_DIR" remote get-url origin 2>/dev/null || echo '')"
-  if [[ -z "$CURRENT_ORIGIN" ]]; then
-    git -C "$REPO_DIR" remote add origin "$REPO_URL" || true
-  elif [[ "$CURRENT_ORIGIN" != "$REPO_URL" ]]; then
-    git -C "$REPO_DIR" remote set-url origin "$REPO_URL" || true
-  fi
-  echo "Updating repository at $REPO_DIR..."
-  git -C "$REPO_DIR" fetch --all --prune || true
-  git -C "$REPO_DIR" pull --rebase --autostash || true
 fi
 
 # Install dependencies and build the CLI (prefer running via mise shims)
@@ -144,3 +201,14 @@ Bootstrap complete.
 - Add to your shell: eval "$(mise activate zsh)"
 - Then run: wellwell to manage modules
 EOF
+
+# Optional: auto-install all modules if requested
+if [[ "$AUTO_INSTALL_ALL" == true ]]; then
+  echo "Auto-installing all modules via wellwell..."
+  if command -v mise >/dev/null 2>&1; then
+    # Ensure Node from mise is available while running the CLI
+    mise x node@lts -- wellwell install all || true
+  else
+    wellwell install all || true
+  fi
+fi
