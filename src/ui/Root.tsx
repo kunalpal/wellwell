@@ -5,6 +5,28 @@ import type { ItemStatus } from '../modules/types.js';
 import { Table, type TableColumn } from './components/Table.js';
 import * as theme from '../modules/theme.js';
 
+function levelColor(level: ItemStatus['level']): string {
+  switch (level) {
+    case 'ok':
+      return 'green';
+    case 'warning':
+      return 'yellow';
+    case 'error':
+      return 'red';
+    default:
+      return 'white';
+  }
+}
+
+function worstLevel(statuses: ItemStatus[]): ItemStatus['level'] {
+  let worst: ItemStatus['level'] = 'ok';
+  for (const s of statuses) {
+    if (s.level === 'error') return 'error';
+    if (s.level === 'warning') worst = worst === 'ok' ? 'warning' : worst;
+  }
+  return worst;
+}
+
 export default function Root({ initialModuleId }: { initialModuleId?: string } = {}) {
   const initialIndex = initialModuleId ? Math.max(0, modules.findIndex((m) => m.id === initialModuleId)) : 0;
   const [selectedIndex, setSelectedIndex] = useState(initialIndex === -1 ? 0 : initialIndex);
@@ -27,17 +49,22 @@ export default function Root({ initialModuleId }: { initialModuleId?: string } =
     }
   }
 
+  async function refreshAll() {
+    await Promise.all(modules.map((m) => refreshFor(m)));
+  }
+
   useEffect(() => {
-    modules.forEach((m) => refreshFor(m));
+    refreshAll();
   }, []);
 
   useInput(async (input, key) => {
     if (busy) return;
-    if (key.leftArrow) {
+
+    if (key.upArrow) {
       setSelectedIndex((i) => (i - 1 + modules.length) % modules.length);
       return;
     }
-    if (key.rightArrow) {
+    if (key.downArrow) {
       setSelectedIndex((i) => (i + 1) % modules.length);
       return;
     }
@@ -45,6 +72,7 @@ export default function Root({ initialModuleId }: { initialModuleId?: string } =
       await refreshFor(selectedModule);
       return;
     }
+
     if (input === 'q' || key.escape) {
       process.exit(0);
     }
@@ -66,10 +94,15 @@ export default function Root({ initialModuleId }: { initialModuleId?: string } =
       setMessage(res.message || (res.ok ? 'Done' : 'Failed'));
       setBusy(false);
       await refreshFor(selectedModule);
-    } else if (selectedModule.id === 'theme' && (input === '[' || input === ']')) {
+    } else if (selectedModule.id === 'theme' && (key.tab || input === '\t' || input === '[' || input === ']')) {
       if (palettes.length === 0) return;
       const idx = Math.max(0, palettes.indexOf(activePalette || palettes[0]));
-      const nextIdx = input === ']' ? (idx + 1) % palettes.length : (idx - 1 + palettes.length) % palettes.length;
+      let nextIdx = idx;
+      if (key.tab || input === '\t') {
+        nextIdx = (idx + (key.shift ? -1 : 1) + palettes.length) % palettes.length;
+      } else {
+        nextIdx = input === ']' ? (idx + 1) % palettes.length : (idx - 1 + palettes.length) % palettes.length;
+      }
       const next = palettes[nextIdx];
       setBusy(true);
       const res = await theme.switchPalette(next);
@@ -81,7 +114,7 @@ export default function Root({ initialModuleId }: { initialModuleId?: string } =
 
   const columns: TableColumn<ItemStatus>[] = useMemo(
     () => [
-      { header: 'Status', width: 10, render: (s) => (s.level === 'ok' ? 'OK' : s.level.toUpperCase()) },
+      { header: 'Status', width: 10, render: (s) => (<Text color={levelColor(s.level)}>{s.level === 'ok' ? 'OK' : s.level.toUpperCase()}</Text>) },
       { header: 'Item', width: 35, render: (s) => s.label },
       { header: 'Details', width: 60, render: (s) => s.details || '' },
     ],
@@ -92,16 +125,46 @@ export default function Root({ initialModuleId }: { initialModuleId?: string } =
 
   return (
     <Box flexDirection="column">
-      <Text>
-        <Text color="cyan">wellwell</Text> · Modules: {modules.map((m, i) => (i === selectedIndex ? `[${m.label}]` : m.label)).join('  ')}
-      </Text>
-      {selectedModule.id === 'theme' ? (
-        <Text dimColor>
-          Palettes: {palettes.join(', ') || 'none'} {activePalette ? `(active: ${activePalette})` : ''}
+      <Box>
+        <Text>
+          <Text color="cyan">wellwell</Text> · Manage your dotfiles
         </Text>
-      ) : null}
+      </Box>
       <Box marginTop={1}>
-        <Table columns={columns} rows={rows} />
+        <Text>
+          <Text color="magenta">Overview</Text> · Use ↑/↓ to select a module, Enter to refresh selected. Press <Text color="green">a</Text> to Install All.
+        </Text>
+      </Box>
+      <Box marginTop={1}>
+        <Box flexDirection="column" width={38} marginRight={2}>
+          {modules.map((m, i) => {
+            const statuses = statusMap[m.id] || [];
+            const level = statuses.length ? worstLevel(statuses) : 'info';
+            const isSelected = i === selectedIndex;
+            return (
+              <Box key={m.id}>
+                <Text>
+                  <Text color={isSelected ? 'cyan' : 'white'}>{isSelected ? '➤ ' : '  '}</Text>
+                  <Text color={isSelected ? 'cyan' : 'white'}>[{m.label}] </Text>
+                  <Text color={levelColor(level as any)}>● {level.toUpperCase()}</Text>
+                </Text>
+              </Box>
+            );
+          })}
+        </Box>
+        <Box flexDirection="column" flexGrow={1} borderStyle="single" borderColor="gray" paddingX={1}>
+          <Text>
+            <Text color="magenta">Details</Text> · {selectedModule.label}
+          </Text>
+          {selectedModule.id === 'theme' ? (
+            <Text dimColor>
+              Palettes: {palettes.join(', ') || 'none'} {activePalette ? `(active: ${activePalette})` : ''}
+            </Text>
+          ) : null}
+          <Box marginTop={1}>
+            <Table columns={columns} rows={rows} />
+          </Box>
+        </Box>
       </Box>
       <Box marginTop={1} flexDirection="column">
         {busy ? <Text color="yellow">Working...</Text> : null}
@@ -109,10 +172,10 @@ export default function Root({ initialModuleId }: { initialModuleId?: string } =
       </Box>
       <Box marginTop={1} flexDirection="column">
         <Text dimColor>
-          Controls: ←/→ switch module  [Enter] refresh  [d] diff  [i] install  [u] update  [q] quit
+          Controls: ↑/↓ select module  [Enter] refresh  [d] diff  [i] install  [u] update  [a] install all  [q] quit
         </Text>
         {selectedModule.id === 'theme' ? (
-          <Text dimColor>Theme: [ and ] to switch active palette</Text>
+          <Text dimColor>Theme: Tab to switch palette (Shift+Tab for previous)</Text>
         ) : null}
       </Box>
     </Box>
