@@ -9,6 +9,19 @@ if [[ "$OSTYPE" == darwin* ]]; then
     echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> "$HOME/.zprofile"
     eval "$([ -f /opt/homebrew/bin/brew ] && /opt/homebrew/bin/brew shellenv)"
   fi
+else
+  # Linux: attempt to install essential packages using apt/dnf/yum if available (non-interactive)
+  if command -v apt-get >/dev/null 2>&1; then
+    echo "Detected apt-get; installing essentials (git, curl, unzip)..."
+    sudo -n apt-get update || true
+    sudo -n apt-get install -y git curl unzip || true
+  elif command -v dnf >/dev/null 2>&1; then
+    echo "Detected dnf; installing essentials (git, curl, unzip)..."
+    sudo -n dnf install -y git curl unzip || true
+  elif command -v yum >/dev/null 2>&1; then
+    echo "Detected yum; installing essentials (git, curl, unzip)..."
+    sudo -n yum install -y git curl unzip || true
+  fi
 fi
 
 # Install mise
@@ -88,6 +101,8 @@ mkdir -p "$INSTALL_BIN_DIR"
 chmod +x "$REPO_DIR/bin/wellwell" || true
 ln -sf "$REPO_DIR/bin/wellwell" "$INSTALL_BIN_DIR/wellwell"
 echo "Linked: $INSTALL_BIN_DIR/wellwell -> $REPO_DIR/bin/wellwell"
+
+# Note: Optional tools (bat/batcat, starship, zsh, fzf, etc.) are managed by their respective modules.
 
 # Ensure ~/.local/bin is on PATH for future shells
 if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_BIN_DIR"; then

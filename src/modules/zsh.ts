@@ -89,8 +89,8 @@ export async function diffModule() {
 }
 
 export async function installModule() {
-  // Ensure managed file, link it, install plugins
-  const steps = [actionEnsureManagedZshrc, actionLinkZshrc, actionInstallPlugins];
+  // Ensure zsh is installed, managed file, link it, install plugins
+  const steps = [actionEnsureZshInstalled, actionEnsureManagedZshrc, actionLinkZshrc, actionInstallPlugins];
   for (const step of steps) {
     const res = await step();
     if (!res.ok) return res;
@@ -99,13 +99,38 @@ export async function installModule() {
 }
 
 export async function updateModule() {
-  // Re-link to ensure correct target and reinstall missing plugins
-  const steps = [actionLinkZshrc, actionInstallPlugins];
+  // Ensure zsh present, re-link to ensure correct target and reinstall missing plugins
+  const steps = [actionEnsureZshInstalled, actionLinkZshrc, actionInstallPlugins];
   for (const step of steps) {
     const res = await step();
     if (!res.ok) return res;
   }
   return { ok: true, message: 'Zsh updated.' };
+}
+
+export async function actionEnsureZshInstalled(): Promise<ActionResult> {
+  try {
+    const which = await runCommand(`command -v zsh || true`);
+    if (which.stdout) return { ok: true, message: 'zsh already installed' };
+    if (process.platform === 'darwin') {
+      await runCommand(`brew install zsh || true`);
+    } else {
+      const apt = await runCommand(`command -v apt-get || true`);
+      const dnf = await runCommand(`command -v dnf || true`);
+      const yum = await runCommand(`command -v yum || true`);
+      if (apt.stdout) {
+        await runCommand(`sudo -n apt-get update || true`);
+        await runCommand(`sudo -n apt-get install -y zsh || true`);
+      } else if (dnf.stdout) {
+        await runCommand(`sudo -n dnf install -y zsh || true`);
+      } else if (yum.stdout) {
+        await runCommand(`sudo -n yum install -y zsh || true`);
+      }
+    }
+    return { ok: true, message: 'zsh ensured' };
+  } catch (error) {
+    return { ok: false, error: error as Error };
+  }
 }
 
 async function detectDefaultShell(): Promise<ItemStatus> {

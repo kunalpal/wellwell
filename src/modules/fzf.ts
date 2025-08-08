@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import type { ActionResult, ItemStatus } from './types.js';
+import { runCommand } from '../lib/exec.js';
 import { MANAGED_FZF_ZSH_PATH, USER_FZF_ZSH_PATH, FZF_DOTFILES_ROOT, USER_CONFIG_DIR } from '../lib/paths.js';
 
 const lstat = promisify(fs.lstat);
@@ -73,6 +74,26 @@ export async function diff(): Promise<ActionResult> {
 
 export async function install(): Promise<ActionResult> {
   try {
+    // Ensure fzf is installed
+    const fzf = await runCommand(`command -v fzf || true`);
+    if (!fzf.stdout) {
+      if (process.platform === 'darwin') {
+        await runCommand(`brew install fzf || true`);
+      } else {
+        const apt = await runCommand(`command -v apt-get || true`);
+        const dnf = await runCommand(`command -v dnf || true`);
+        const yum = await runCommand(`command -v yum || true`);
+        if (apt.stdout) {
+          await runCommand(`sudo -n apt-get update || true`);
+          await runCommand(`sudo -n apt-get install -y fzf || true`);
+        } else if (dnf.stdout) {
+          await runCommand(`sudo -n dnf install -y fzf || true`);
+        } else if (yum.stdout) {
+          await runCommand(`sudo -n yum install -y fzf || true`);
+        }
+      }
+    }
+
     await mkdir(path.dirname(USER_FZF_ZSH_PATH), { recursive: true });
     try {
       const st = await lstat(USER_FZF_ZSH_PATH);

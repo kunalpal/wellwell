@@ -71,14 +71,14 @@ export async function diff(): Promise<ActionResult> {
 }
 
 export async function install(): Promise<ActionResult> {
-  // Install brew if missing (macOS), then bundle install
+  // Install brew if missing (macOS), then bundle install; on Linux, suggest Linuxbrew or skip
   const brew = await runCommand(`command -v brew || true`);
   if (!brew.stdout) {
     if (process.platform === 'darwin') {
       // For macOS, use official install script
       await runCommand(`/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`);
     } else {
-      return { ok: false, message: 'Homebrew install automation is macOS-only here.' };
+      return { ok: false, message: 'Homebrew not found. Install Homebrew (Linuxbrew) manually or manage packages via your distro.' };
     }
   }
   const res = await runCommand(`brew bundle --file="${MANAGED_BREWFILE_PATH}"`);

@@ -96,13 +96,30 @@ export async function diff(): Promise<ActionResult> {
 
 export async function install(): Promise<ActionResult> {
   try {
-    // Install starship if missing (macOS brew, fallback to curl)
+    // Install starship if missing using platform package managers, fallback to curl script
     const { stdout } = await runCommand(`command -v starship || true`);
     if (!stdout) {
       if (process.platform === 'darwin') {
-        await runCommand(`brew install starship`);
+        await runCommand(`brew install starship || true`);
       } else {
-        await runCommand(`curl -sS https://starship.rs/install.sh | sh -s -- -y`);
+        const apt = await runCommand(`command -v apt-get || true`);
+        const dnf = await runCommand(`command -v dnf || true`);
+        const yum = await runCommand(`command -v yum || true`);
+        let installed = false;
+        if (apt.stdout) {
+          await runCommand(`sudo -n apt-get update || true`);
+          await runCommand(`sudo -n apt-get install -y starship || true`);
+          installed = true;
+        } else if (dnf.stdout) {
+          await runCommand(`sudo -n dnf install -y starship || true`);
+          installed = true;
+        } else if (yum.stdout) {
+          await runCommand(`sudo -n yum install -y starship || true`);
+          installed = true;
+        }
+        if (!installed) {
+          await runCommand(`curl -sS https://starship.rs/install.sh | sh -s -- -y || true`);
+        }
       }
     }
 

@@ -28,9 +28,11 @@ export async function getStatusList(): Promise<ItemStatus[]> {
 }
 
 async function detectInstalled(): Promise<ItemStatus> {
-  const { stdout } = await runCommand(`command -v bat || true`);
-  const ok = Boolean(stdout);
-  return { id: 'bat-installed', label: 'bat installed', level: ok ? 'ok' : 'error', details: ok ? stdout : 'Not found' };
+  const primary = await runCommand(`command -v bat || true`);
+  if (primary.stdout) return { id: 'bat-installed', label: 'bat installed', level: 'ok', details: primary.stdout };
+  const alt = await runCommand(`command -v batcat || true`);
+  const ok = Boolean(alt.stdout);
+  return { id: 'bat-installed', label: ok ? 'bat (batcat) installed' : 'bat installed', level: ok ? 'ok' : 'error', details: ok ? alt.stdout : 'Not found' };
 }
 
 async function detectConfig(): Promise<ItemStatus> {
@@ -57,19 +59,43 @@ export async function diff(): Promise<ActionResult> {
 }
 
 export async function install(): Promise<ActionResult> {
-  // Install bat (brew) and link config & theme, then rebuild cache
+  // Install bat (brew/apt/dnf) and link config & theme, then rebuild cache
   const brew = await runCommand(`command -v brew || true`);
   if (brew.stdout) {
     await runCommand(`brew install bat || true`);
+  } else {
+    // Linux package managers
+    const apt = await runCommand(`command -v apt-get || true`);
+    const dnf = await runCommand(`command -v dnf || true`);
+    const yum = await runCommand(`command -v yum || true`);
+    if (apt.stdout) {
+      await runCommand(`sudo -n apt-get update || true`);
+      // On Debian/Ubuntu the binary is batcat; install bat
+      await runCommand(`sudo -n apt-get install -y bat || sudo -n apt-get install -y batcat || true`);
+    } else if (dnf.stdout) {
+      await runCommand(`sudo -n dnf install -y bat || true`);
+    } else if (yum.stdout) {
+      await runCommand(`sudo -n yum install -y bat || true`);
+    }
   }
+
   await mkdir(path.dirname(USER_BAT_CONFIG_PATH), { recursive: true });
   await mkdir(USER_BAT_THEMES_DIR, { recursive: true });
   await fs.promises.cp(MANAGED_BAT_THEMES_DIR, USER_BAT_THEMES_DIR, { recursive: true });
   await fs.promises.writeFile(USER_BAT_CONFIG_PATH, await readFile(MANAGED_BAT_CONFIG_PATH, 'utf8'));
-  await runCommand(`bat cache --build || true`);
+  // Rebuild cache using whichever binary is available
+  const hasBat = await runCommand(`command -v bat || true`);
+  if (hasBat.stdout) {
+    await runCommand(`bat cache --build || true`);
+  } else {
+    const hasBatcat = await runCommand(`command -v batcat || true`);
+    if (hasBatcat.stdout) await runCommand(`batcat cache --build || true`);
+  }
   return { ok: true, message: 'bat installed/configured and cache built' };
 }
 
 export async function update(): Promise<ActionResult> {
-  return install();
+  // Rebuild cache and ensure install
+  const res = await install();
+  return res;
 }
