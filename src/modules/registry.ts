@@ -3,6 +3,7 @@ import * as zsh from './zsh.js';
 import * as starship from './starship.js';
 import * as theme from './theme.js';
 import * as brew from './brew.js';
+import * as apt from './apt.js';
 import * as aliases from './aliases.js';
 import * as fzf from './fzf.js';
 import * as bat from './bat.js';
@@ -15,9 +16,12 @@ export type ModuleDefinition = {
   diff: () => Promise<ActionResult>;
   install: () => Promise<ActionResult>;
   update: () => Promise<ActionResult>;
+  // Optional: restrict module to specific platforms
+  platforms?: NodeJS.Platform[];
 };
 
-export const modules: ModuleDefinition[] = [
+// Full registry (unfiltered)
+export const modulesAll: ModuleDefinition[] = [
   {
     id: 'zsh',
     label: 'Zsh',
@@ -49,6 +53,16 @@ export const modules: ModuleDefinition[] = [
     diff: async () => brew.diff(),
     install: async () => brew.install(),
     update: async () => brew.update(),
+    platforms: ['darwin'],
+  },
+  {
+    id: 'apt',
+    label: 'APT (Ubuntu/Debian)',
+    getStatusList: async () => apt.getStatusList(),
+    diff: async () => apt.diff(),
+    install: async () => apt.install(),
+    update: async () => apt.update(),
+    platforms: ['linux'],
   },
   {
     id: 'aliases',
@@ -83,3 +97,7 @@ export const modules: ModuleDefinition[] = [
     update: async () => mise.update(),
   },
 ];
+
+export function getModulesForPlatform(platform: NodeJS.Platform = process.platform): ModuleDefinition[] {
+  return modulesAll.filter((m) => !m.platforms || m.platforms.includes(platform));
+}

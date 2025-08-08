@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
-import { modules, type ModuleDefinition } from '../modules/registry.js';
+import { getModulesForPlatform, type ModuleDefinition } from '../modules/registry.js';
 import type { ItemStatus } from '../modules/types.js';
 import { Table, type TableColumn } from './components/Table.js';
 import * as theme from '../modules/theme.js';
@@ -28,6 +28,7 @@ function worstLevel(statuses: ItemStatus[]): ItemStatus['level'] {
 }
 
 export default function Root({ initialModuleId }: { initialModuleId?: string } = {}) {
+  const modules = getModulesForPlatform();
   const initialIndex = initialModuleId ? Math.max(0, modules.findIndex((m) => m.id === initialModuleId)) : 0;
   const [selectedIndex, setSelectedIndex] = useState(initialIndex === -1 ? 0 : initialIndex);
   const [statusMap, setStatusMap] = useState<Record<string, ItemStatus[]>>({});

@@ -5,7 +5,7 @@ import ZshView from './ui/ZshView.js';
 import Root from './ui/Root.js';
 import * as theme from './modules/theme.js';
 import * as brew from './modules/brew.js';
-import { modules } from './modules/registry.js';
+import { modulesAll, getModulesForPlatform } from './modules/registry.js';
 import { enterFullscreen, installFullscreenHandlers, leaveFullscreen } from './ui/fullscreen.js';
 
 const cli = meow(
@@ -20,6 +20,9 @@ const cli = meow(
     brew diff             Show brew bundle/outdated summary
     brew install          Apply Brewfile (install missing)
     brew update           Update/upgrade and apply Brewfile
+    apt diff              Show apt missing summary
+    apt install           Install packages from Aptfile
+    apt update            apt-get update/upgrade
 
   Automation
     install all           Install all modules non-interactively
@@ -53,8 +56,27 @@ async function main() {
       return;
     }
   }
+  if (command === 'apt' && subcommand) {
+    const a = await import('./modules/apt.js');
+    if (subcommand === 'diff') {
+      const res = await a.diff();
+      process.stdout.write((res.message || '') + '\n');
+      return;
+    }
+    if (subcommand === 'install') {
+      const res = await a.install();
+      process.stdout.write((res.message || '') + '\n');
+      return;
+    }
+    if (subcommand === 'update') {
+      const res = await a.update();
+      process.stdout.write((res.message || '') + '\n');
+      return;
+    }
+  }
   if (command === 'install' && subcommand === 'all') {
     // Non-UI command to install all modules
+    const modules = getModulesForPlatform();
     for (const m of modules) {
       const res = await m.install();
       process.stdout.write(`${m.label}: ${res.message || (res.ok ? 'Installed' : 'Failed')}` + '\n');
