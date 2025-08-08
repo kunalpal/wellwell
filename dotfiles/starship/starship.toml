@@ -4,14 +4,23 @@ add_newline = true
 format = "$all"
 
 [character]
-success_symbol = "[❯](bold #6A9955)"
-error_symbol = "[❯](bold #F44747)"
+success_symbol = "[❯](bold #16a34a)"
+error_symbol = "[❯](bold #dc2626)"
 
 [directory]
-style = "bold #569CD6"
+style = "bold #06b6d4"
 truncation_length = 3
 truncate_to_repo = false
 
 [git_branch]
-style = "bold #007ACC"
+style = "bold #7c3aed"
 format = "on [$symbol$branch]($style) "
+
+[aws]
+disabled = true
+
+[nodejs]
+disabled = true
+
+[package]
+disabled = true

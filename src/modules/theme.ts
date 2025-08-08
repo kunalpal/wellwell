@@ -128,6 +128,15 @@ truncate_to_repo = false
 [git_branch]
 style = "bold ${gitColor}"
 format = "on [$symbol$branch]($style) "
+
+[aws]
+disabled = true
+
+[nodejs]
+disabled = true
+
+[package]
+disabled = true
 `;
 
     await mkdir(STARSHIP_DOTFILES_ROOT, { recursive: true });
