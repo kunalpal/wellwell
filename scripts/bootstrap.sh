@@ -3,6 +3,15 @@ set -euo pipefail
 
 # Bootstrap script to install Homebrew (macOS), mise, and Node for fresh machines
 
+# Use sudo only if available and not running as root
+run_pkg_cmd() {
+  if command -v sudo >/dev/null 2>&1 && [ "${EUID:-$(id -u)}" -ne 0 ]; then
+    sudo -n "$@"
+  else
+    "$@"
+  fi
+}
+
 if [[ "$OSTYPE" == darwin* ]]; then
   if ! command -v brew >/dev/null 2>&1; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -13,22 +22,24 @@ else
   # Linux: attempt to install essential packages using apt/dnf/yum if available (non-interactive)
   if command -v apt-get >/dev/null 2>&1; then
     echo "Detected apt-get; installing essentials (git, curl, unzip)..."
-    sudo -n apt-get update || true
-    sudo -n apt-get install -y git curl unzip || true
+    run_pkg_cmd apt-get update || true
+    run_pkg_cmd apt-get install -y git curl unzip || true
   elif command -v dnf >/dev/null 2>&1; then
     echo "Detected dnf; installing essentials (git, curl, unzip)..."
-    sudo -n dnf install -y git curl unzip || true
+    run_pkg_cmd dnf install -y git curl unzip || true
   elif command -v yum >/dev/null 2>&1; then
     echo "Detected yum; installing essentials (git, curl, unzip)..."
-    sudo -n yum install -y git curl unzip || true
+    run_pkg_cmd yum install -y git curl unzip || true
   fi
 fi
 
-# Install mise
-if command -v brew >/dev/null 2>&1; then
-  brew install mise || true
-else
-  curl https://mise.run | sh
+# Install mise (skip if already installed)
+if ! command -v mise >/dev/null 2>&1; then
+  if command -v brew >/dev/null 2>&1; then
+    brew install mise || true
+  else
+    curl https://mise.run | sh
+  fi
 fi
 
 # Activate mise for this shell
@@ -37,8 +48,10 @@ if [[ -f "$HOME/.local/bin/mise" ]]; then
   export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# Ensure Node is installed to run the repo
-mise install node@lts || true
+# Ensure Node is installed to run the repo via mise
+if command -v mise >/dev/null 2>&1; then
+  mise install node@lts || true
+fi
 
 # Ensure npm is available (fallback to Homebrew Node if needed)
 if ! command -v npm >/dev/null 2>&1; then
@@ -60,23 +73,21 @@ fi
 # Upstream repository
 REPO_URL="https://github.com/kunalpal/wellwell.git"
 
-# Project root (repo) relative to this script
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Preferred clone target and repo dir
+DEFAULT_BASE="$HOME/Projects"
+REPO_DIR="$DEFAULT_BASE/wellwell"
 
 # If current directory isn't a git repo, clone a fresh copy into ~/Projects/wellwell
 if [[ ! -d "$REPO_DIR/.git" ]]; then
-  DEFAULT_BASE="$HOME/Projects"
-  CLONE_DIR="$DEFAULT_BASE/wellwell"
   mkdir -p "$DEFAULT_BASE"
-  if [[ ! -d "$CLONE_DIR/.git" ]]; then
-    echo "Cloning repository from $REPO_URL into $CLONE_DIR..."
-    git clone "$REPO_URL" "$CLONE_DIR"
+  if [[ ! -d "$REPO_DIR/.git" ]]; then
+    echo "Cloning repository from $REPO_URL into $REPO_DIR..."
+    git clone "$REPO_URL" "$REPO_DIR"
   else
-    echo "Repository already exists at $CLONE_DIR. Updating..."
-    git -C "$CLONE_DIR" fetch --all --prune || true
-    git -C "$CLONE_DIR" pull --rebase --autostash || true
+    echo "Repository already exists at $REPO_DIR. Updating..."
+    git -C "$REPO_DIR" fetch --all --prune || true
+    git -C "$REPO_DIR" pull --rebase --autostash || true
   fi
-  REPO_DIR="$CLONE_DIR"
 else
   # Ensure 'origin' remote is set to the upstream URL and pull latest
   echo "Ensuring remote 'origin' points to $REPO_URL..."
@@ -91,9 +102,20 @@ else
   git -C "$REPO_DIR" pull --rebase --autostash || true
 fi
 
-# Install dependencies and build the CLI
+# Install dependencies and build the CLI (prefer running via mise shims)
 echo "Installing dependencies and building wellwell..."
-(cd "$REPO_DIR" && npm ci && npm run build)
+(
+  cd "$REPO_DIR"
+  if command -v mise >/dev/null 2>&1; then
+    mise x node@lts -- npm ci
+    mise x node@lts -- npm run build
+  elif command -v npm >/dev/null 2>&1; then
+    npm ci && npm run build
+  else
+    echo "Neither npm nor mise found on PATH. Ensure Node/npm available and retry." >&2
+    exit 1
+  fi
+)
 
 # Link the CLI into an accessible location
 INSTALL_BIN_DIR="$HOME/.local/bin"
