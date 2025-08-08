@@ -1,0 +1,15 @@
+# Managed by wellwell (repo dotfiles)
+
+add_newline = true
+format = "$all"
+
+[character]
+success_symbol = "[❯](bold green)"
+error_symbol = "[❯](bold red)"
+
+[directory]
+truncation_length = 3
+truncate_to_repo = false
+
+[git_branch]
+format = "on [$symbol$branch]($style) "

@@ -13,20 +13,25 @@ setopt HIST_IGNORE_DUPS
 setopt HIST_REDUCE_BLANKS
 
 # Prompt
-PROMPT='%F{cyan}%n%f@%F{green}%m%f %F{yellow}%1~%f %# '
-
-# Plugin loader (no Oh My Zsh)
-export ZSH_PLUGIN_DIR="$HOME/.zsh/plugins"
-
-# zsh-autosuggestions
-if [ -f "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh" ]; then
-  source "$ZSH_PLUGIN_DIR/zsh-autosuggestions/zsh-autosuggestions.zsh"
+# If Starship is available, use it; otherwise fallback
+if command -v starship >/dev/null 2>&1; then
+  eval "$(starship init zsh)"
+else
+  PROMPT='%F{cyan}%n%f@%F{green}%m%f %F{yellow}%1~%f %# '
 fi
 
-# zsh-syntax-highlighting must be loaded last
-if [ -f "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]; then
-  source "$ZSH_PLUGIN_DIR/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+# Zinit bootstrap (no Oh My Zsh)
+export ZINIT_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/zinit/zinit.git"
+if [ ! -s "$ZINIT_HOME/zinit.zsh" ]; then
+  mkdir -p "${ZINIT_HOME%/*}"
+  git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"
 fi
+source "$ZINIT_HOME/zinit.zsh"
+
+# Plugins
+zinit light zsh-users/zsh-autosuggestions
+# zsh-syntax-highlighting should be last
+zinit light zsh-users/zsh-syntax-highlighting
 
 # Keybindings
 bindkey -e

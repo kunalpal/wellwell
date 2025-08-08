@@ -16,21 +16,26 @@ const HOME = os.homedir();
 const MANAGED_ROOT = ZSH_DOTFILES_ROOT;
 const MANAGED_ZSHRC = MANAGED_ZSHRC_PATH;
 const LINK_ZSHRC = path.join(HOME, '.zshrc');
-const PLUGINS_DIR = path.join(HOME, '.zsh', 'plugins');
-const AUTOSUGGESTIONS_DIR = path.join(PLUGINS_DIR, 'zsh-autosuggestions');
-const SYNTAX_HIGHLIGHTING_DIR = path.join(PLUGINS_DIR, 'zsh-syntax-highlighting');
+// Zinit directories (XDG compliant)
+const XDG_DATA_HOME = process.env.XDG_DATA_HOME || path.join(HOME, '.local', 'share');
+const ZINIT_HOME = path.join(XDG_DATA_HOME, 'zinit', 'zinit.git');
+const ZINIT_PLUGINS_DIR = path.join(XDG_DATA_HOME, 'zinit', 'plugins');
+const AUTOSUGGESTIONS_DIR = path.join(ZINIT_PLUGINS_DIR, 'zsh-users---zsh-autosuggestions');
+const SYNTAX_HIGHLIGHTING_DIR = path.join(ZINIT_PLUGINS_DIR, 'zsh-users---zsh-syntax-highlighting');
 
 export type ZshStatus = {
   defaultShell: ItemStatus;
   zshrcLink: ItemStatus;
+  zinit: ItemStatus;
   autosuggestions: ItemStatus;
   syntaxHighlighting: ItemStatus;
 };
 
 export async function getZshStatus(): Promise<ZshStatus> {
-  const [shell, link, auto, syntax] = await Promise.all([
+  const [shell, link, zinitStatus, auto, syntax] = await Promise.all([
     detectDefaultShell(),
     detectZshrcLink(),
+    detectZinit(),
     detectPlugin(AUTOSUGGESTIONS_DIR, 'zsh-autosuggestions'),
     detectPlugin(SYNTAX_HIGHLIGHTING_DIR, 'zsh-syntax-highlighting'),
   ]);
@@ -38,6 +43,7 @@ export async function getZshStatus(): Promise<ZshStatus> {
   return {
     defaultShell: shell,
     zshrcLink: link,
+    zinit: zinitStatus,
     autosuggestions: auto,
     syntaxHighlighting: syntax,
   };
@@ -45,7 +51,7 @@ export async function getZshStatus(): Promise<ZshStatus> {
 
 export async function getStatusList(): Promise<ItemStatus[]> {
   const s = await getZshStatus();
-  return [s.defaultShell, s.zshrcLink, s.autosuggestions, s.syntaxHighlighting];
+  return [s.defaultShell, s.zshrcLink, s.zinit, s.autosuggestions, s.syntaxHighlighting];
 }
 
 export async function diffModule() {
@@ -164,6 +170,16 @@ async function detectZshrcLink(): Promise<ItemStatus> {
   }
 }
 
+async function detectZinit(): Promise<ItemStatus> {
+  const exists = await pathExists(path.join(ZINIT_HOME, 'zinit.zsh'));
+  return {
+    id: 'zinit',
+    label: 'Zinit installed',
+    level: exists ? 'ok' : 'error',
+    details: exists ? ZINIT_HOME : 'Not installed',
+  };
+}
+
 async function detectPlugin(dir: string, name: string): Promise<ItemStatus> {
   const exists = await pathExists(dir);
   return {
@@ -226,19 +242,14 @@ export async function actionLinkZshrc(): Promise<ActionResult> {
 
 export async function actionInstallPlugins(): Promise<ActionResult> {
   try {
-    await mkdir(PLUGINS_DIR, { recursive: true });
-    const installs: Array<Promise<unknown>> = [];
-    if (!(await pathExists(AUTOSUGGESTIONS_DIR))) {
-      installs.push(runCommand(`git clone --depth=1 https://github.com/zsh-users/zsh-autosuggestions "${AUTOSUGGESTIONS_DIR}"`));
+    // Ensure Zinit exists
+    if (!(await pathExists(path.join(ZINIT_HOME, 'zinit.zsh')))) {
+      await mkdir(path.dirname(ZINIT_HOME), { recursive: true });
+      await runCommand(`git clone https://github.com/zdharma-continuum/zinit.git "${ZINIT_HOME}"`);
     }
-    if (!(await pathExists(SYNTAX_HIGHLIGHTING_DIR))) {
-      installs.push(runCommand(`git clone --depth=1 https://github.com/zsh-users/zsh-syntax-highlighting "${SYNTAX_HIGHLIGHTING_DIR}"`));
-    }
-    if (installs.length === 0) {
-      return { ok: true, message: 'Plugins already installed' };
-    }
-    await Promise.all(installs);
-    return { ok: true, message: 'Plugins installed' };
+    // Use zsh to install plugins via zinit. Sourcing user's ~/.zshrc ensures any customizations.
+    await runCommand(`zsh -lc 'source ~/.zshrc >/dev/null 2>&1 || true; zinit light zsh-users/zsh-autosuggestions; zinit light zsh-users/zsh-syntax-highlighting'`);
+    return { ok: true, message: 'Zinit and plugins installed' };
   } catch (error) {
     return { ok: false, error: error as Error };
   }
