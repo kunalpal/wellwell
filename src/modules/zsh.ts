@@ -136,8 +136,9 @@ export async function actionEnsureZshInstalled(): Promise<ActionResult> {
 async function detectDefaultShell(): Promise<ItemStatus> {
   try {
     if (process.platform === 'darwin') {
-      const { stdout } = await runCommand(`dscl . -read /Users/$USER UserShell | awk '{print $2}'`);
-      const current = stdout || process.env.SHELL || '';
+      // Use id -un to avoid relying on $USER and sanitize to a single line
+      const { stdout } = await runCommand(`dscl . -read /Users/"$(id -un)" UserShell | awk '{print $2}' | head -n1`);
+      const current = (stdout.split('\n')[0] || process.env.SHELL || '').trim();
       const ok = current.includes('/zsh');
       return {
         id: 'default-shell',
@@ -147,9 +148,9 @@ async function detectDefaultShell(): Promise<ItemStatus> {
       };
     }
 
-    // Linux fallback
-    const { stdout } = await runCommand(`getent passwd $USER | cut -d: -f7`);
-    const current = stdout || process.env.SHELL || '';
+    // Linux fallback – ensure only one line of output, resilient to noisy shell init
+    const { stdout } = await runCommand(`getent passwd "$(id -un)" | awk -F: '{print $7}' | head -n1`);
+    const current = (stdout.split('\n')[0] || process.env.SHELL || '').trim();
     const ok = current.includes('zsh');
     return {
       id: 'default-shell',

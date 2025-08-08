@@ -96,28 +96,37 @@ export async function diff(): Promise<ActionResult> {
 
 export async function install(): Promise<ActionResult> {
   try {
-    // Install starship if missing using platform package managers, fallback to curl script
-    const { stdout } = await runCommand(`command -v starship || true`);
-    if (!stdout) {
+    // Install starship if missing. Prefer package managers when privileges are available;
+    // otherwise fall back to the official installer script which installs under ~/.local/bin.
+    const foundBefore = await runCommand(`command -v starship || true`);
+    if (!foundBefore.stdout) {
       if (process.platform === 'darwin') {
         await runCommand(`brew install starship || true`);
       } else {
         const apt = await runCommand(`command -v apt-get || true`);
         const dnf = await runCommand(`command -v dnf || true`);
         const yum = await runCommand(`command -v yum || true`);
-        let installed = false;
-        if (apt.stdout) {
-          await runCommand(`sudo -n apt-get update || true`);
-          await runCommand(`sudo -n apt-get install -y starship || true`);
-          installed = true;
-        } else if (dnf.stdout) {
-          await runCommand(`sudo -n dnf install -y starship || true`);
-          installed = true;
-        } else if (yum.stdout) {
-          await runCommand(`sudo -n yum install -y starship || true`);
-          installed = true;
+        // Determine if we can run privileged installs
+        const uid = await runCommand(`id -u || echo 1000`);
+        const isRoot = uid.stdout.trim() === '0';
+        const hasSudo = (await runCommand(`command -v sudo || true`)).stdout ? true : false;
+        const sudoWorks = hasSudo ? (await runCommand(`sudo -n true || true`)).stderr === '' : false;
+        const canPrivInstall = isRoot || sudoWorks;
+
+        if (canPrivInstall) {
+          if (apt.stdout) {
+            await runCommand(`sudo -n apt-get update || true`);
+            await runCommand(`sudo -n apt-get install -y starship || true`);
+          } else if (dnf.stdout) {
+            await runCommand(`sudo -n dnf install -y starship || true`);
+          } else if (yum.stdout) {
+            await runCommand(`sudo -n yum install -y starship || true`);
+          }
         }
-        if (!installed) {
+
+        // Re-check; if still missing, use the curl installer (no sudo required)
+        const afterPm = await runCommand(`command -v starship || true`);
+        if (!afterPm.stdout) {
           await runCommand(`curl -sS https://starship.rs/install.sh | sh -s -- -y || true`);
         }
       }
