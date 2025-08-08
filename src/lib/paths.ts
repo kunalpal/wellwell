@@ -37,3 +37,6 @@ export const MANAGED_STARSHIP_TOML_PATH = path.join(STARSHIP_DOTFILES_ROOT, 'sta
 
 export const USER_CONFIG_DIR = process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config');
 export const USER_STARSHIP_TOML_PATH = path.join(USER_CONFIG_DIR, 'starship.toml');
+
+export const BREW_DOTFILES_ROOT = path.join(DOTFILES_ROOT, 'brew');
+export const MANAGED_BREWFILE_PATH = path.join(BREW_DOTFILES_ROOT, 'Brewfile');

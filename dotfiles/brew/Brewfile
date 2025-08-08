@@ -1,0 +1,7 @@
+brew "git"
+brew "node"
+brew "ripgrep"
+brew "fzf"
+brew "starship"
+
+cask "iterm2"

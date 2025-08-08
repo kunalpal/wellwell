@@ -2,6 +2,7 @@ import type { ItemStatus, ActionResult } from './types.js';
 import * as zsh from './zsh.js';
 import * as starship from './starship.js';
 import * as theme from './theme.js';
+import * as brew from './brew.js';
 
 export type ModuleDefinition = {
   id: string;
@@ -36,5 +37,13 @@ export const modules: ModuleDefinition[] = [
     diff: async () => theme.diff(),
     install: async () => theme.install(),
     update: async () => theme.update(),
+  },
+  {
+    id: 'brew',
+    label: 'Homebrew',
+    getStatusList: async () => brew.getStatusList(),
+    diff: async () => brew.diff(),
+    install: async () => brew.install(),
+    update: async () => brew.update(),
   },
 ];
