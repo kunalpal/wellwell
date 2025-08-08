@@ -2,14 +2,15 @@ import React from 'react';
 import { render, Box, Text } from 'ink';
 import meow from 'meow';
 import ZshView from './ui/ZshView.js';
+import Root from './ui/Root.js';
 
 const cli = meow(
   `
   Usage
-    $ wellwell [zsh]
+    $ wellwell [module]
 
-  Description
-    Manage dotfiles modules. Starts interactive UI for the requested module.
+  Modules
+    zsh
 
   Examples
     $ wellwell
@@ -24,13 +25,11 @@ const cli = meow(
 const [command] = cli.input;
 
 function AppRouter() {
-  const module = command || 'zsh';
-  if (module === 'zsh') {
-    return <ZshView />;
-  }
+  if (!command) return <Root />;
+  if (command === 'zsh') return <ZshView />;
   return (
     <Box>
-      <Text>Unknown module: {module}</Text>
+      <Text>Unknown module: {command}</Text>
     </Box>
   );
 }

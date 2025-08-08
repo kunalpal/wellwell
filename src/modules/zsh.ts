@@ -43,6 +43,61 @@ export async function getZshStatus(): Promise<ZshStatus> {
   };
 }
 
+export async function getStatusList(): Promise<ItemStatus[]> {
+  const s = await getZshStatus();
+  return [s.defaultShell, s.zshrcLink, s.autosuggestions, s.syntaxHighlighting];
+}
+
+export async function diffModule() {
+  // Diff managed zshrc vs linked or home file
+  try {
+    const exists = await pathExists(LINK_ZSHRC);
+    if (!exists) {
+      return { ok: true, message: `No ~/.zshrc present. Would link to ${MANAGED_ZSHRC}.` };
+    }
+    const content = await readFile(LINK_ZSHRC, 'utf8').catch(() => '');
+    const managedContent = await readFile(MANAGED_ZSHRC, 'utf8').catch(() => '');
+    if (content.trim() === managedContent.trim()) {
+      return { ok: true, message: 'No differences' };
+    }
+    // Simple line-by-line diff preview (first 10 lines)
+    const homeLines = content.split('\n');
+    const managedLines = managedContent.split('\n');
+    const preview = [
+      '--- ~/.zshrc',
+      `+++ ${MANAGED_ZSHRC}`,
+      ...homeLines.slice(0, 10).map((l) => `- ${l}`),
+      ...managedLines.slice(0, 10).map((l) => `+ ${l}`),
+      homeLines.length > 10 || managedLines.length > 10 ? '(diff truncated)' : '',
+    ]
+      .filter(Boolean)
+      .join('\n');
+    return { ok: true, message: preview };
+  } catch (error) {
+    return { ok: false, error: error as Error };
+  }
+}
+
+export async function installModule() {
+  // Ensure managed file, link it, install plugins
+  const steps = [actionEnsureManagedZshrc, actionLinkZshrc, actionInstallPlugins];
+  for (const step of steps) {
+    const res = await step();
+    if (!res.ok) return res;
+  }
+  return { ok: true, message: 'Zsh installed (managed .zshrc linked, plugins installed).' };
+}
+
+export async function updateModule() {
+  // Re-link to ensure correct target and reinstall missing plugins
+  const steps = [actionLinkZshrc, actionInstallPlugins];
+  for (const step of steps) {
+    const res = await step();
+    if (!res.ok) return res;
+  }
+  return { ok: true, message: 'Zsh updated.' };
+}
+
 async function detectDefaultShell(): Promise<ItemStatus> {
   try {
     if (process.platform === 'darwin') {
