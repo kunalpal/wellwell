@@ -1,7 +1,20 @@
 #!/usr/bin/env bash
 # wellwell CLI launcher
 set -euo pipefail
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Resolve script directory, following symlinks
+SOURCE_PATH="${BASH_SOURCE[0]}"
+while [ -h "$SOURCE_PATH" ]; do
+  CURRENT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"
+  TARGET="$(readlink "$SOURCE_PATH")"
+  if [[ "$TARGET" != /* ]]; then
+    SOURCE_PATH="$CURRENT_DIR/$TARGET"
+  else
+    SOURCE_PATH="$TARGET"
+  fi
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE_PATH")" && pwd)"
+
 DIST_PATH="$SCRIPT_DIR/../dist/index.mjs"
 if [ ! -f "$DIST_PATH" ]; then
   echo "Build output not found at $DIST_PATH. Run: npm run build" >&2

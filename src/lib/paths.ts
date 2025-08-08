@@ -54,3 +54,7 @@ export const MANAGED_BAT_CONFIG_PATH = path.join(BAT_DOTFILES_ROOT, 'config');
 export const MANAGED_BAT_THEMES_DIR = path.join(BAT_DOTFILES_ROOT, 'themes');
 export const USER_BAT_CONFIG_PATH = path.join(USER_CONFIG_DIR, 'bat', 'config');
 export const USER_BAT_THEMES_DIR = path.join(USER_CONFIG_DIR, 'bat', 'themes');
+
+export const MISE_DOTFILES_ROOT = path.join(DOTFILES_ROOT, 'mise');
+export const MANAGED_MISE_CONFIG_PATH = path.join(MISE_DOTFILES_ROOT, 'config.toml');
+export const USER_MISE_CONFIG_PATH = path.join(USER_CONFIG_DIR, 'mise', 'config.toml');

@@ -6,6 +6,7 @@ import * as brew from './brew.js';
 import * as aliases from './aliases.js';
 import * as fzf from './fzf.js';
 import * as bat from './bat.js';
+import * as mise from './mise.js';
 
 export type ModuleDefinition = {
   id: string;
@@ -72,5 +73,13 @@ export const modules: ModuleDefinition[] = [
     diff: async () => bat.diff(),
     install: async () => bat.install(),
     update: async () => bat.update(),
+  },
+  {
+    id: 'mise',
+    label: 'mise',
+    getStatusList: async () => mise.getStatusList(),
+    diff: async () => mise.diff(),
+    install: async () => mise.install(),
+    update: async () => mise.update(),
   },
 ];

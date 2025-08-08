@@ -37,6 +37,11 @@ zinit light zsh-users/zsh-syntax-highlighting
 # Ensure completions are initialized
 autoload -Uz compinit && compinit -u
 
+# mise (tool versions)
+if command -v mise >/dev/null 2>&1; then
+  eval "$(mise activate zsh)"
+fi
+
 # zoxide (map to `cd`)
 if command -v zoxide >/dev/null 2>&1; then
   eval "$(zoxide init --cmd cd zsh)"

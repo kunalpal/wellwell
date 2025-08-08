@@ -8,5 +8,6 @@ brew "zoxide"
 brew "neovim"
 brew "coreutils"
 brew "bat"
+brew "mise"
 
 cask "iterm2"
