@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# wellwell CLI launcher
+set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DIST_PATH="$SCRIPT_DIR/../dist/index.mjs"
+if [ ! -f "$DIST_PATH" ]; then
+  echo "Build output not found at $DIST_PATH. Run: npm run build" >&2
+  exit 1
+fi
+exec node "$DIST_PATH" "$@"
