@@ -1,0 +1,10 @@
+{
+  "name": "solarized-dark",
+  "primary": "#268bd2",
+  "secondary": "#2aa198",
+  "accent": "#b58900",
+  "success": "#859900",
+  "warning": "#cb4b16",
+  "error": "#dc322f",
+  "neutral": "#839496"
+}

@@ -3,22 +3,31 @@ import { Box, Text, useInput } from 'ink';
 import { modules, type ModuleDefinition } from '../modules/registry.js';
 import type { ItemStatus } from '../modules/types.js';
 import { Table, type TableColumn } from './components/Table.js';
+import * as theme from '../modules/theme.js';
 
-export default function Root() {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+export default function Root({ initialModuleId }: { initialModuleId?: string } = {}) {
+  const initialIndex = initialModuleId ? Math.max(0, modules.findIndex((m) => m.id === initialModuleId)) : 0;
+  const [selectedIndex, setSelectedIndex] = useState(initialIndex === -1 ? 0 : initialIndex);
   const [statusMap, setStatusMap] = useState<Record<string, ItemStatus[]>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [palettes, setPalettes] = useState<string[]>([]);
+  const [activePalette, setActivePalette] = useState<string | null>(null);
 
   const selectedModule: ModuleDefinition = modules[selectedIndex];
 
   async function refreshFor(module: ModuleDefinition) {
     const list = await module.getStatusList();
     setStatusMap((m) => ({ ...m, [module.id]: list }));
+    if (module.id === 'theme') {
+      const p = await theme.listPalettes();
+      const a = await theme.getActivePaletteName();
+      setPalettes(p);
+      setActivePalette(a);
+    }
   }
 
   useEffect(() => {
-    // Initial fetch
     modules.forEach((m) => refreshFor(m));
   }, []);
 
@@ -57,6 +66,16 @@ export default function Root() {
       setMessage(res.message || (res.ok ? 'Done' : 'Failed'));
       setBusy(false);
       await refreshFor(selectedModule);
+    } else if (selectedModule.id === 'theme' && (input === '[' || input === ']')) {
+      if (palettes.length === 0) return;
+      const idx = Math.max(0, palettes.indexOf(activePalette || palettes[0]));
+      const nextIdx = input === ']' ? (idx + 1) % palettes.length : (idx - 1 + palettes.length) % palettes.length;
+      const next = palettes[nextIdx];
+      setBusy(true);
+      const res = await theme.switchPalette(next);
+      setMessage(res.message || (res.ok ? `Switched to ${next}` : 'Failed'));
+      setBusy(false);
+      await refreshFor(selectedModule);
     }
   });
 
@@ -76,6 +95,11 @@ export default function Root() {
       <Text>
         <Text color="cyan">wellwell</Text> · Modules: {modules.map((m, i) => (i === selectedIndex ? `[${m.label}]` : m.label)).join('  ')}
       </Text>
+      {selectedModule.id === 'theme' ? (
+        <Text dimColor>
+          Palettes: {palettes.join(', ') || 'none'} {activePalette ? `(active: ${activePalette})` : ''}
+        </Text>
+      ) : null}
       <Box marginTop={1}>
         <Table columns={columns} rows={rows} />
       </Box>
@@ -84,7 +108,12 @@ export default function Root() {
         {message ? <Text dimColor>{message}</Text> : null}
       </Box>
       <Box marginTop={1} flexDirection="column">
-        <Text dimColor>Controls: ←/→ switch module  [Enter] refresh  [d] diff  [i] install  [u] update  [q] quit</Text>
+        <Text dimColor>
+          Controls: ←/→ switch module  [Enter] refresh  [d] diff  [i] install  [u] update  [q] quit
+        </Text>
+        {selectedModule.id === 'theme' ? (
+          <Text dimColor>Theme: [ and ] to switch active palette</Text>
+        ) : null}
       </Box>
     </Box>
   );

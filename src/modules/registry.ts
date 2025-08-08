@@ -1,6 +1,7 @@
 import type { ItemStatus, ActionResult } from './types.js';
 import * as zsh from './zsh.js';
 import * as starship from './starship.js';
+import * as theme from './theme.js';
 
 export type ModuleDefinition = {
   id: string;
@@ -27,5 +28,13 @@ export const modules: ModuleDefinition[] = [
     diff: async () => starship.diff(),
     install: async () => starship.install(),
     update: async () => starship.update(),
+  },
+  {
+    id: 'theme',
+    label: 'Theme',
+    getStatusList: async () => theme.getStatusList(),
+    diff: async () => theme.diff(),
+    install: async () => theme.install(),
+    update: async () => theme.update(),
   },
 ];
