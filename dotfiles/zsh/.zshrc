@@ -30,8 +30,12 @@ source "$ZINIT_HOME/zinit.zsh"
 
 # Plugins
 zinit light zsh-users/zsh-autosuggestions
+zinit light zsh-users/zsh-completions
 # zsh-syntax-highlighting should be last
 zinit light zsh-users/zsh-syntax-highlighting
+
+# Ensure completions are initialized
+autoload -Uz compinit && compinit -u
 
 # Keybindings
 bindkey -e

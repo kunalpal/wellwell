@@ -22,6 +22,7 @@ const ZINIT_HOME = path.join(XDG_DATA_HOME, 'zinit', 'zinit.git');
 const ZINIT_PLUGINS_DIR = path.join(XDG_DATA_HOME, 'zinit', 'plugins');
 const AUTOSUGGESTIONS_DIR = path.join(ZINIT_PLUGINS_DIR, 'zsh-users---zsh-autosuggestions');
 const SYNTAX_HIGHLIGHTING_DIR = path.join(ZINIT_PLUGINS_DIR, 'zsh-users---zsh-syntax-highlighting');
+const COMPLETIONS_DIR = path.join(ZINIT_PLUGINS_DIR, 'zsh-users---zsh-completions');
 
 export type ZshStatus = {
   defaultShell: ItemStatus;
@@ -29,15 +30,17 @@ export type ZshStatus = {
   zinit: ItemStatus;
   autosuggestions: ItemStatus;
   syntaxHighlighting: ItemStatus;
+  completions: ItemStatus;
 };
 
 export async function getZshStatus(): Promise<ZshStatus> {
-  const [shell, link, zinitStatus, auto, syntax] = await Promise.all([
+  const [shell, link, zinitStatus, auto, syntax, completions] = await Promise.all([
     detectDefaultShell(),
     detectZshrcLink(),
     detectZinit(),
     detectPlugin(AUTOSUGGESTIONS_DIR, 'zsh-autosuggestions'),
     detectPlugin(SYNTAX_HIGHLIGHTING_DIR, 'zsh-syntax-highlighting'),
+    detectPlugin(COMPLETIONS_DIR, 'zsh-completions'),
   ]);
 
   return {
@@ -46,12 +49,13 @@ export async function getZshStatus(): Promise<ZshStatus> {
     zinit: zinitStatus,
     autosuggestions: auto,
     syntaxHighlighting: syntax,
+    completions,
   };
 }
 
 export async function getStatusList(): Promise<ItemStatus[]> {
   const s = await getZshStatus();
-  return [s.defaultShell, s.zshrcLink, s.zinit, s.autosuggestions, s.syntaxHighlighting];
+  return [s.defaultShell, s.zshrcLink, s.zinit, s.autosuggestions, s.syntaxHighlighting, s.completions];
 }
 
 export async function diffModule() {
@@ -248,8 +252,8 @@ export async function actionInstallPlugins(): Promise<ActionResult> {
       await runCommand(`git clone https://github.com/zdharma-continuum/zinit.git "${ZINIT_HOME}"`);
     }
     // Use zsh to install plugins via zinit. Sourcing user's ~/.zshrc ensures any customizations.
-    await runCommand(`zsh -lc 'source ~/.zshrc >/dev/null 2>&1 || true; zinit light zsh-users/zsh-autosuggestions; zinit light zsh-users/zsh-syntax-highlighting'`);
-    return { ok: true, message: 'Zinit and plugins installed' };
+    await runCommand(`zsh -lc 'source ~/.zshrc >/dev/null 2>&1 || true; zinit light zsh-users/zsh-autosuggestions; zinit light zsh-users/zsh-syntax-highlighting; zinit light zsh-users/zsh-completions; autoload -Uz compinit && compinit -u'`);
+    return { ok: true, message: 'Zinit and plugins installed (including zsh-completions)' };
   } catch (error) {
     return { ok: false, error: error as Error };
   }
