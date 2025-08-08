@@ -42,6 +42,11 @@ if command -v zoxide >/dev/null 2>&1; then
   eval "$(zoxide init --cmd cd zsh)"
 fi
 
+# fzf config
+if [ -f "$HOME/.config/fzf/.fzf.zsh" ]; then
+  source "$HOME/.config/fzf/.fzf.zsh"
+fi
+
 # Source aliases if present
 if [ -f "$HOME/.zsh/aliases.zsh" ]; then
   source "$HOME/.zsh/aliases.zsh"

@@ -4,6 +4,7 @@ import * as starship from './starship.js';
 import * as theme from './theme.js';
 import * as brew from './brew.js';
 import * as aliases from './aliases.js';
+import * as fzf from './fzf.js';
 
 export type ModuleDefinition = {
   id: string;
@@ -54,5 +55,13 @@ export const modules: ModuleDefinition[] = [
     diff: async () => aliases.diff(),
     install: async () => aliases.install(),
     update: async () => aliases.update(),
+  },
+  {
+    id: 'fzf',
+    label: 'fzf',
+    getStatusList: async () => fzf.getStatusList(),
+    diff: async () => fzf.diff(),
+    install: async () => fzf.install(),
+    update: async () => fzf.update(),
   },
 ];
