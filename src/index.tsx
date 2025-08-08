@@ -1,29 +1,39 @@
 import React from 'react';
-import { render } from 'ink';
+import { render, Box, Text } from 'ink';
 import meow from 'meow';
-import App from './ui/App.js';
+import ZshView from './ui/ZshView.js';
 
 const cli = meow(
   `
   Usage
-    $ wellwell [--name <name>]
+    $ wellwell [zsh]
 
-  Options
-    --name, -n  Who to greet (default: "World")
+  Description
+    Manage dotfiles modules. Starts interactive UI for the requested module.
 
   Examples
-    $ wellwell --name Kunal
+    $ wellwell
+    $ wellwell zsh
 `,
   {
     importMeta: import.meta,
-    flags: {
-      name: {
-        type: 'string',
-        shortFlag: 'n',
-        default: 'World',
-      },
-    },
+    flags: {},
   }
 );
 
-render(<App name={cli.flags.name} />);
+const [command] = cli.input;
+
+function AppRouter() {
+  const module = command || 'zsh';
+  if (module === 'zsh') {
+    return <ZshView />;
+  }
+  return (
+    <Box>
+      <Text>Unknown module: {module}</Text>
+    </Box>
+  );
+}
+
+render(<AppRouter />);
+
