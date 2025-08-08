@@ -60,11 +60,11 @@ export default function Root({ initialModuleId }: { initialModuleId?: string } =
   useInput(async (input, key) => {
     if (busy) return;
 
-    if (key.upArrow) {
+    if (key.upArrow || input === 'k') {
       setSelectedIndex((i) => (i - 1 + modules.length) % modules.length);
       return;
     }
-    if (key.downArrow) {
+    if (key.downArrow || input === 'j') {
       setSelectedIndex((i) => (i + 1) % modules.length);
       return;
     }
@@ -94,6 +94,15 @@ export default function Root({ initialModuleId }: { initialModuleId?: string } =
       setMessage(res.message || (res.ok ? 'Done' : 'Failed'));
       setBusy(false);
       await refreshFor(selectedModule);
+    } else if (input === 'a') {
+      // Install all
+      setBusy(true);
+      for (const m of modules) {
+        const res = await m.install();
+        setMessage(`${m.label}: ${res.message || (res.ok ? 'Installed' : 'Failed')}`);
+      }
+      setBusy(false);
+      await refreshAll();
     } else if (selectedModule.id === 'theme' && (key.tab || input === '\t' || input === '[' || input === ']')) {
       if (palettes.length === 0) return;
       const idx = Math.max(0, palettes.indexOf(activePalette || palettes[0]));
@@ -132,7 +141,7 @@ export default function Root({ initialModuleId }: { initialModuleId?: string } =
       </Box>
       <Box marginTop={1}>
         <Text>
-          <Text color="magenta">Overview</Text> · Use ↑/↓ to select a module, Enter to refresh selected. Press <Text color="green">a</Text> to Install All.
+          <Text color="magenta">Overview</Text> · Use ↑/↓ or j/k to select a module, Enter to refresh selected. Press <Text color="green">a</Text> to Install All.
         </Text>
       </Box>
       <Box marginTop={1}>
@@ -172,7 +181,7 @@ export default function Root({ initialModuleId }: { initialModuleId?: string } =
       </Box>
       <Box marginTop={1} flexDirection="column">
         <Text dimColor>
-          Controls: ↑/↓ select module  [Enter] refresh  [d] diff  [i] install  [u] update  [a] install all  [q] quit
+          Controls: ↑/↓ or j/k select module  [Enter] refresh  [d] diff  [i] install  [u] update  [a] install all  [q] quit
         </Text>
         {selectedModule.id === 'theme' ? (
           <Text dimColor>Theme: Tab to switch palette (Shift+Tab for previous)</Text>
