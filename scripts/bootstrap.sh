@@ -34,11 +34,45 @@ if ! command -v npm >/dev/null 2>&1; then
   fi
 fi
 
+# Ensure git is available
+if ! command -v git >/dev/null 2>&1; then
+  if command -v brew >/dev/null 2>&1; then
+    brew install git || true
+  else
+    echo "git is required but not found and Homebrew is unavailable. Please install git and re-run." >&2
+    exit 1
+  fi
+fi
+
+# Upstream repository
+REPO_URL="https://github.com/kunalpal/wellwell.git"
+
 # Project root (repo) relative to this script
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# Update the repository (pull latest) if it's a git repo
-if [[ -d "$REPO_DIR/.git" ]]; then
+# If current directory isn't a git repo, clone a fresh copy into ~/Projects/wellwell
+if [[ ! -d "$REPO_DIR/.git" ]]; then
+  DEFAULT_BASE="$HOME/Projects"
+  CLONE_DIR="$DEFAULT_BASE/wellwell"
+  mkdir -p "$DEFAULT_BASE"
+  if [[ ! -d "$CLONE_DIR/.git" ]]; then
+    echo "Cloning repository from $REPO_URL into $CLONE_DIR..."
+    git clone "$REPO_URL" "$CLONE_DIR"
+  else
+    echo "Repository already exists at $CLONE_DIR. Updating..."
+    git -C "$CLONE_DIR" fetch --all --prune || true
+    git -C "$CLONE_DIR" pull --rebase --autostash || true
+  fi
+  REPO_DIR="$CLONE_DIR"
+else
+  # Ensure 'origin' remote is set to the upstream URL and pull latest
+  echo "Ensuring remote 'origin' points to $REPO_URL..."
+  CURRENT_ORIGIN="$(git -C "$REPO_DIR" remote get-url origin 2>/dev/null || echo '')"
+  if [[ -z "$CURRENT_ORIGIN" ]]; then
+    git -C "$REPO_DIR" remote add origin "$REPO_URL" || true
+  elif [[ "$CURRENT_ORIGIN" != "$REPO_URL" ]]; then
+    git -C "$REPO_DIR" remote set-url origin "$REPO_URL" || true
+  fi
   echo "Updating repository at $REPO_DIR..."
   git -C "$REPO_DIR" fetch --all --prune || true
   git -C "$REPO_DIR" pull --rebase --autostash || true

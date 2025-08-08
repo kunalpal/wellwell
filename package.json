@@ -2,6 +2,14 @@
   "name": "wellwell",
   "version": "1.0.0",
   "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kunalpal/wellwell.git"
+  },
+  "homepage": "https://github.com/kunalpal/wellwell#readme",
+  "bugs": {
+    "url": "https://github.com/kunalpal/wellwell/issues"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx src/index.tsx",
