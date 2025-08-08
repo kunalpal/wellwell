@@ -48,3 +48,9 @@ export const USER_ALIASES_ZSH_PATH = path.join(os.homedir(), '.zsh', 'aliases.zs
 export const FZF_DOTFILES_ROOT = path.join(DOTFILES_ROOT, 'fzf');
 export const MANAGED_FZF_ZSH_PATH = path.join(FZF_DOTFILES_ROOT, 'fzf.zsh');
 export const USER_FZF_ZSH_PATH = path.join(USER_CONFIG_DIR, 'fzf', '.fzf.zsh');
+
+export const BAT_DOTFILES_ROOT = path.join(DOTFILES_ROOT, 'bat');
+export const MANAGED_BAT_CONFIG_PATH = path.join(BAT_DOTFILES_ROOT, 'config');
+export const MANAGED_BAT_THEMES_DIR = path.join(BAT_DOTFILES_ROOT, 'themes');
+export const USER_BAT_CONFIG_PATH = path.join(USER_CONFIG_DIR, 'bat', 'config');
+export const USER_BAT_THEMES_DIR = path.join(USER_CONFIG_DIR, 'bat', 'themes');

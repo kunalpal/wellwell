@@ -5,6 +5,7 @@ import * as theme from './theme.js';
 import * as brew from './brew.js';
 import * as aliases from './aliases.js';
 import * as fzf from './fzf.js';
+import * as bat from './bat.js';
 
 export type ModuleDefinition = {
   id: string;
@@ -63,5 +64,13 @@ export const modules: ModuleDefinition[] = [
     diff: async () => fzf.diff(),
     install: async () => fzf.install(),
     update: async () => fzf.update(),
+  },
+  {
+    id: 'bat',
+    label: 'bat',
+    getStatusList: async () => bat.getStatusList(),
+    diff: async () => bat.diff(),
+    install: async () => bat.install(),
+    update: async () => bat.update(),
   },
 ];

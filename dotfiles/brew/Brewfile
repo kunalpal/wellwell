@@ -7,5 +7,6 @@ brew "eza"
 brew "zoxide"
 brew "neovim"
 brew "coreutils"
+brew "bat"
 
 cask "iterm2"
