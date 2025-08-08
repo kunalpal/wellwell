@@ -40,3 +40,7 @@ export const USER_STARSHIP_TOML_PATH = path.join(USER_CONFIG_DIR, 'starship.toml
 
 export const BREW_DOTFILES_ROOT = path.join(DOTFILES_ROOT, 'brew');
 export const MANAGED_BREWFILE_PATH = path.join(BREW_DOTFILES_ROOT, 'Brewfile');
+
+export const ALIASES_DOTFILES_ROOT = path.join(DOTFILES_ROOT, 'aliases');
+export const MANAGED_ALIASES_ZSH_PATH = path.join(ALIASES_DOTFILES_ROOT, 'aliases.zsh');
+export const USER_ALIASES_ZSH_PATH = path.join(os.homedir(), '.zsh', 'aliases.zsh');

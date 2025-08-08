@@ -3,6 +3,7 @@ import * as zsh from './zsh.js';
 import * as starship from './starship.js';
 import * as theme from './theme.js';
 import * as brew from './brew.js';
+import * as aliases from './aliases.js';
 
 export type ModuleDefinition = {
   id: string;
@@ -45,5 +46,13 @@ export const modules: ModuleDefinition[] = [
     diff: async () => brew.diff(),
     install: async () => brew.install(),
     update: async () => brew.update(),
+  },
+  {
+    id: 'aliases',
+    label: 'Aliases',
+    getStatusList: async () => aliases.getStatusList(),
+    diff: async () => aliases.diff(),
+    install: async () => aliases.install(),
+    update: async () => aliases.update(),
   },
 ];
