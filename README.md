@@ -24,13 +24,7 @@ Build and drop into a shell on Ubuntu 24.04 (uses your local repo, not remote):
 npm run docker:ubuntu:build && npm run docker:ubuntu:shell
 ```
 
-Build and drop into a shell on Amazon Linux 2023:
-
-```bash
-npm run docker:al2023:build && npm run docker:al2023:shell
-```
-
-This mounts your local repository into the container at `/home/dev/wellwell` and runs the bootstrapper with `WW_LOCAL_REPO` so it builds/links from your working copy instead of cloning from GitHub. Inside the container, `wellwell` should be available on PATH.
+Amazon Linux Docker support is temporarily disabled.
 
 ### What the installer does
 
@@ -69,7 +63,7 @@ wellwell brew install
 
 ### Platforms
 
-Supported on macOS, Ubuntu, and Amazon Linux. The CLI auto-detects platform and uses the appropriate package manager where needed.
+Supported on macOS and Ubuntu. Amazon Linux support is temporarily disabled.
 
 ### Repository
 

@@ -18,8 +18,8 @@
     "postbuild": "chmod +x bin/wellwell",
     "docker:ubuntu:build": "docker build -f docker/Dockerfile.ubuntu -t wellwell:ubuntu .",
     "docker:ubuntu:shell": "docker run --rm -it -e LOCAL_REPO=/home/dev/wellwell -e MISE_TRUSTED_CONFIG=1 -v $PWD:/home/dev/wellwell wellwell:ubuntu bash -lc \"/home/dev/wellwell/scripts/bootstrap.sh --install-all && exec zsh\"",
-    "docker:al2023:build": "docker build -f docker/Dockerfile.amazonlinux -t wellwell:al2023 .",
-    "docker:al2023:shell": "docker run --rm -it wellwell:al2023 bash"
+    "docker:al2023:build": "echo 'Amazon Linux Docker is temporarily disabled' && exit 0",
+    "docker:al2023:shell": "echo 'Amazon Linux Docker is temporarily disabled' && exit 0"
   },
   "keywords": [],
   "author": "",
