@@ -91,9 +91,14 @@ export default function Dashboard({ verbose }: DashboardProps) {
           // Apply selected module and its dependencies
           void engineRef.current!.apply([selectedModule.id]).finally(() => setIsApplying(false));
         } else {
-          // Apply all if no selection
-          void engineRef.current!.apply().finally(() => setIsApplying(false));
+          setIsApplying(false);
         }
+      }
+    } else if (input === 'A') {
+      if (!isApplying) {
+        setIsApplying(true);
+        // Apply all modules in topological order
+        void engineRef.current!.apply().finally(() => setIsApplying(false));
       }
     } else if (input === 'p') {
       // plan
@@ -149,7 +154,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
       <Box>
         <Text>
           {chalk.bold('wellwell')} {chalk.gray('– ')}
-          {chalk.gray('↑/↓/j/k: navigate  a: apply  p: plan  s: refresh  1/2/3: sort  q: quit')}
+          {chalk.gray('↑/↓/j/k: navigate  a: apply  A: apply all  p: plan  s: refresh  1/2/3: sort  q: quit')}
         </Text>
       </Box>
       <Box>
