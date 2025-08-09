@@ -28,11 +28,16 @@ function renderZshrcBlock(ctx: ConfigurationContext): string {
     pathExport,
     'export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#555"',
     ...resolvedAliases.map((a) => `alias ${a.name}="${escapeDoubleQuotes(a.value)}"`),
+    '',
+    '# Initialize starship prompt if available',
+    'if command -v starship > /dev/null 2>&1; then',
+    '  eval "$(starship init zsh)"',
+    'fi',
     ZSHRC_MARKER_END,
     '',
   ];
   if (ctx.platform === 'macos') {
-    lines.splice(lines.length - 1, 0, 'export BROWSER="open"');
+    lines.splice(lines.length - 2, 0, 'export BROWSER="open"');
   }
   return lines.join('\n');
 }
@@ -67,7 +72,7 @@ async function upsertBlock(filePath: string, newBlock: string): Promise<{ change
 export const zshrcBaseModule: ConfigurationModule = {
   id: 'shell:zshrc:base',
   description: 'Base zshrc block managed by wellwell',
-  dependsOn: ['common:homebin', 'core:paths', 'core:aliases'],
+  dependsOn: ['common:homebin', 'core:paths', 'core:aliases', 'shell:starship'],
   priority: 50,
 
   async isApplicable(ctx) {

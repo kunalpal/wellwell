@@ -8,6 +8,7 @@ import { aptModule } from './packages/apt.js';
 import { yumModule } from './packages/yum.js';
 import { miseModule } from './packages/mise.js';
 import { nvimModule } from './apps/nvim.js';
+import { starshipModule } from './shell/starship.js';
 
 export const allModules: ConfigurationModule[] = [
   homeBinModule,
@@ -17,6 +18,7 @@ export const allModules: ConfigurationModule[] = [
   aptModule,
   yumModule,
   miseModule,
+  starshipModule,
   nvimModule,
   ...zshrcModules,
 ];
