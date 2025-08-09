@@ -113,19 +113,19 @@ export default function Dashboard({ verbose }: DashboardProps) {
       <Box marginTop={1} flexDirection="column">
         <Text>
           {chalk.bold('MODULE'.padEnd(32))}
-          {chalk.bold('STATUS'.padEnd(10))}
+          {chalk.bold('STATUS'.padEnd(18))}
           {chalk.bold('DEPENDENCIES')}
         </Text>
         {sorted.map((r) => (
           <Text key={r.id}>
             {r.id.padEnd(32)}
-            {formatStatusPadded(r.status).padEnd(10)}
+            {formatStatusPadded(r.status).padEnd(18)}
             {r.dependsOn.length > 0 ? (
               <Text>
                 {r.dependsOn.map((depId, idx) => (
                   <Text key={depId}>
                     {idx > 0 && <Text color="gray">, </Text>}
-                    {formatDependency(depId, rows[depId]?.status)}
+                    {formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows))}
                   </Text>
                 ))}
               </Text>
@@ -160,11 +160,21 @@ function formatStatusPadded(status: ConfigurationStatus): string {
   const formatted = formatStatus(status);
   // Since chalk adds ANSI codes, we need to pad based on the raw status length
   const rawLength = status.length;
-  const padding = Math.max(0, 8 - rawLength);
+  const padding = Math.max(0, 16 - rawLength);
   return formatted + ' '.repeat(padding);
 }
 
-function formatDependency(depId: string, status?: ConfigurationStatus): string {
+function isModuleApplicable(moduleId: string, rows: Record<string, ModuleRow>): boolean {
+  // If we have the module in our rows, we can assume it's applicable
+  // (engine only loads applicable modules into the dashboard)
+  return rows[moduleId] !== undefined;
+}
+
+function formatDependency(depId: string, status?: ConfigurationStatus, isUnsupported?: boolean): string {
+  if (isUnsupported) {
+    return chalk.strikethrough.dim(depId);
+  }
+  
   if (!status) return chalk.gray(depId);
   
   switch (status) {
