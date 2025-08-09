@@ -74,7 +74,7 @@ async function upsertBlock(filePath: string, newBlock: string): Promise<{ change
 export const zshrcBaseModule: ConfigurationModule = {
   id: 'shell:zshrc:base',
   description: 'Base zshrc block managed by wellwell',
-  dependsOn: ['common:homebin', 'core:paths', 'core:aliases', 'core:shell-init'],
+  dependsOn: ['common:homebin', 'core:paths', 'core:aliases', 'shell:init'],
   priority: 50,
 
   async isApplicable(ctx) {

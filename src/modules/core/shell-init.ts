@@ -12,7 +12,7 @@ import {
 } from '../../core/contrib.js';
 
 export const shellInitModule: ConfigurationModule = {
-  id: 'core:shell-init',
+  id: 'shell:init',
   description: 'Collect shell initialization contributions and compute final order',
   priority: 40, // Run after contribution modules
 
