@@ -169,9 +169,8 @@ export default function Dashboard({ verbose }: DashboardProps) {
           return (
             <Box key={r.id}>
               <Box width={32}>
-                <Text>
-                  {isSelected && <Text color="blue">{'> '}</Text>}
-                  {formatModuleName(r.id, isSelected, isHighlighted, isUnsupported)}
+                <Text color={isSelected ? 'blue' : undefined}>
+                  {(isSelected ? '> ' : '  ')}{formatModuleName(r.id, isSelected, isHighlighted, isUnsupported)}
                 </Text>
               </Box>
               <Box width={16}>
@@ -180,18 +179,15 @@ export default function Dashboard({ verbose }: DashboardProps) {
                 </Text>
               </Box>
               <Box flexGrow={1}>
-                {r.dependsOn.length > 0 ? (
-                  <Text>
-                    {r.dependsOn.map((depId, depIdx) => (
-                      <Text key={depId}>
-                        {depIdx > 0 && <Text color="gray">, </Text>}
-                        {formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), downstreamDeps.has(depId))}
-                      </Text>
-                    ))}
-                  </Text>
-                ) : (
-                  <Text color="gray">—</Text>
-                )}
+                <Text>
+                  {r.dependsOn.length > 0 
+                    ? r.dependsOn.map((depId, depIdx) => 
+                        (depIdx > 0 ? ', ' : '') + 
+                        formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), downstreamDeps.has(depId))
+                      ).join('')
+                    : '—'
+                  }
+                </Text>
               </Box>
             </Box>
           );
@@ -204,15 +200,20 @@ export default function Dashboard({ verbose }: DashboardProps) {
 
 
 function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: boolean, isUnsupported: boolean): string {
-  let formatted = moduleId;
-  
-  if (isUnsupported) {
-    formatted = chalk.yellow(formatted);
-  } else if (isHighlighted) {
-    formatted = chalk.bold(formatted);
+  // Don't use chalk for selected items since we handle that with Ink's color prop
+  if (isSelected) {
+    return moduleId;
   }
   
-  return formatted;
+  if (isUnsupported) {
+    return chalk.yellow(moduleId);
+  }
+  
+  if (isHighlighted) {
+    return chalk.bold(moduleId);
+  }
+  
+  return moduleId;
 }
 
 function formatStatus(status: ConfigurationStatus, isUnsupported?: boolean): string {
