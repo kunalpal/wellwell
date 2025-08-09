@@ -6,7 +6,6 @@ if command -v brew >/dev/null 2>&1; then
   [ -f "$__FZF_PREFIX/shell/key-bindings.zsh" ] && source "$__FZF_PREFIX/shell/key-bindings.zsh"
   [ -f "$__FZF_PREFIX/shell/completion.zsh" ] && source "$__FZF_PREFIX/shell/completion.zsh"
 elif command -v fzf >/dev/null 2>&1; then
-  # Common locations for the upstream install script
   for __fzf_dir in "$HOME/.fzf" "/usr/share/doc/fzf/examples" "/usr/share/fzf"; do
     [ -f "$__fzf_dir/key-bindings.zsh" ] && source "$__fzf_dir/key-bindings.zsh"
     [ -f "$__fzf_dir/completion.zsh" ] && source "$__fzf_dir/completion.zsh"
