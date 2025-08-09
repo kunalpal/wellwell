@@ -1,8 +1,0 @@
-# Managed by wellwell (repo mise config)
-
-[tools]
-node = "lts"
-python = "3.12"
-
-[settings]
-experimental = true

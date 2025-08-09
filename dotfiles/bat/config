@@ -1,7 +1,0 @@
-# Managed by wellwell (repo bat config)
-
-# Use our custom theme generated from the active palette
---theme="wellwell"
---style="numbers"
---color="always"
---pager="less -FRX"
