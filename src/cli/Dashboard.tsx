@@ -202,7 +202,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
                         (depIdx > 0 ? ', ' : '') + 
                         formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), downstreamDeps.has(depId))
                       ).join('')
-                    : '—'
+                    : chalk.hex('#FFA500')('~')
                   }
                 </Text>
               </Box>
@@ -268,29 +268,9 @@ function formatDependency(depId: string, status?: ConfigurationStatus, isUnsuppo
     // Unsupported dependencies: strikethrough + dim + gray
     // Use ANSI escape codes directly for strikethrough since chalk may not work properly
     formatted = `\u001b[9m\u001b[2m${chalk.gray(depId)}\u001b[0m`;
-  } else if (!status) {
-    formatted = chalk.gray(depId);
   } else {
-    switch (status) {
-      case 'applied':
-        formatted = chalk.green(depId);
-        break;
-      case 'pending':
-        formatted = chalk.yellow(depId);
-        break;
-      case 'failed':
-        formatted = chalk.red(depId);
-        break;
-      case 'skipped':
-        formatted = chalk.cyan(depId);
-        break;
-      case 'idle':
-        // Idle dependencies: blue (same as idle status)
-        formatted = chalk.blue(depId);
-        break;
-      default:
-        formatted = chalk.gray(depId);
-    }
+    // All supported dependencies are shown in orange
+    formatted = chalk.hex('#FFA500')(depId);
   }
   
   if (isHighlighted) {
