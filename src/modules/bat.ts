@@ -83,15 +83,19 @@ export async function install(): Promise<ActionResult> {
   await mkdir(USER_BAT_THEMES_DIR, { recursive: true });
   await fs.promises.cp(MANAGED_BAT_THEMES_DIR, USER_BAT_THEMES_DIR, { recursive: true });
   await fs.promises.writeFile(USER_BAT_CONFIG_PATH, await readFile(MANAGED_BAT_CONFIG_PATH, 'utf8'));
-  // Rebuild cache using whichever binary is available
+  // Ensure bat or batcat is present
   const hasBat = await runCommand(`command -v bat || true`);
+  const hasBatcat = hasBat.stdout ? { stdout: '' } : await runCommand(`command -v batcat || true`);
+  if (!hasBat.stdout && !hasBatcat.stdout) {
+    return { ok: false, message: 'bat not found (bat/batcat missing after install attempt)' };
+  }
+  // Rebuild cache using whichever binary is available
   if (hasBat.stdout) {
     await runCommand(`bat cache --build || true`);
-  } else {
-    const hasBatcat = await runCommand(`command -v batcat || true`);
-    if (hasBatcat.stdout) await runCommand(`batcat cache --build || true`);
+  } else if (hasBatcat.stdout) {
+    await runCommand(`batcat cache --build || true`);
   }
-  return { ok: true, message: 'bat installed/configured and cache built' };
+  return { ok: true, message: hasBat.stdout ? 'bat installed/configured and cache built' : 'batcat configured and cache built' };
 }
 
 export async function update(): Promise<ActionResult> {

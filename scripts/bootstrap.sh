@@ -205,6 +205,8 @@ EOF
 # Optional: auto-install all modules if requested
 if [[ "$AUTO_INSTALL_ALL" == true ]]; then
   echo "Auto-installing all modules via wellwell..."
+  # Enable verbose logs for module installers
+  export WW_VERBOSE=1
   if command -v mise >/dev/null 2>&1; then
     # Ensure Node from mise is available while running the CLI
     mise x node@lts -- wellwell install all || true

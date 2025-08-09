@@ -2,14 +2,10 @@
 # Update mapping in src/modules/apt.ts if needed
 
 git
-nodejs
 ripgrep
-fzf
-starship
 eza
 zoxide
 neovim
 coreutils
-bat
 
 

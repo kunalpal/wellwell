@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { promisify } from 'node:util';
 import { runCommand } from '../lib/exec.js';
 import type { ActionResult, ItemStatus } from './types.js';
@@ -116,7 +117,7 @@ export async function install(): Promise<ActionResult> {
         if (canPrivInstall) {
           if (apt.stdout) {
             await runCommand(`sudo -n apt-get update || true`);
-            await runCommand(`sudo -n apt-get install -y starship || true`);
+            const res = await runCommand(`sudo -n apt-get install -y starship || true`);
           } else if (dnf.stdout) {
             await runCommand(`sudo -n dnf install -y starship || true`);
           } else if (yum.stdout) {
@@ -124,10 +125,30 @@ export async function install(): Promise<ActionResult> {
           }
         }
 
-        // Re-check; if still missing, use the curl installer (no sudo required)
+        // Re-check; if still missing, try official installer script to ~/.local/bin (no sudo)
         const afterPm = await runCommand(`command -v starship || true`);
         if (!afterPm.stdout) {
-          await runCommand(`curl -sS https://starship.rs/install.sh | sh -s -- -y || true`);
+          const binDir = path.join(os.homedir(), '.local', 'bin');
+          await fs.promises.mkdir(binDir, { recursive: true });
+          const tmpDir = path.join(os.tmpdir(), `starship-install-${Date.now()}`);
+          await fs.promises.mkdir(tmpDir, { recursive: true });
+          const installScript = path.join(tmpDir, 'install.sh');
+          await runCommand(`curl -fsSL https://starship.rs/install.sh -o ${installScript} || true`);
+          await runCommand(`sh ${installScript} -y -b ${binDir} || true`);
+
+          // If still missing, fetch prebuilt tarball as a fallback
+          const afterScript = await runCommand(`command -v starship || true`);
+          if (!afterScript.stdout) {
+            const arch = process.arch === 'arm64' ? 'aarch64' : process.arch === 'x64' ? 'x86_64' : '';
+            if (!arch) {
+              return { ok: false, message: `Unsupported architecture for starship: ${process.arch}` };
+            }
+            const url = `https://github.com/starship/starship/releases/latest/download/starship-${arch}-unknown-linux-gnu.tar.gz`;
+            const tarPath = path.join(tmpDir, 'starship.tar.gz');
+            await runCommand(`curl -fsSL ${url} -o ${tarPath} || true`);
+            await runCommand(`(test -f ${tarPath} && tar -xzf ${tarPath} -C ${tmpDir}) || true`);
+            await runCommand(`(test -f ${tmpDir}/starship && mv ${tmpDir}/starship ${binDir}/starship && chmod +x ${binDir}/starship) || true`);
+          }
         }
       }
     }
@@ -141,7 +162,10 @@ export async function install(): Promise<ActionResult> {
     } catch {}
     await fs.promises.symlink(MANAGED_STARSHIP_TOML_PATH, USER_STARSHIP_TOML_PATH);
 
-    return { ok: true, message: 'Starship installed and config linked' };
+    // Final check of binary presence for accurate messaging
+    const finalCheck = await runCommand(`command -v starship || true`);
+    const msg = finalCheck.stdout ? 'Starship installed and config linked' : 'Starship config linked (binary not found on PATH)';
+    return { ok: true, message: msg };
   } catch (error) {
     return { ok: false, error: error as Error };
   }

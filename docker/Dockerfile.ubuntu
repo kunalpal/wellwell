@@ -8,13 +8,17 @@ RUN apt-get update \
       ca-certificates \
       curl \
       git \
+      sudo \
       unzip \
       bash \
       zsh \
     && rm -rf /var/lib/apt/lists/*
 
-# Non-root user
-RUN useradd -ms /bin/bash dev
+# Non-root user with passwordless sudo
+RUN useradd -ms /bin/zsh dev \
+    && usermod -aG sudo dev \
+    && echo 'dev ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/dev \
+    && chmod 0440 /etc/sudoers.d/dev
 USER dev
 WORKDIR /home/dev
 

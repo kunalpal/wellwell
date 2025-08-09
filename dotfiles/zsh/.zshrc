@@ -59,3 +59,5 @@ fi
 
 # Keybindings
 bindkey -e
+
+[[ "$TERM_PROGRAM" == "kiro" ]] && . "$(kiro --locate-shell-integration-path zsh)"

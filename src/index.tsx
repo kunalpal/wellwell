@@ -37,13 +37,21 @@ const cli = meow(
 `,
   {
     importMeta: import.meta,
-    flags: {},
+    flags: {
+      verbose: {
+        type: 'boolean',
+        default: false,
+      },
+    },
   }
 );
 
 const [command, subcommand] = cli.input;
 
 async function main() {
+  if (cli.flags.verbose) {
+    process.env.WW_VERBOSE = '1';
+  }
   if (command === 'theme' && (subcommand === 'list' || subcommand)) {
     // Non-UI commands should not switch to fullscreen
     if (subcommand === 'list' || !subcommand) {

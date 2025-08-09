@@ -102,13 +102,14 @@ export async function install(): Promise<ActionResult> {
     const sudoProbe = hasSudo ? await runCommand(`sh -lc 'sudo -n true >/dev/null 2>&1 && echo OK || echo NO'`) : ({ stdout: 'NO', stderr: '' } as any);
     const sudoWorks = sudoProbe.stdout.trim() === 'OK';
     const prefix = isRoot ? '' : sudoWorks ? 'sudo -n ' : '';
+    const aptEnv = 'env DEBIAN_FRONTEND=noninteractive TZ=UTC';
 
     if (!isRoot && !sudoWorks) {
       return { ok: false, message: 'Insufficient privileges to install packages (need root or sudo).' };
     }
 
-    await runCommand(`${prefix}apt-get update || true`);
-    const installCmd = `${prefix}apt-get install -y ${pkgs.join(' ')}`;
+    await runCommand(`${prefix}${aptEnv} apt-get update || true`);
+    const installCmd = `${prefix}${aptEnv} apt-get install -y ${pkgs.join(' ')}`;
     const res = await runCommand(installCmd);
     return { ok: true, message: res.stdout.split('\n').slice(0, 20).join('\n') || 'Installed apt packages' };
   } catch (error) {
@@ -126,9 +127,10 @@ export async function update(): Promise<ActionResult> {
     const sudoProbe = hasSudo ? await runCommand(`sh -lc 'sudo -n true >/dev/null 2>&1 && echo OK || echo NO'`) : ({ stdout: 'NO', stderr: '' } as any);
     const sudoWorks = sudoProbe.stdout.trim() === 'OK';
     const prefix = isRoot ? '' : sudoWorks ? 'sudo -n ' : '';
+    const aptEnv = 'env DEBIAN_FRONTEND=noninteractive TZ=UTC';
     if (!isRoot && !sudoWorks) return { ok: false, message: 'Insufficient privileges to update packages (need root or sudo).' };
-    await runCommand(`${prefix}apt-get update`);
-    await runCommand(`${prefix}apt-get upgrade -y`);
+    await runCommand(`${prefix}${aptEnv} apt-get update`);
+    await runCommand(`${prefix}${aptEnv} apt-get upgrade -y`);
     return { ok: true, message: 'apt updated and upgraded' };
   } catch (error) {
     return { ok: false, error: error as Error };
@@ -149,16 +151,18 @@ export async function generateAptfileFromBrewfile(): Promise<ActionResult> {
 
     const mapping: Record<string, string | null> = {
       git: 'git',
-      node: 'nodejs',
+      // Managed by mise module; avoid apt installing node
+      node: null,
       ripgrep: 'ripgrep',
-      fzf: 'fzf',
-      starship: 'starship',
+      // Managed by dedicated modules; avoid apt installing overlaps
+      fzf: null,
+      starship: null,
       eza: 'eza',
       zoxide: 'zoxide',
       neovim: 'neovim',
       coreutils: 'coreutils',
-      bat: 'bat',
-      mise: null, // managed separately by mise module
+      bat: null,
+      mise: null,
     };
 
     const aptPkgs = brewPkgs
