@@ -5,6 +5,7 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
 import App from './App.js';
+import Dashboard from './Dashboard.js';
 
 const argv = yargs(hideBin(process.argv))
   .scriptName('wellwell')
@@ -18,6 +19,7 @@ const argv = yargs(hideBin(process.argv))
   .command('status [ids..]', 'Show statuses', (y) =>
     y.positional('ids', { type: 'string', array: true, describe: 'Module ids to include' })
   )
+  .command('ui', 'Interactive dashboard (top-like)', (y) => y)
   .option('verbose', { type: 'boolean', default: false })
   .demandCommand(1)
   .strict()
@@ -34,6 +36,8 @@ if (command === 'plan') {
   render(<App mode="apply" ids={idsArg} verbose={argv.verbose} />);
 } else if (command === 'status') {
   render(<App mode="status" ids={idsArg} verbose={argv.verbose} />);
+} else if (command === 'ui') {
+  render(<Dashboard verbose={argv.verbose} />);
 }
 
 

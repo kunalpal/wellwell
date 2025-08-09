@@ -16,11 +16,18 @@ export interface EngineOptions {
   verbose?: boolean;
   prettyLogs?: boolean;
   stateFilePath?: string;
+  hooks?: EngineHooks;
+}
+
+export interface EngineHooks {
+  onModuleStatusChange?: (payload: { id: string; status: ConfigurationStatus }) => void;
+  onModuleMessage?: (payload: { id: string; message: string }) => void;
 }
 
 export class Engine {
   private readonly modules: Map<string, ConfigurationModule> = new Map();
-  private readonly options: Required<EngineOptions>;
+  private readonly options: Required<Omit<EngineOptions, 'hooks'>> & Pick<EngineOptions, 'hooks'>;
+  private readonly hooks?: EngineHooks;
 
   constructor(options?: EngineOptions) {
     this.options = {
@@ -28,7 +35,9 @@ export class Engine {
       prettyLogs: options?.prettyLogs ?? true,
       stateFilePath:
         options?.stateFilePath ?? path.join(os.homedir(), '.wellwell', 'state.json'),
+      hooks: options?.hooks,
     };
+    this.hooks = this.options.hooks;
   }
 
   register(module: ConfigurationModule): void {
@@ -119,7 +128,12 @@ export class Engine {
         ctx.logger.debug({ module: mod.id }, 'Skipping: not applicable');
         continue;
       }
-      mod.onStatusChange?.('pending');
+      this.hooks?.onModuleStatusChange?.({ id: mod.id, status: 'pending' });
+      const prevOnStatus = mod.onStatusChange;
+      mod.onStatusChange = (status) => {
+        this.hooks?.onModuleStatusChange?.({ id: mod.id, status });
+        prevOnStatus?.(status);
+      };
       try {
         const res = await mod.apply(ctx);
         results[mod.id] = res;
