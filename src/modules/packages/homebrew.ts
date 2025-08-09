@@ -33,8 +33,16 @@ async function installHomebrew(): Promise<void> {
 
 async function getInstalledPackages(): Promise<Set<string>> {
   try {
-    const { stdout } = await execAsync('brew list --formula -1');
-    return new Set(stdout.trim().split('\n').filter(Boolean));
+    // Get both formulas and casks
+    const [formulaResult, caskResult] = await Promise.all([
+      execAsync('brew list --formula -1').catch(() => ({ stdout: '' })),
+      execAsync('brew list --cask -1').catch(() => ({ stdout: '' }))
+    ]);
+    
+    const formulas = formulaResult.stdout.trim().split('\n').filter(Boolean);
+    const casks = caskResult.stdout.trim().split('\n').filter(Boolean);
+    
+    return new Set([...formulas, ...casks]);
   } catch {
     return new Set();
   }
@@ -46,8 +54,15 @@ async function installPackages(packages: string[]): Promise<{ installed: string[
   
   for (const pkg of packages) {
     try {
-      await execAsync(`brew install ${pkg}`);
-      installed.push(pkg);
+      // Try formula first, then cask if formula fails
+      try {
+        await execAsync(`brew install ${pkg}`);
+        installed.push(pkg);
+      } catch {
+        // If formula installation fails, try as cask
+        await execAsync(`brew install --cask ${pkg}`);
+        installed.push(pkg);
+      }
     } catch {
       failed.push(pkg);
     }
