@@ -11,14 +11,22 @@ import {
   readResolvedPaths,
   resolvePaths,
   writeResolvedPaths,
+  type PathContribution,
 } from '../../core/contrib.js';
 
-export const commonPaths = (ctx: ConfigurationContext): string[] => {
-  const base = [`${ctx.homeDir}/bin`];
-  if (ctx.platform === 'macos') {
-    base.push('/opt/homebrew/bin');
-  }
-  return base;
+export const commonPaths = (ctx: ConfigurationContext): PathContribution[] => {
+  const contribs: PathContribution[] = [
+    { path: `${ctx.homeDir}/bin`, prepend: true },
+    { path: `${ctx.homeDir}/.local/bin`, prepend: true },
+    { path: `${ctx.homeDir}/.cargo/bin`, prepend: false },
+    { path: `${ctx.homeDir}/go/bin`, prepend: false },
+    { path: `${ctx.homeDir}/.bun/bin`, prepend: false },
+    { path: '/usr/local/bin', prepend: true, platforms: ['macos', 'ubuntu', 'al2'] },
+    { path: '/opt/homebrew/bin', prepend: true, platforms: ['macos'] },
+    { path: '/opt/homebrew/sbin', prepend: false, platforms: ['macos'] },
+    { path: '/snap/bin', prepend: false, platforms: ['ubuntu'] },
+  ];
+  return contribs;
 };
 
 export const pathsModule: ConfigurationModule = {
@@ -34,8 +42,8 @@ export const pathsModule: ConfigurationModule = {
     // register common paths if not present
     const commons = commonPaths(ctx);
     let added = 0;
-    for (const p of commons) {
-      added += addPathContribution(ctx, { path: p, prepend: true }) ? 1 : 0;
+    for (const c of commons) {
+      added += addPathContribution(ctx, c) ? 1 : 0;
     }
     const current = listPathContributions(ctx);
     const resolved = resolvePaths(ctx);

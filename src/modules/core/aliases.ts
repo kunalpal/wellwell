@@ -11,12 +11,22 @@ import {
   readResolvedAliases,
   resolveAliases,
   writeResolvedAliases,
+  type AliasContribution,
 } from '../../core/contrib.js';
 
-export const commonAliases = (_ctx: ConfigurationContext) => [
+export const commonAliases = (ctx: ConfigurationContext): AliasContribution[] => [
   { name: 'll', value: 'ls -alF' },
   { name: 'la', value: 'ls -A' },
   { name: 'l', value: 'ls -CF' },
+  // platform variants
+  { name: 'pbcopy', value: 'tee >/dev/null | pbcopy', platforms: ['macos'] },
+  { name: 'pbpaste', value: 'pbpaste', platforms: ['macos'] },
+  { name: 'xclip', value: 'xclip -selection clipboard', platforms: ['ubuntu'] },
+  { name: 'xsel', value: 'xsel --clipboard --input', platforms: ['ubuntu'] },
+  // package managers
+  { name: 'brewup', value: 'brew update && brew upgrade && brew cleanup', platforms: ['macos'] },
+  { name: 'aptup', value: 'sudo apt update && sudo apt upgrade -y', platforms: ['ubuntu'] },
+  { name: 'yumup', value: 'sudo yum update -y', platforms: ['al2'] },
 ];
 
 export const aliasesModule: ConfigurationModule = {
