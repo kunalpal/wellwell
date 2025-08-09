@@ -10,7 +10,6 @@ import type {
   PlanResult,
   StatusResult,
 } from '../../core/types.js';
-import { addPackageContribution } from '../../core/contrib.js';
 
 const execAsync = promisify(exec);
 
@@ -21,6 +20,12 @@ async function isStarshipInstalled(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+async function installStarship(): Promise<void> {
+  // Use the official starship installer script
+  const script = 'curl -sS https://starship.rs/install.sh | sh -s -- --yes';
+  await execAsync(script);
 }
 
 function getStarshipConfig(): string {
@@ -107,8 +112,7 @@ symbol = " "
 export const starshipModule: ConfigurationModule = {
   id: 'shell:starship',
   description: 'Starship cross-shell prompt',
-  dependsOn: ['packages:homebrew', 'packages:apt', 'packages:yum'],
-  priority: 55,
+  priority: 30, // Install early, no dependencies on package managers
 
   async isApplicable(_ctx) {
     return true;
@@ -117,18 +121,9 @@ export const starshipModule: ConfigurationModule = {
   async plan(ctx): Promise<PlanResult> {
     const changes = [];
     
-    // Register package dependencies based on platform
-    if (ctx.platform === 'macos') {
-      addPackageContribution(ctx, { name: 'starship', manager: 'homebrew' });
-    } else if (ctx.platform === 'ubuntu') {
-      addPackageContribution(ctx, { name: 'starship', manager: 'apt' });
-    } else if (ctx.platform === 'al2') {
-      addPackageContribution(ctx, { name: 'starship', manager: 'yum' });
-    }
-    
     const isInstalled = await isStarshipInstalled();
     if (!isInstalled) {
-      changes.push({ summary: 'Install starship prompt' });
+      changes.push({ summary: 'Install starship prompt via official installer' });
     }
     
     const configDir = path.join(ctx.homeDir, '.config');
@@ -149,6 +144,21 @@ export const starshipModule: ConfigurationModule = {
 
   async apply(ctx): Promise<ApplyResult> {
     try {
+      const isInstalled = await isStarshipInstalled();
+      let installChanged = false;
+      
+      if (!isInstalled) {
+        ctx.logger.info('Installing starship via official installer...');
+        await installStarship();
+        installChanged = true;
+        
+        // Add ~/.local/bin to PATH for this session in case starship was installed there
+        const localBin = path.join(ctx.homeDir, '.local', 'bin');
+        if (!process.env.PATH?.includes(localBin)) {
+          process.env.PATH = `${localBin}:${process.env.PATH}`;
+        }
+      }
+      
       const configDir = path.join(ctx.homeDir, '.config');
       const configFile = path.join(configDir, 'starship.toml');
       
@@ -157,11 +167,27 @@ export const starshipModule: ConfigurationModule = {
       
       // Write starship configuration
       const config = getStarshipConfig();
-      await fs.writeFile(configFile, config, 'utf8');
+      let configChanged = false;
       
-      ctx.logger.info({ file: configFile }, 'Created/updated starship configuration');
+      try {
+        const currentConfig = await fs.readFile(configFile, 'utf8');
+        if (currentConfig !== config) {
+          await fs.writeFile(configFile, config, 'utf8');
+          configChanged = true;
+        }
+      } catch {
+        await fs.writeFile(configFile, config, 'utf8');
+        configChanged = true;
+      }
       
-      return { success: true, changed: true, message: 'Starship configured' };
+      if (configChanged) {
+        ctx.logger.info({ file: configFile }, 'Created/updated starship configuration');
+      }
+      
+      const changed = installChanged || configChanged;
+      const message = installChanged ? 'Starship installed and configured' : 'Starship configured';
+      
+      return { success: true, changed, message };
     } catch (error) {
       return { success: false, error };
     }
