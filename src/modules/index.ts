@@ -11,6 +11,7 @@ import { miseModule } from './packages/mise.js';
 import { nvimModule } from './apps/nvim.js';
 import { ripgrepModule } from './apps/ripgrep.js';
 import { fzfModule } from './apps/fzf.js';
+import { wellwellModule } from './apps/wellwell.js';
 import { starshipModule } from './shell/starship.js';
 
 export const allModules: ConfigurationModule[] = [
@@ -25,6 +26,7 @@ export const allModules: ConfigurationModule[] = [
   starshipModule,
   ripgrepModule,
   fzfModule,
+  wellwellModule,
   nvimModule,
   ...zshrcModules,
 ];
