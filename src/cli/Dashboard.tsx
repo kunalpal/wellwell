@@ -114,15 +114,16 @@ export default function Dashboard({ verbose }: DashboardProps) {
         <Text>
           {chalk.bold('MODULE'.padEnd(32))}
           {chalk.bold('STATUS'.padEnd(10))}
-          {chalk.bold('PRIO'.padEnd(5))}
-          {chalk.bold('DEPENDS')}
+          {chalk.bold('ORDER')}
         </Text>
         {sorted.map((r) => (
           <Text key={r.id}>
             {r.id.padEnd(32)}
             {formatStatusPadded(r.status).padEnd(10)}
-            {String(r.priority).padStart(3).padEnd(5)}
-            {r.dependsOn.join(', ')}
+            {formatPriority(r.priority)}
+            {r.dependsOn.length > 0 && (
+              <Text color="gray"> → {r.dependsOn.join(', ')}</Text>
+            )}
           </Text>
         ))}
       </Box>
@@ -153,6 +154,15 @@ function formatStatusPadded(status: ConfigurationStatus): string {
   const rawLength = status.length;
   const padding = Math.max(0, 8 - rawLength);
   return formatted + ' '.repeat(padding);
+}
+
+function formatPriority(priority: number): string {
+  // Convert priority to visual indicators
+  if (priority <= 10) return chalk.red('●●●'); // Critical/early
+  if (priority <= 25) return chalk.yellow('●●○'); // High
+  if (priority <= 50) return chalk.green('●○○'); // Medium
+  if (priority <= 75) return chalk.blue('○○○'); // Low
+  return chalk.gray('○○○'); // Very low
 }
 
 
