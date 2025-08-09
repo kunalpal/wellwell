@@ -47,7 +47,7 @@ export class Engine {
     this.modules.set(module.id, module);
   }
 
-  private buildContext(): ConfigurationContext {
+  public buildContext(): ConfigurationContext {
     const logger = createLogger({ pretty: this.options.prettyLogs, verbose: this.options.verbose });
     const state = new JsonFileStateStore(this.options.stateFilePath);
     return {

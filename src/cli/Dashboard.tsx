@@ -30,18 +30,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
   const modules: ConfigurationModule[] = useMemo(() => allModules, []);
 
   useEffect(() => {
-    const initialRows: Record<string, ModuleRow> = {};
-    for (const m of modules) {
-      initialRows[m.id] = {
-        id: m.id,
-        status: 'idle',
-        priority: m.priority ?? 100,
-        dependsOn: m.dependsOn ?? [],
-      };
-    }
-    setRows(initialRows);
-
-    engineRef.current = new Engine({
+    const engine = new Engine({
       verbose,
       hooks: {
         onModuleStatusChange: ({ id, status }) => {
@@ -49,15 +38,38 @@ export default function Dashboard({ verbose }: DashboardProps) {
         },
       },
     });
-    modules.forEach((m) => engineRef.current!.register(m));
+    
+    // Register all modules with the engine
+    modules.forEach((m) => engine.register(m));
+    engineRef.current = engine;
 
-    // load initial statuses
+    // Only load applicable modules into the dashboard
     void (async () => {
-      const statuses = await engineRef.current!.statuses();
+      const ctx = engine.buildContext(); // Get context for filtering applicable modules
+      const applicableRows: Record<string, ModuleRow> = {};
+      
+      for (const m of modules) {
+        const isApplicable = await m.isApplicable(ctx);
+        if (isApplicable) {
+          applicableRows[m.id] = {
+            id: m.id,
+            status: 'idle',
+            priority: m.priority ?? 100,
+            dependsOn: m.dependsOn ?? [],
+          };
+        }
+      }
+      
+      setRows(applicableRows);
+      
+      // Load initial statuses for applicable modules only
+      const statuses = await engine.statuses();
       setRows((prev) => {
         const next = { ...prev };
         for (const [id, st] of Object.entries(statuses)) {
-          next[id] = { ...next[id], status: st };
+          if (next[id]) {
+            next[id] = { ...next[id], status: st };
+          }
         }
         return next;
       });
@@ -239,8 +251,8 @@ function formatStatus(status: ConfigurationStatus, isUnsupported?: boolean): str
 }
 
 function isModuleApplicable(moduleId: string, rows: Record<string, ModuleRow>): boolean {
-  // If we have the module in our rows, we can assume it's applicable
-  // (engine only loads applicable modules into the dashboard)
+  // If we have the module in our rows, it's applicable on this platform
+  // Non-applicable modules are filtered out during dashboard initialization
   return rows[moduleId] !== undefined;
 }
 
