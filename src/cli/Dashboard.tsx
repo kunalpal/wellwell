@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Text, useInput, useApp, useStdout } from 'ink';
+import { Box, Text, useInput, useApp } from 'ink';
 import chalk from 'chalk';
 import Spinner from 'ink-spinner';
 import { Engine } from '../core/engine.js';
@@ -38,7 +38,6 @@ async function getModuleDetails(module: ConfigurationModule, ctx: any): Promise<
 
 export default function Dashboard({ verbose }: DashboardProps) {
   const { exit } = useApp();
-  const { stdout } = useStdout();
   const [rows, setRows] = useState<Record<string, ModuleRow>>({});
   const [sortKey, setSortKey] = useState<SortKey>('priority');
   const [isApplying, setIsApplying] = useState(false);
@@ -189,7 +188,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
   }, [selectedModule, modules]);
 
   return (
-    <Box flexDirection="column" height={stdout.rows} width={stdout.columns}>
+    <Box flexDirection="column">
       <Box>
         <Text>
           {chalk.bold('wellwell')} {chalk.gray('– ')}
@@ -202,7 +201,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
           {isApplying && (<Text color="yellow"> <Spinner type="dots" /> applying</Text>)}
         </Text>
       </Box>
-      <Box marginTop={1} flexDirection="column" flexGrow={1}>
+      <Box marginTop={1} flexDirection="column">
         {/* Header */}
         <Box>
           <Box width={32}>
@@ -255,7 +254,8 @@ export default function Dashboard({ verbose }: DashboardProps) {
         {selectedModule && moduleDetails.length > 0 && (
           <Box marginTop={1} flexDirection="column">
             <Box>
-              <Text bold color="cyan">Details: {selectedModule.id}</Text>
+              <Text>DETAILS | </Text>
+              <Text color="cyan">{selectedModule.id}</Text>
             </Box>
             <Box flexDirection="column" paddingTop={1}>
               {moduleDetails.map((detail, idx) => (
