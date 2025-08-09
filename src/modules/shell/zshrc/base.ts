@@ -132,6 +132,16 @@ export const zshrcBaseModule: ConfigurationModule = {
       return { status: 'idle' };
     }
   },
+
+  getDetails(_ctx): string[] {
+    return [
+      'Base zsh configuration:',
+      '  • PATH management',
+      '  • Environment variables',
+      '  • Aliases integration',
+      '  • Shell initializations',
+    ];
+  },
 };
 
 

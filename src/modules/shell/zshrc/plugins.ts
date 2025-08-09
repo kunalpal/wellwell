@@ -210,6 +210,14 @@ export const zshrcPluginsModule: ConfigurationModule = {
       return { status: 'failed', message: `Error checking status: ${error}` };
     }
   },
+
+  getDetails(_ctx): string[] {
+    return [
+      'Zsh plugins via zinit:',
+      '  • zsh-autosuggestions (Fish-like autosuggestions)',
+      '  • zsh-syntax-highlighting (Command syntax highlighting)',
+    ];
+  },
 };
 
 

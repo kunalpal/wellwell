@@ -69,6 +69,19 @@ export const pathsModule: ConfigurationModule = {
     const resolved = readResolvedPaths(ctx) ?? [];
     return { status: resolved.length > 0 ? 'applied' : 'idle' };
   },
+
+  getDetails(ctx): string[] {
+    const resolvedPaths = readResolvedPaths(ctx);
+    if (resolvedPaths && resolvedPaths.length > 0) {
+      const details = [`Managing ${resolvedPaths.length} paths:`];
+      resolvedPaths.forEach(pathStr => {
+        details.push(`  • ${pathStr}`);
+      });
+      return details;
+    } else {
+      return ['No paths configured'];
+    }
+  },
 };
 
 

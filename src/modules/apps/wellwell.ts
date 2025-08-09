@@ -174,4 +174,13 @@ export const wellwellModule: ConfigurationModule = {
       return { status: 'idle', message: '"ww" command not found' };
     }
   },
+
+  getDetails(_ctx): string[] {
+    return [
+      'Self-management:',
+      '  • Creates "ww" command in ~/bin',
+      '  • Adds ~/bin to PATH',
+      '  • Enables global wellwell access',
+    ];
+  },
 };

@@ -30,6 +30,14 @@ export const zshrcCompositeModule: ConfigurationModule = {
       return { status: 'idle', message: 'Components not ready' };
     }
   },
+
+  getDetails(_ctx): string[] {
+    return [
+      'Composite zsh configuration:',
+      '  • Orchestrates base + plugins',
+      '  • Manages overall shell setup',
+    ];
+  },
 };
 
 export const zshrcModules: ConfigurationModule[] = [

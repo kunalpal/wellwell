@@ -148,4 +148,23 @@ export const aptModule: ConfigurationModule = {
       message: missing.length > 0 ? `${missing.length} packages missing` : 'All packages installed'
     };
   },
+
+  getDetails(ctx): string[] {
+    const resolvedPackages = readResolvedPackages(ctx);
+    const packages = resolvedPackages?.apt ?? [];
+    
+    if (packages.length > 0) {
+      const details = [`Managing ${packages.length} packages:`];
+      packages.forEach(pkg => {
+        if (pkg.language && pkg.version) {
+          details.push(`  • ${pkg.language}@${pkg.version}`);
+        } else {
+          details.push(`  • ${pkg.name}`);
+        }
+      });
+      return details;
+    } else {
+      return ['No packages configured'];
+    }
+  },
 };

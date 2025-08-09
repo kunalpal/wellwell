@@ -231,4 +231,23 @@ fi`,
       message: missing.length > 0 ? `${missing.length} language versions missing` : 'All language versions installed'
     };
   },
+
+  getDetails(ctx): string[] {
+    const resolvedPackages = readResolvedPackages(ctx);
+    const packages = resolvedPackages?.mise ?? [];
+    
+    if (packages.length > 0) {
+      const details = [`Managing ${packages.length} packages:`];
+      packages.forEach(pkg => {
+        if (pkg.language && pkg.version) {
+          details.push(`  • ${pkg.language}@${pkg.version}`);
+        } else {
+          details.push(`  • ${pkg.name}`);
+        }
+      });
+      return details;
+    } else {
+      return ['No packages configured'];
+    }
+  },
 };

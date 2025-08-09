@@ -222,4 +222,13 @@ fi`,
       return { status: 'idle', message: 'Starship config missing' };
     }
   },
+
+  getDetails(_ctx): string[] {
+    return [
+      'Cross-shell prompt:',
+      '  • Git integration',
+      '  • Language version display',
+      '  • Custom prompt format',
+    ];
+  },
 };

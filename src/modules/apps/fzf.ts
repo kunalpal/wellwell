@@ -83,4 +83,13 @@ fi`,
       return { status: 'idle', message: 'Fzf not found in PATH' };
     }
   },
+
+  getDetails(_ctx): string[] {
+    return [
+      'Fuzzy finder configuration:',
+      '  • Backend: ripgrep for file search',
+      '  • Key bindings: Ctrl+T, Ctrl+R, Alt+C',
+      '  • Completion: Command line completion',
+    ];
+  },
 };

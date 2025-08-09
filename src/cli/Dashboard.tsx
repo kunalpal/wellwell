@@ -1,16 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Box, Text, useInput, useApp } from 'ink';
+import { Box, Text, useInput, useApp, useStdout } from 'ink';
 import chalk from 'chalk';
 import Spinner from 'ink-spinner';
 import { Engine } from '../core/engine.js';
 import type { ConfigurationModule, ConfigurationStatus } from '../core/types.js';
 import { allModules } from '../modules/index.js';
-import { 
-  readResolvedAliases, 
-  readResolvedPaths, 
-  readResolvedPackages,
-  readResolvedShellInit
-} from '../core/contrib.js';
+
 
 type SortKey = 'id' | 'status' | 'priority';
 
@@ -25,119 +20,25 @@ export interface DashboardProps {
   verbose?: boolean;
 }
 
-function getModuleDetails(moduleId: string, ctx: any): string[] {
-  const details: string[] = [];
-  
+async function getModuleDetails(module: ConfigurationModule, ctx: any): Promise<string[]> {
   try {
-    if (moduleId === 'packages:homebrew' || moduleId === 'packages:apt' || moduleId === 'packages:yum' || moduleId === 'packages:mise') {
-      const resolvedPackages = readResolvedPackages(ctx);
-      const manager = moduleId.split(':')[1];
-      const packages = resolvedPackages?.[manager] ?? [];
-      
-      if (packages.length > 0) {
-        details.push(`📦 Managing ${packages.length} packages:`);
-        packages.forEach(pkg => {
-          if (pkg.language && pkg.version) {
-            details.push(`  • ${pkg.language}@${pkg.version}`);
-          } else {
-            details.push(`  • ${pkg.name}`);
-          }
-        });
-      } else {
-        details.push('📦 No packages configured');
-      }
-    }
-    
-    else if (moduleId === 'core:aliases') {
-      const resolvedAliases = readResolvedAliases(ctx);
-      if (resolvedAliases && resolvedAliases.length > 0) {
-        details.push(`🔗 Managing ${resolvedAliases.length} aliases:`);
-        resolvedAliases.forEach(alias => {
-          details.push(`  • ${alias.name} → "${alias.value}"`);
-        });
-      } else {
-        details.push('🔗 No aliases configured');
-      }
-    }
-    
-    else if (moduleId === 'core:paths') {
-      const resolvedPaths = readResolvedPaths(ctx);
-      if (resolvedPaths && resolvedPaths.length > 0) {
-        details.push(`📁 Managing ${resolvedPaths.length} paths:`);
-        resolvedPaths.forEach(pathStr => {
-          details.push(`  • ${pathStr}`);
-        });
-      } else {
-        details.push('📁 No paths configured');
-      }
-    }
-    
-    else if (moduleId === 'shell:init') {
-      const resolvedShellInit = readResolvedShellInit(ctx);
-      if (resolvedShellInit && resolvedShellInit.length > 0) {
-        details.push(`⚡ Managing ${resolvedShellInit.length} shell initializations:`);
-        resolvedShellInit.forEach(init => {
-          details.push(`  • ${init.name}`);
-        });
-      } else {
-        details.push('⚡ No shell initializations configured');
-      }
-    }
-    
-    else if (moduleId === 'shell:zshrc:plugins') {
-      details.push('🔌 Zsh plugins via zinit:');
-      details.push('  • zsh-autosuggestions (Fish-like autosuggestions)');
-      details.push('  • zsh-syntax-highlighting (Command syntax highlighting)');
-    }
-    
-    else if (moduleId === 'apps:fzf') {
-      details.push('🔍 Fuzzy finder configuration:');
-      details.push('  • Backend: ripgrep for file search');
-      details.push('  • Key bindings: Ctrl+T, Ctrl+R, Alt+C');
-      details.push('  • Completion: Command line completion');
-    }
-    
-    else if (moduleId === 'shell:starship') {
-      details.push('🚀 Cross-shell prompt:');
-      details.push('  • Git integration');
-      details.push('  • Language version display');
-      details.push('  • Custom prompt format');
-    }
-    
-    else if (moduleId === 'apps:wellwell') {
-      details.push('⚙️ Self-management:');
-      details.push('  • Creates "ww" command in ~/bin');
-      details.push('  • Adds ~/bin to PATH');
-      details.push('  • Enables global wellwell access');
-    }
-    
-    else if (moduleId.startsWith('shell:zshrc:')) {
-      if (moduleId === 'shell:zshrc:base') {
-        details.push('🏠 Base zsh configuration:');
-        details.push('  • PATH management');
-        details.push('  • Environment variables');
-        details.push('  • Aliases integration');
-        details.push('  • Shell initializations');
-      } else if (moduleId === 'shell:zshrc') {
-        details.push('📋 Composite zsh configuration:');
-        details.push('  • Orchestrates base + plugins');
-        details.push('  • Manages overall shell setup');
-      }
-    }
-    
-    else {
-      details.push(`ℹ️ Module: ${moduleId}`);
-      details.push('  No specific details available');
+    if (module.getDetails) {
+      const details = await module.getDetails(ctx);
+      return details;
+    } else {
+      return [
+        `Module: ${module.id}`,
+        '  No specific details available'
+      ];
     }
   } catch (error) {
-    details.push(`❌ Error loading details: ${error}`);
+    return [`Error loading details: ${error}`];
   }
-  
-  return details;
 }
 
 export default function Dashboard({ verbose }: DashboardProps) {
   const { exit } = useApp();
+  const { stdout } = useStdout();
   const [rows, setRows] = useState<Record<string, ModuleRow>>({});
   const [sortKey, setSortKey] = useState<SortKey>('priority');
   const [isApplying, setIsApplying] = useState(false);
@@ -266,13 +167,29 @@ export default function Dashboard({ verbose }: DashboardProps) {
     return deps;
   }, [selectedModule, rows]);
 
-  const moduleDetails = useMemo(() => {
-    if (!selectedModule || !engineRef.current) return [];
-    return getModuleDetails(selectedModule.id, engineRef.current.buildContext());
-  }, [selectedModule]);
+  const [moduleDetails, setModuleDetails] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (!selectedModule || !engineRef.current) {
+      setModuleDetails([]);
+      return;
+    }
+
+    const loadDetails = async () => {
+      const module = modules.find(m => m.id === selectedModule.id);
+      if (module) {
+        const details = await getModuleDetails(module, engineRef.current!.buildContext());
+        setModuleDetails(details);
+      } else {
+        setModuleDetails([]);
+      }
+    };
+
+    void loadDetails();
+  }, [selectedModule, modules]);
 
   return (
-    <Box flexDirection="column" height="100%">
+    <Box flexDirection="column" height={stdout.rows} width={stdout.columns}>
       <Box>
         <Text>
           {chalk.bold('wellwell')} {chalk.gray('– ')}
@@ -336,7 +253,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
         
         {/* Details Pane */}
         {selectedModule && moduleDetails.length > 0 && (
-          <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1} flexDirection="column">
+          <Box marginTop={1} flexDirection="column">
             <Box>
               <Text bold color="cyan">Details: {selectedModule.id}</Text>
             </Box>

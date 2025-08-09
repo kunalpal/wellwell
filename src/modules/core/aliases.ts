@@ -68,6 +68,19 @@ export const aliasesModule: ConfigurationModule = {
     const resolved = readResolvedAliases(ctx) ?? [];
     return { status: resolved.length > 0 ? 'applied' : 'idle' };
   },
+
+  getDetails(ctx): string[] {
+    const resolvedAliases = readResolvedAliases(ctx);
+    if (resolvedAliases && resolvedAliases.length > 0) {
+      const details = [`Managing ${resolvedAliases.length} aliases:`];
+      resolvedAliases.forEach(alias => {
+        details.push(`  • ${alias.name} → "${alias.value}"`);
+      });
+      return details;
+    } else {
+      return ['No aliases configured'];
+    }
+  },
 };
 
 

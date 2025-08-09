@@ -36,10 +36,10 @@ if (command === 'plan') {
 } else if (command === 'status') {
   render(<App mode="status" ids={idsArg} verbose={argv.verbose} />);
 } else if (command === 'ui') {
-  render(<Dashboard verbose={argv.verbose} />);
+  render(<Dashboard verbose={argv.verbose} />, { exitOnCtrlC: false });
 } else {
   // Default to UI when no command specified
-  render(<Dashboard verbose={argv.verbose} />);
+  render(<Dashboard verbose={argv.verbose} />, { exitOnCtrlC: false });
 }
 
 

@@ -44,4 +44,17 @@ export const shellInitModule: ConfigurationModule = {
     const resolved = readResolvedShellInit(ctx) ?? [];
     return { status: resolved.length > 0 ? 'applied' : 'idle' };
   },
+
+  getDetails(ctx): string[] {
+    const resolvedShellInit = readResolvedShellInit(ctx);
+    if (resolvedShellInit && resolvedShellInit.length > 0) {
+      const details = [`Managing ${resolvedShellInit.length} shell initializations:`];
+      resolvedShellInit.forEach(init => {
+        details.push(`  • ${init.name}`);
+      });
+      return details;
+    } else {
+      return ['No shell initializations configured'];
+    }
+  },
 };

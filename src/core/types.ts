@@ -44,6 +44,8 @@ export interface ConfigurationModule extends ConfigurationHookEvents {
   apply(ctx: ConfigurationContext): Promise<ApplyResult> | ApplyResult;
   /** Inspect current status. */
   status?(ctx: ConfigurationContext): Promise<StatusResult> | StatusResult;
+  /** Get detailed information about this module for display in UI. */
+  getDetails?(ctx: ConfigurationContext): Promise<string[]> | string[];
 }
 
 export interface PlanChange {
