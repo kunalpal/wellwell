@@ -146,33 +146,53 @@ export default function Dashboard({ verbose }: DashboardProps) {
         </Text>
       </Box>
       <Box marginTop={1} flexDirection="column">
-        <Text>
-          {chalk.bold('MODULE'.padEnd(32))}
-          {chalk.bold('STATUS'.padEnd(18))}
-          {chalk.bold('DEPENDENCIES')}
-        </Text>
+        {/* Header */}
+        <Box>
+          <Box width={32}>
+            <Text bold>MODULE</Text>
+          </Box>
+          <Box width={16}>
+            <Text bold>STATUS</Text>
+          </Box>
+          <Box flexGrow={1}>
+            <Text bold>DEPENDENCIES</Text>
+          </Box>
+        </Box>
+        
+        {/* Rows */}
         {sorted.map((r, idx) => {
           const isSelected = idx === selectedIndex;
           const isHighlighted = selectedModule && (r.id === selectedModule.id || upstreamDeps.has(r.id));
           const isUnsupported = !isModuleApplicable(r.id, rows);
           
           return (
-            <Text key={r.id} backgroundColor={isSelected ? 'blue' : undefined}>
-              {formatModuleName(r.id, isSelected, isHighlighted, isUnsupported).padEnd(32)}
-              {formatStatusPadded(r.status, isSelected, isUnsupported).padEnd(18)}
-              {r.dependsOn.length > 0 ? (
+            <Box key={r.id}>
+              <Box width={32}>
                 <Text>
-                  {r.dependsOn.map((depId, depIdx) => (
-                    <Text key={depId}>
-                      {depIdx > 0 && <Text color="gray">, </Text>}
-                      {formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), upstreamDeps.has(depId))}
-                    </Text>
-                  ))}
+                  {isSelected && '> '}
+                  {formatModuleName(r.id, isSelected, isHighlighted, isUnsupported)}
                 </Text>
-              ) : (
-                <Text color="gray">—</Text>
-              )}
-            </Text>
+              </Box>
+              <Box width={16}>
+                <Text>
+                  {formatStatus(r.status, isUnsupported)}
+                </Text>
+              </Box>
+              <Box flexGrow={1}>
+                {r.dependsOn.length > 0 ? (
+                  <Text>
+                    {r.dependsOn.map((depId, depIdx) => (
+                      <Text key={depId}>
+                        {depIdx > 0 && <Text color="gray">, </Text>}
+                        {formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), upstreamDeps.has(depId))}
+                      </Text>
+                    ))}
+                  </Text>
+                ) : (
+                  <Text color="gray">—</Text>
+                )}
+              </Box>
+            </Box>
           );
         })}
       </Box>
@@ -180,7 +200,25 @@ export default function Dashboard({ verbose }: DashboardProps) {
   );
 }
 
-function formatStatus(status: ConfigurationStatus): string {
+
+
+function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: boolean, isUnsupported: boolean): string {
+  let formatted = moduleId;
+  
+  if (isUnsupported) {
+    formatted = chalk.yellow(formatted);
+  } else if (isHighlighted) {
+    formatted = chalk.bold(formatted);
+  }
+  
+  return formatted;
+}
+
+function formatStatus(status: ConfigurationStatus, isUnsupported?: boolean): string {
+  if (status === 'idle' && !isUnsupported) {
+    return chalk.blue(status);
+  }
+  
   switch (status) {
     case 'idle':
       return chalk.gray('idle');
@@ -195,39 +233,6 @@ function formatStatus(status: ConfigurationStatus): string {
     default:
       return status;
   }
-}
-
-function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: boolean, isUnsupported: boolean): string {
-  let formatted = moduleId;
-  
-  if (isUnsupported) {
-    formatted = chalk.yellow(formatted);
-  } else if (isHighlighted) {
-    formatted = chalk.bold(formatted);
-  }
-  
-  if (isSelected) {
-    formatted = chalk.inverse(formatted);
-  }
-  
-  return formatted;
-}
-
-function formatStatusPadded(status: ConfigurationStatus, isSelected?: boolean, isUnsupported?: boolean): string {
-  let formatted = formatStatus(status);
-  
-  if (status === 'idle' && !isUnsupported) {
-    formatted = chalk.blue(status);
-  }
-  
-  if (isSelected) {
-    formatted = chalk.inverse(formatted);
-  }
-  
-  // Since chalk adds ANSI codes, we need to pad based on the raw status length
-  const rawLength = status.length;
-  const padding = Math.max(0, 16 - rawLength);
-  return formatted + ' '.repeat(padding);
 }
 
 function isModuleApplicable(moduleId: string, rows: Record<string, ModuleRow>): boolean {
