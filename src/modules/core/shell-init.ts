@@ -14,6 +14,7 @@ import {
 export const shellInitModule: ConfigurationModule = {
   id: 'shell:init',
   description: 'Collect shell initialization contributions and compute final order',
+  dependsOn: ['shell:starship', 'packages:mise', 'apps:fzf'], // Depends on all modules that contribute shell init
   priority: 40, // Run after contribution modules
 
   async isApplicable(_ctx) {
