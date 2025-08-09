@@ -65,24 +65,16 @@ export default function Dashboard({ verbose }: DashboardProps) {
   }, [modules, verbose]);
 
   useInput((input, key) => {
-    const sortedRows = useMemo(() => {
-      const arr = Object.values(rows);
-      if (sortKey === 'priority') return arr.sort((a, b) => a.priority - b.priority);
-      if (sortKey === 'id') return arr.sort((a, b) => a.id.localeCompare(b.id));
-      if (sortKey === 'status') return arr.sort((a, b) => a.status.localeCompare(b.status));
-      return arr;
-    }, [rows, sortKey]);
-
     if (key.escape || (input === 'q')) {
       exit();
     } else if (key.upArrow || input === 'k') {
       setSelectedIndex(prev => Math.max(0, prev - 1));
     } else if (key.downArrow || input === 'j') {
-      setSelectedIndex(prev => Math.min(sortedRows.length - 1, prev + 1));
+      setSelectedIndex(prev => Math.min(sorted.length - 1, prev + 1));
     } else if (input === 'a') {
       if (!isApplying) {
         setIsApplying(true);
-        const selectedModule = sortedRows[selectedIndex];
+        const selectedModule = sorted[selectedIndex];
         if (selectedModule) {
           // Apply selected module and its dependencies
           void engineRef.current!.apply([selectedModule.id]).finally(() => setIsApplying(false));
