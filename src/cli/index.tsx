@@ -9,7 +9,7 @@ import Dashboard from './Dashboard.js';
 
 const argv = yargs(hideBin(process.argv))
   .scriptName('wellwell')
-  .usage('$0 <cmd> [args]')
+  .usage('$0 [cmd] [args]')
   .command('plan [ids..]', 'Show planned changes', (y) =>
     y.positional('ids', { type: 'string', array: true, describe: 'Module ids to include' })
   )
@@ -21,7 +21,6 @@ const argv = yargs(hideBin(process.argv))
   )
   .command('ui', 'Interactive dashboard (top-like)', (y) => y)
   .option('verbose', { type: 'boolean', default: false })
-  .demandCommand(1)
   .strict()
   .help()
   .parseSync();
@@ -37,6 +36,9 @@ if (command === 'plan') {
 } else if (command === 'status') {
   render(<App mode="status" ids={idsArg} verbose={argv.verbose} />);
 } else if (command === 'ui') {
+  render(<Dashboard verbose={argv.verbose} />);
+} else {
+  // Default to UI when no command specified
   render(<Dashboard verbose={argv.verbose} />);
 }
 
