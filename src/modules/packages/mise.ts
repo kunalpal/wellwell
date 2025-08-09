@@ -11,6 +11,7 @@ import type {
 } from '../../core/types.js';
 import {
   addPackageContribution,
+  addShellInitContribution,
   readResolvedPackages,
   resolvePackages,
   writeResolvedPackages,
@@ -126,6 +127,15 @@ export const miseModule: ConfigurationModule = {
 
   async apply(ctx): Promise<ApplyResult> {
     try {
+      // Register shell initialization
+      addShellInitContribution(ctx, {
+        name: 'mise',
+        initCode: `# Initialize mise if available
+if command -v mise > /dev/null 2>&1; then
+  eval "$(mise activate zsh)"
+fi`,
+      });
+      
       const isInstalled = await isMiseInstalled();
       
       if (!isInstalled) {
