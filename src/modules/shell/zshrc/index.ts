@@ -1,4 +1,4 @@
-import type { ConfigurationModule } from '../../../core/types.js';
+import type { ConfigurationModule, StatusResult } from '../../../core/types.js';
 import { zshrcBaseModule } from './base.js';
 import { zshrcPluginsModule } from './plugins.js';
 
@@ -16,6 +16,19 @@ export const zshrcCompositeModule: ConfigurationModule = {
   },
   async apply(_ctx) {
     return { success: true, changed: false, message: 'Composite only' };
+  },
+  async status(ctx): Promise<StatusResult> {
+    // Check status of all dependencies
+    const baseStatus = await zshrcBaseModule.status?.(ctx) ?? { status: 'idle' as const };
+    const pluginsStatus = await zshrcPluginsModule.status?.(ctx) ?? { status: 'idle' as const };
+    
+    if (baseStatus.status === 'applied' && pluginsStatus.status === 'applied') {
+      return { status: 'applied', message: 'All components configured' };
+    } else if (baseStatus.status === 'failed' || pluginsStatus.status === 'failed') {
+      return { status: 'failed', message: 'One or more components failed' };
+    } else {
+      return { status: 'idle', message: 'Components not ready' };
+    }
   },
 };
 
