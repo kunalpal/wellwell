@@ -112,17 +112,17 @@ export default function Dashboard({ verbose }: DashboardProps) {
       </Box>
       <Box marginTop={1} flexDirection="column">
         <Text>
-          {chalk.bold('MODULE'.padEnd(30))}
-          {chalk.bold('STATUS'.padEnd(12))}
-          {chalk.bold('PRIO'.padEnd(6))}
+          {chalk.bold('MODULE'.padEnd(32))}
+          {chalk.bold('STATUS'.padEnd(10))}
+          {chalk.bold('PRIO'.padEnd(5))}
           {chalk.bold('DEPENDS')}
         </Text>
         {sorted.map((r) => (
           <Text key={r.id}>
-            {r.id.padEnd(30)}
-            {formatStatus(r.status).padEnd(12)}
-            {String(r.priority).padEnd(6)}
-            {(r.dependsOn.join(', '))}
+            {r.id.padEnd(32)}
+            {formatStatusPadded(r.status).padEnd(10)}
+            {String(r.priority).padStart(3).padEnd(5)}
+            {r.dependsOn.join(', ')}
           </Text>
         ))}
       </Box>
@@ -145,6 +145,14 @@ function formatStatus(status: ConfigurationStatus): string {
     default:
       return status;
   }
+}
+
+function formatStatusPadded(status: ConfigurationStatus): string {
+  const formatted = formatStatus(status);
+  // Since chalk adds ANSI codes, we need to pad based on the raw status length
+  const rawLength = status.length;
+  const padding = Math.max(0, 8 - rawLength);
+  return formatted + ' '.repeat(padding);
 }
 
 
