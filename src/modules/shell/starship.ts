@@ -150,8 +150,6 @@ export const starshipModule: ConfigurationModule = {
 
   async apply(ctx): Promise<ApplyResult> {
     try {
-      ctx.logger.info({ module: 'shell:starship' }, 'Starting starship apply');
-      
       // Register shell initialization
       addShellInitContribution(ctx, {
         name: 'starship',
