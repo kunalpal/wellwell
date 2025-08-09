@@ -8,15 +8,26 @@ import type {
   PlanResult,
   StatusResult,
 } from '../../../core/types.js';
+import { readResolvedAliases, readResolvedPaths } from '../../../core/contrib.js';
 
 const ZSHRC_MARKER_START = '# === wellwell:begin ===';
 const ZSHRC_MARKER_END = '# === wellwell:end ===';
 
+function escapeDoubleQuotes(input: string): string {
+  return input.replaceAll('"', '\\"');
+}
+
 function renderZshrcBlock(ctx: ConfigurationContext): string {
+  const resolvedPaths = readResolvedPaths(ctx) ?? [];
+  const resolvedAliases = readResolvedAliases(ctx) ?? [];
+  const pathExport = resolvedPaths.length
+    ? `export PATH="${escapeDoubleQuotes(resolvedPaths.join(':'))}:$PATH"`
+    : 'export PATH="$HOME/bin:$PATH"';
   const lines = [
     ZSHRC_MARKER_START,
-    'export PATH="$HOME/bin:$PATH"',
+    pathExport,
     'export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#555"',
+    ...resolvedAliases.map((a) => `alias ${a.name}="${escapeDoubleQuotes(a.value)}"`),
     ZSHRC_MARKER_END,
     '',
   ];
@@ -26,14 +37,18 @@ function renderZshrcBlock(ctx: ConfigurationContext): string {
   return lines.join('\n');
 }
 
-async function upsertBlock(filePath: string, newBlock: string): Promise<{ changed: boolean }>
-{
+async function upsertBlock(filePath: string, newBlock: string): Promise<{ changed: boolean }> {
+  // Ensure target file exists before attempting to read/replace
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  try {
+    const fh = await fs.open(filePath, 'a');
+    await fh.close();
+  } catch {}
+
   let content = '';
   try {
     content = await fs.readFile(filePath, 'utf8');
   } catch {
-    // create the file if missing so subsequent writes succeed
-    await fs.writeFile(filePath, '');
     content = '';
   }
   const startIdx = content.indexOf(ZSHRC_MARKER_START);
@@ -52,7 +67,7 @@ async function upsertBlock(filePath: string, newBlock: string): Promise<{ change
 export const zshrcBaseModule: ConfigurationModule = {
   id: 'shell:zshrc:base',
   description: 'Base zshrc block managed by wellwell',
-  dependsOn: ['common:homebin'],
+  dependsOn: ['common:homebin', 'core:paths', 'core:aliases'],
   priority: 50,
 
   async isApplicable(ctx) {
@@ -74,6 +89,25 @@ export const zshrcBaseModule: ConfigurationModule = {
     const target = path.join(ctx.homeDir, '.zshrc');
     const block = renderZshrcBlock(ctx);
     try {
+      // proactively ensure file exists, handling broken symlink case
+      await fs.mkdir(path.dirname(target), { recursive: true });
+      try {
+        const st = await fs.lstat(target);
+        if (st.isSymbolicLink()) {
+          // if symlink target is broken, unlink and create file
+          try {
+            await fs.readFile(target);
+          } catch {
+            await fs.unlink(target);
+          }
+        }
+      } catch {
+        // lstat failed; proceed to create file
+      }
+      try {
+        const fh = await fs.open(target, 'a');
+        await fh.close();
+      } catch {}
       const { changed } = await upsertBlock(target, block);
       return { success: true, changed, message: changed ? 'zshrc updated' : 'no changes' };
     } catch (error) {
