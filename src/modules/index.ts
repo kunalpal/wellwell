@@ -12,6 +12,7 @@ import { nvimModule } from './apps/nvim.js';
 import { ripgrepModule } from './apps/ripgrep.js';
 import { fzfModule } from './apps/fzf.js';
 import { ezaModule } from './apps/eza.js';
+import { kittyModule } from './apps/kitty.js';
 import { wellwellModule } from './apps/wellwell.js';
 import { starshipModule } from './shell/starship.js';
 
@@ -28,6 +29,7 @@ export const allModules: ConfigurationModule[] = [
   ripgrepModule,
   ezaModule,
   fzfModule,
+  kittyModule,
   wellwellModule,
   nvimModule,
   ...zshrcModules,
