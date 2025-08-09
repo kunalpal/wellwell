@@ -5,6 +5,12 @@ import Spinner from 'ink-spinner';
 import { Engine } from '../core/engine.js';
 import type { ConfigurationModule, ConfigurationStatus } from '../core/types.js';
 import { allModules } from '../modules/index.js';
+import { 
+  readResolvedAliases, 
+  readResolvedPaths, 
+  readResolvedPackages,
+  readResolvedShellInit
+} from '../core/contrib.js';
 
 type SortKey = 'id' | 'status' | 'priority';
 
@@ -17,6 +23,117 @@ interface ModuleRow {
 
 export interface DashboardProps {
   verbose?: boolean;
+}
+
+function getModuleDetails(moduleId: string, ctx: any): string[] {
+  const details: string[] = [];
+  
+  try {
+    if (moduleId === 'packages:homebrew' || moduleId === 'packages:apt' || moduleId === 'packages:yum' || moduleId === 'packages:mise') {
+      const resolvedPackages = readResolvedPackages(ctx);
+      const manager = moduleId.split(':')[1];
+      const packages = resolvedPackages?.[manager] ?? [];
+      
+      if (packages.length > 0) {
+        details.push(`📦 Managing ${packages.length} packages:`);
+        packages.forEach(pkg => {
+          if (pkg.language && pkg.version) {
+            details.push(`  • ${pkg.language}@${pkg.version}`);
+          } else {
+            details.push(`  • ${pkg.name}`);
+          }
+        });
+      } else {
+        details.push('📦 No packages configured');
+      }
+    }
+    
+    else if (moduleId === 'core:aliases') {
+      const resolvedAliases = readResolvedAliases(ctx);
+      if (resolvedAliases && resolvedAliases.length > 0) {
+        details.push(`🔗 Managing ${resolvedAliases.length} aliases:`);
+        resolvedAliases.forEach(alias => {
+          details.push(`  • ${alias.name} → "${alias.value}"`);
+        });
+      } else {
+        details.push('🔗 No aliases configured');
+      }
+    }
+    
+    else if (moduleId === 'core:paths') {
+      const resolvedPaths = readResolvedPaths(ctx);
+      if (resolvedPaths && resolvedPaths.length > 0) {
+        details.push(`📁 Managing ${resolvedPaths.length} paths:`);
+        resolvedPaths.forEach(pathStr => {
+          details.push(`  • ${pathStr}`);
+        });
+      } else {
+        details.push('📁 No paths configured');
+      }
+    }
+    
+    else if (moduleId === 'shell:init') {
+      const resolvedShellInit = readResolvedShellInit(ctx);
+      if (resolvedShellInit && resolvedShellInit.length > 0) {
+        details.push(`⚡ Managing ${resolvedShellInit.length} shell initializations:`);
+        resolvedShellInit.forEach(init => {
+          details.push(`  • ${init.name}`);
+        });
+      } else {
+        details.push('⚡ No shell initializations configured');
+      }
+    }
+    
+    else if (moduleId === 'shell:zshrc:plugins') {
+      details.push('🔌 Zsh plugins via zinit:');
+      details.push('  • zsh-autosuggestions (Fish-like autosuggestions)');
+      details.push('  • zsh-syntax-highlighting (Command syntax highlighting)');
+    }
+    
+    else if (moduleId === 'apps:fzf') {
+      details.push('🔍 Fuzzy finder configuration:');
+      details.push('  • Backend: ripgrep for file search');
+      details.push('  • Key bindings: Ctrl+T, Ctrl+R, Alt+C');
+      details.push('  • Completion: Command line completion');
+    }
+    
+    else if (moduleId === 'shell:starship') {
+      details.push('🚀 Cross-shell prompt:');
+      details.push('  • Git integration');
+      details.push('  • Language version display');
+      details.push('  • Custom prompt format');
+    }
+    
+    else if (moduleId === 'apps:wellwell') {
+      details.push('⚙️ Self-management:');
+      details.push('  • Creates "ww" command in ~/bin');
+      details.push('  • Adds ~/bin to PATH');
+      details.push('  • Enables global wellwell access');
+    }
+    
+    else if (moduleId.startsWith('shell:zshrc:')) {
+      if (moduleId === 'shell:zshrc:base') {
+        details.push('🏠 Base zsh configuration:');
+        details.push('  • PATH management');
+        details.push('  • Environment variables');
+        details.push('  • Aliases integration');
+        details.push('  • Shell initializations');
+      } else if (moduleId === 'shell:zshrc') {
+        details.push('📋 Composite zsh configuration:');
+        details.push('  • Orchestrates base + plugins');
+        details.push('  • Manages overall shell setup');
+      }
+    }
+    
+    else {
+      details.push(`ℹ️ Module: ${moduleId}`);
+      details.push('  No specific details available');
+    }
+  } catch (error) {
+    details.push(`❌ Error loading details: ${error}`);
+  }
+  
+  return details;
 }
 
 export default function Dashboard({ verbose }: DashboardProps) {
@@ -149,8 +266,13 @@ export default function Dashboard({ verbose }: DashboardProps) {
     return deps;
   }, [selectedModule, rows]);
 
+  const moduleDetails = useMemo(() => {
+    if (!selectedModule || !engineRef.current) return [];
+    return getModuleDetails(selectedModule.id, engineRef.current.buildContext());
+  }, [selectedModule]);
+
   return (
-    <Box flexDirection="column">
+    <Box flexDirection="column" height="100%">
       <Box>
         <Text>
           {chalk.bold('wellwell')} {chalk.gray('– ')}
@@ -163,7 +285,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
           {isApplying && (<Text color="yellow"> <Spinner type="dots" /> applying</Text>)}
         </Text>
       </Box>
-      <Box marginTop={1} flexDirection="column">
+      <Box marginTop={1} flexDirection="column" flexGrow={1}>
         {/* Header */}
         <Box>
           <Box width={32}>
@@ -178,37 +300,55 @@ export default function Dashboard({ verbose }: DashboardProps) {
         </Box>
         
         {/* Rows */}
-        {sorted.map((r, idx) => {
-          const isSelected = idx === selectedIndex;
-          const isHighlighted = selectedModule && (r.id === selectedModule.id || downstreamDeps.has(r.id));
-          const isUnsupported = !isModuleApplicable(r.id, rows);
-          
-          return (
-            <Box key={r.id}>
-              <Box width={32}>
-                <Text color={isSelected ? 'blue' : undefined}>
-                  {(isSelected ? '❯ ' : '  ')}{formatModuleName(r.id, isSelected, isHighlighted, isUnsupported)}
-                </Text>
+        <Box flexDirection="column" flexShrink={1}>
+          {sorted.map((r, idx) => {
+            const isSelected = idx === selectedIndex;
+            const isHighlighted = selectedModule && (r.id === selectedModule.id || downstreamDeps.has(r.id));
+            const isUnsupported = !isModuleApplicable(r.id, rows);
+            
+            return (
+              <Box key={r.id}>
+                <Box width={32}>
+                  <Text color={isSelected ? 'blue' : undefined}>
+                    {(isSelected ? '❯ ' : '  ')}{formatModuleName(r.id, isSelected, isHighlighted, isUnsupported)}
+                  </Text>
+                </Box>
+                <Box width={16}>
+                  <Text>
+                    {formatStatus(r.status, isUnsupported)}
+                  </Text>
+                </Box>
+                <Box flexGrow={1}>
+                  <Text>
+                    {r.dependsOn.length > 0 
+                      ? r.dependsOn.map((depId, depIdx) => 
+                          (depIdx > 0 ? ', ' : '') + 
+                          formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), downstreamDeps.has(depId))
+                        ).join('')
+                      : chalk.hex('#FFA500')('~')
+                    }
+                  </Text>
+                </Box>
               </Box>
-              <Box width={16}>
-                <Text>
-                  {formatStatus(r.status, isUnsupported)}
-                </Text>
-              </Box>
-              <Box flexGrow={1}>
-                <Text>
-                  {r.dependsOn.length > 0 
-                    ? r.dependsOn.map((depId, depIdx) => 
-                        (depIdx > 0 ? ', ' : '') + 
-                        formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), downstreamDeps.has(depId))
-                      ).join('')
-                    : chalk.hex('#FFA500')('~')
-                  }
-                </Text>
-              </Box>
+            );
+          })}
+        </Box>
+        
+        {/* Details Pane */}
+        {selectedModule && moduleDetails.length > 0 && (
+          <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1} flexDirection="column">
+            <Box>
+              <Text bold color="cyan">Details: {selectedModule.id}</Text>
             </Box>
-          );
-        })}
+            <Box flexDirection="column" paddingTop={1}>
+              {moduleDetails.map((detail, idx) => (
+                <Box key={idx}>
+                  <Text>{detail}</Text>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        )}
       </Box>
     </Box>
   );
