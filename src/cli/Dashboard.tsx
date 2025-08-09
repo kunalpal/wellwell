@@ -42,7 +42,10 @@ export default function Dashboard({ verbose }: DashboardProps) {
   const [sortKey, setSortKey] = useState<SortKey>('priority');
   const [isApplying, setIsApplying] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [moduleDetails, setModuleDetails] = useState<string[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const engineRef = useRef<Engine | null>(null);
+  const detailsCache = useRef<Record<string, string[]>>({});
 
   const modules: ConfigurationModule[] = useMemo(() => allModules, []);
 
@@ -166,25 +169,43 @@ export default function Dashboard({ verbose }: DashboardProps) {
     return deps;
   }, [selectedModule, rows]);
 
-  const [moduleDetails, setModuleDetails] = useState<string[]>([]);
-
   useEffect(() => {
     if (!selectedModule || !engineRef.current) {
       setModuleDetails([]);
+      setDetailsLoading(false);
       return;
     }
 
+    // Check cache first
+    if (detailsCache.current[selectedModule.id]) {
+      setModuleDetails(detailsCache.current[selectedModule.id]);
+      setDetailsLoading(false);
+      return;
+    }
+
+    setDetailsLoading(true);
+    
     const loadDetails = async () => {
-      const module = modules.find(m => m.id === selectedModule.id);
-      if (module) {
-        const details = await getModuleDetails(module, engineRef.current!.buildContext());
-        setModuleDetails(details);
-      } else {
-        setModuleDetails([]);
+      try {
+        const module = modules.find(m => m.id === selectedModule.id);
+        if (module) {
+          const details = await getModuleDetails(module, engineRef.current!.buildContext());
+          // Cache the result
+          detailsCache.current[selectedModule.id] = details;
+          setModuleDetails(details);
+        } else {
+          setModuleDetails([]);
+        }
+      } catch (error) {
+        setModuleDetails([`Error loading details: ${error}`]);
+      } finally {
+        setDetailsLoading(false);
       }
     };
 
-    void loadDetails();
+    // Use setTimeout to make it non-blocking
+    const timeoutId = setTimeout(loadDetails, 0);
+    return () => clearTimeout(timeoutId);
   }, [selectedModule, modules]);
 
   return (
@@ -241,7 +262,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
                           (depIdx > 0 ? ', ' : '') + 
                           formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), downstreamDeps.has(depId))
                         ).join('')
-                      : chalk.hex('#FFA500')('~')
+                      : chalk.grey('~')
                     }
                   </Text>
                 </Box>
@@ -251,19 +272,22 @@ export default function Dashboard({ verbose }: DashboardProps) {
         </Box>
         
         {/* Details Pane */}
-        {selectedModule && moduleDetails.length > 0 && (
+        {selectedModule && (
           <Box marginTop={1} flexDirection="column">
             <Box>
               <Text>DETAILS | </Text>
               <Text color="cyan">{selectedModule.id}</Text>
+              {detailsLoading && <Text color="yellow"> <Spinner type="dots" /></Text>}
             </Box>
-            <Box flexDirection="column" paddingTop={1}>
-              {moduleDetails.map((detail, idx) => (
-                <Box key={idx}>
-                  <Text>{detail}</Text>
-                </Box>
-              ))}
-            </Box>
+            {moduleDetails.length > 0 && (
+              <Box flexDirection="column" paddingTop={1}>
+                {moduleDetails.map((detail, idx) => (
+                  <Box key={idx}>
+                    <Text>{detail}</Text>
+                  </Box>
+                ))}
+              </Box>
+            )}
           </Box>
         )}
       </Box>

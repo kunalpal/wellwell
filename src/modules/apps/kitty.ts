@@ -17,7 +17,7 @@ const execAsync = promisify(exec);
 
 const KITTY_CONFIG = `# Kitty Configuration by wellwell
 # Font configuration
-font_family      Source Code Pro
+font_family      Cascadia Code PL
 font_size        12.0
 adjust_line_height  0
 adjust_column_width 0
