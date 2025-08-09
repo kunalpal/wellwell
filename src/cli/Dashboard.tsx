@@ -227,7 +227,7 @@ function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: 
   }
   
   if (isHighlighted) {
-    return chalk.bold(moduleId);
+    return chalk.underline(moduleId);
   }
   
   return moduleId;
@@ -274,7 +274,7 @@ function formatDependency(depId: string, status?: ConfigurationStatus, isUnsuppo
   }
   
   if (isHighlighted) {
-    formatted = chalk.bold(formatted);
+    formatted = chalk.underline(formatted);
   }
   
   return formatted;
