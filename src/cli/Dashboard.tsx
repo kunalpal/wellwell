@@ -24,6 +24,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
   const [rows, setRows] = useState<Record<string, ModuleRow>>({});
   const [sortKey, setSortKey] = useState<SortKey>('priority');
   const [isApplying, setIsApplying] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const engineRef = useRef<Engine | null>(null);
 
   const modules: ConfigurationModule[] = useMemo(() => allModules, []);
@@ -64,12 +65,31 @@ export default function Dashboard({ verbose }: DashboardProps) {
   }, [modules, verbose]);
 
   useInput((input, key) => {
+    const sortedRows = useMemo(() => {
+      const arr = Object.values(rows);
+      if (sortKey === 'priority') return arr.sort((a, b) => a.priority - b.priority);
+      if (sortKey === 'id') return arr.sort((a, b) => a.id.localeCompare(b.id));
+      if (sortKey === 'status') return arr.sort((a, b) => a.status.localeCompare(b.status));
+      return arr;
+    }, [rows, sortKey]);
+
     if (key.escape || (input === 'q')) {
       exit();
+    } else if (key.upArrow || input === 'k') {
+      setSelectedIndex(prev => Math.max(0, prev - 1));
+    } else if (key.downArrow || input === 'j') {
+      setSelectedIndex(prev => Math.min(sortedRows.length - 1, prev + 1));
     } else if (input === 'a') {
       if (!isApplying) {
         setIsApplying(true);
-        void engineRef.current!.apply().finally(() => setIsApplying(false));
+        const selectedModule = sortedRows[selectedIndex];
+        if (selectedModule) {
+          // Apply selected module and its dependencies
+          void engineRef.current!.apply([selectedModule.id]).finally(() => setIsApplying(false));
+        } else {
+          // Apply all if no selection
+          void engineRef.current!.apply().finally(() => setIsApplying(false));
+        }
       }
     } else if (input === 'p') {
       // plan
@@ -97,17 +117,40 @@ export default function Dashboard({ verbose }: DashboardProps) {
     return arr;
   }, [rows, sortKey]);
 
+  const selectedModule = sorted[selectedIndex];
+  const upstreamDeps = useMemo(() => {
+    if (!selectedModule) return new Set<string>();
+    const deps = new Set<string>();
+    const visited = new Set<string>();
+    
+    const addDeps = (moduleId: string) => {
+      if (visited.has(moduleId)) return;
+      visited.add(moduleId);
+      const module = rows[moduleId];
+      if (module) {
+        module.dependsOn.forEach(depId => {
+          deps.add(depId);
+          addDeps(depId);
+        });
+      }
+    };
+    
+    addDeps(selectedModule.id);
+    return deps;
+  }, [selectedModule, rows]);
+
   return (
     <Box flexDirection="column">
       <Box>
         <Text>
           {chalk.bold('wellwell')} {chalk.gray('– ')}
-          {chalk.gray('a: apply  p: plan  s: refresh  1/2/3: sort  q: quit')}
+          {chalk.gray('↑/↓/j/k: navigate  a: apply  p: plan  s: refresh  1/2/3: sort  q: quit')}
         </Text>
       </Box>
       <Box>
         <Text>
-          Sort: {sortKey} {isApplying && (<Text color="yellow"> <Spinner type="dots" /> applying</Text>)}
+          Sort: {sortKey} {selectedModule && (<Text color="cyan"> | Selected: {selectedModule.id}</Text>)}
+          {isApplying && (<Text color="yellow"> <Spinner type="dots" /> applying</Text>)}
         </Text>
       </Box>
       <Box marginTop={1} flexDirection="column">
@@ -116,24 +159,30 @@ export default function Dashboard({ verbose }: DashboardProps) {
           {chalk.bold('STATUS'.padEnd(18))}
           {chalk.bold('DEPENDENCIES')}
         </Text>
-        {sorted.map((r) => (
-          <Text key={r.id}>
-            {r.id.padEnd(32)}
-            {formatStatusPadded(r.status).padEnd(18)}
-            {r.dependsOn.length > 0 ? (
-              <Text>
-                {r.dependsOn.map((depId, idx) => (
-                  <Text key={depId}>
-                    {idx > 0 && <Text color="gray">, </Text>}
-                    {formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows))}
-                  </Text>
-                ))}
-              </Text>
-            ) : (
-              <Text color="gray">—</Text>
-            )}
-          </Text>
-        ))}
+        {sorted.map((r, idx) => {
+          const isSelected = idx === selectedIndex;
+          const isHighlighted = selectedModule && (r.id === selectedModule.id || upstreamDeps.has(r.id));
+          const isUnsupported = !isModuleApplicable(r.id, rows);
+          
+          return (
+            <Text key={r.id} backgroundColor={isSelected ? 'blue' : undefined}>
+              {formatModuleName(r.id, isSelected, isHighlighted, isUnsupported).padEnd(32)}
+              {formatStatusPadded(r.status, isSelected, isUnsupported).padEnd(18)}
+              {r.dependsOn.length > 0 ? (
+                <Text>
+                  {r.dependsOn.map((depId, depIdx) => (
+                    <Text key={depId}>
+                      {depIdx > 0 && <Text color="gray">, </Text>}
+                      {formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), upstreamDeps.has(depId))}
+                    </Text>
+                  ))}
+                </Text>
+              ) : (
+                <Text color="gray">—</Text>
+              )}
+            </Text>
+          );
+        })}
       </Box>
     </Box>
   );
@@ -156,8 +205,33 @@ function formatStatus(status: ConfigurationStatus): string {
   }
 }
 
-function formatStatusPadded(status: ConfigurationStatus): string {
-  const formatted = formatStatus(status);
+function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: boolean, isUnsupported: boolean): string {
+  let formatted = moduleId;
+  
+  if (isUnsupported) {
+    formatted = chalk.yellow(formatted);
+  } else if (isHighlighted) {
+    formatted = chalk.bold(formatted);
+  }
+  
+  if (isSelected) {
+    formatted = chalk.inverse(formatted);
+  }
+  
+  return formatted;
+}
+
+function formatStatusPadded(status: ConfigurationStatus, isSelected?: boolean, isUnsupported?: boolean): string {
+  let formatted = formatStatus(status);
+  
+  if (status === 'idle' && !isUnsupported) {
+    formatted = chalk.blue(status);
+  }
+  
+  if (isSelected) {
+    formatted = chalk.inverse(formatted);
+  }
+  
   // Since chalk adds ANSI codes, we need to pad based on the raw status length
   const rawLength = status.length;
   const padding = Math.max(0, 16 - rawLength);
@@ -170,26 +244,42 @@ function isModuleApplicable(moduleId: string, rows: Record<string, ModuleRow>): 
   return rows[moduleId] !== undefined;
 }
 
-function formatDependency(depId: string, status?: ConfigurationStatus, isUnsupported?: boolean): string {
+function formatDependency(depId: string, status?: ConfigurationStatus, isUnsupported?: boolean, isHighlighted?: boolean): string {
   if (isUnsupported) {
     return chalk.strikethrough.dim(depId);
   }
   
-  if (!status) return chalk.gray(depId);
+  let formatted = depId;
   
-  switch (status) {
-    case 'applied':
-      return chalk.green(depId);
-    case 'pending':
-      return chalk.yellow(depId);
-    case 'failed':
-      return chalk.red(depId);
-    case 'skipped':
-      return chalk.cyan(depId);
-    case 'idle':
-    default:
-      return chalk.gray(depId);
+  if (!status) {
+    formatted = chalk.gray(depId);
+  } else {
+    switch (status) {
+      case 'applied':
+        formatted = chalk.green(depId);
+        break;
+      case 'pending':
+        formatted = chalk.yellow(depId);
+        break;
+      case 'failed':
+        formatted = chalk.red(depId);
+        break;
+      case 'skipped':
+        formatted = chalk.cyan(depId);
+        break;
+      case 'idle':
+        formatted = chalk.blue(depId);
+        break;
+      default:
+        formatted = chalk.gray(depId);
+    }
   }
+  
+  if (isHighlighted) {
+    formatted = chalk.bold(formatted);
+  }
+  
+  return formatted;
 }
 
 
