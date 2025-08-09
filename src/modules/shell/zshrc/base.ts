@@ -32,7 +32,9 @@ async function upsertBlock(filePath: string, newBlock: string): Promise<{ change
   try {
     content = await fs.readFile(filePath, 'utf8');
   } catch {
-    // ignore
+    // create the file if missing so subsequent writes succeed
+    await fs.writeFile(filePath, '');
+    content = '';
   }
   const startIdx = content.indexOf(ZSHRC_MARKER_START);
   const endIdx = content.indexOf(ZSHRC_MARKER_END);
