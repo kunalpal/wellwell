@@ -169,7 +169,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
             <Box key={r.id}>
               <Box width={32}>
                 <Text>
-                  {isSelected && '> '}
+                  {isSelected && <Text color="blue">{'> '}</Text>}
                   {formatModuleName(r.id, isSelected, isHighlighted, isUnsupported)}
                 </Text>
               </Box>
@@ -215,13 +215,13 @@ function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: 
 }
 
 function formatStatus(status: ConfigurationStatus, isUnsupported?: boolean): string {
-  if (status === 'idle' && !isUnsupported) {
-    return chalk.blue(status);
+  if (isUnsupported) {
+    return chalk.dim.strikethrough(status);
   }
   
   switch (status) {
     case 'idle':
-      return chalk.gray('idle');
+      return chalk.blue('idle');
     case 'pending':
       return chalk.yellow('pending');
     case 'applied':
@@ -242,13 +242,12 @@ function isModuleApplicable(moduleId: string, rows: Record<string, ModuleRow>): 
 }
 
 function formatDependency(depId: string, status?: ConfigurationStatus, isUnsupported?: boolean, isHighlighted?: boolean): string {
-  if (isUnsupported) {
-    return chalk.strikethrough.dim(depId);
-  }
-  
   let formatted = depId;
   
-  if (!status) {
+  if (isUnsupported) {
+    // Unsupported dependencies: strikethrough + dim + gray
+    formatted = chalk.strikethrough.dim.gray(depId);
+  } else if (!status) {
     formatted = chalk.gray(depId);
   } else {
     switch (status) {
@@ -265,6 +264,7 @@ function formatDependency(depId: string, status?: ConfigurationStatus, isUnsuppo
         formatted = chalk.cyan(depId);
         break;
       case 'idle':
+        // Idle dependencies: blue (same as idle status)
         formatted = chalk.blue(depId);
         break;
       default:
