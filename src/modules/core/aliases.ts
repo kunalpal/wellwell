@@ -15,9 +15,13 @@ import {
 } from '../../core/contrib.js';
 
 export const commonAliases = (ctx: ConfigurationContext): AliasContribution[] => [
-  { name: 'll', value: 'ls -alF' },
-  { name: 'la', value: 'ls -A' },
-  { name: 'l', value: 'ls -CF' },
+  // Use eza if available, fallback to ls
+  { name: 'ls', value: 'eza --color=auto --icons' },
+  { name: 'll', value: 'eza -la --icons --git' },
+  { name: 'la', value: 'eza -a --icons' },
+  { name: 'l', value: 'eza --icons' },
+  { name: 'lt', value: 'eza --tree --icons' },
+  { name: 'lg', value: 'eza -la --icons --git --git-ignore' },
   // platform variants
   { name: 'pbcopy', value: 'tee >/dev/null | pbcopy', platforms: ['macos'] },
   { name: 'pbpaste', value: 'pbpaste', platforms: ['macos'] },
@@ -32,6 +36,7 @@ export const commonAliases = (ctx: ConfigurationContext): AliasContribution[] =>
 export const aliasesModule: ConfigurationModule = {
   id: 'core:aliases',
   description: 'Collect alias contributions and compute final set',
+  dependsOn: ['apps:eza'],
   priority: 25,
 
   async isApplicable(_ctx) {
@@ -70,11 +75,17 @@ export const aliasesModule: ConfigurationModule = {
   },
 
   getDetails(ctx): string[] {
-    const resolvedAliases = readResolvedAliases(ctx);
-    if (resolvedAliases && resolvedAliases.length > 0) {
-      const details = [`Managing ${resolvedAliases.length} aliases:`];
-      resolvedAliases.forEach(alias => {
-        details.push(`  • ${alias.name} → "${alias.value}"`);
+    // Try to get resolved aliases first, fallback to computing them
+    let aliases = readResolvedAliases(ctx);
+    if (!aliases || aliases.length === 0) {
+      // If no resolved aliases, compute them from contributions
+      aliases = resolveAliases(ctx);
+    }
+    
+    if (aliases && aliases.length > 0) {
+      const details = [`Managing ${aliases.length} aliases:`];
+      aliases.forEach(alias => {
+        details.push(`  - ${alias.name} → "${alias.value}"`);
       });
       return details;
     } else {
