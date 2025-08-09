@@ -182,7 +182,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
             <Box key={r.id}>
               <Box width={32}>
                 <Text color={isSelected ? 'blue' : undefined}>
-                  {(isSelected ? '> ' : '  ')}{formatModuleName(r.id, isSelected, isHighlighted, isUnsupported)}
+                  {(isSelected ? '❯ ' : '  ')}{formatModuleName(r.id, isSelected, isHighlighted, isUnsupported)}
                 </Text>
               </Box>
               <Box width={16}>
