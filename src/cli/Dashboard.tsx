@@ -110,24 +110,25 @@ export default function Dashboard({ verbose }: DashboardProps) {
   }, [rows, sortKey]);
 
   const selectedModule = sorted[selectedIndex];
-  const upstreamDeps = useMemo(() => {
+  const downstreamDeps = useMemo(() => {
     if (!selectedModule) return new Set<string>();
     const deps = new Set<string>();
     const visited = new Set<string>();
     
-    const addDeps = (moduleId: string) => {
+    const addDependents = (moduleId: string) => {
       if (visited.has(moduleId)) return;
       visited.add(moduleId);
-      const module = rows[moduleId];
-      if (module) {
-        module.dependsOn.forEach(depId => {
-          deps.add(depId);
-          addDeps(depId);
-        });
-      }
+      
+      // Find all modules that depend on this one
+      Object.values(rows).forEach(module => {
+        if (module.dependsOn.includes(moduleId)) {
+          deps.add(module.id);
+          addDependents(module.id);
+        }
+      });
     };
     
-    addDeps(selectedModule.id);
+    addDependents(selectedModule.id);
     return deps;
   }, [selectedModule, rows]);
 
@@ -162,7 +163,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
         {/* Rows */}
         {sorted.map((r, idx) => {
           const isSelected = idx === selectedIndex;
-          const isHighlighted = selectedModule && (r.id === selectedModule.id || upstreamDeps.has(r.id));
+          const isHighlighted = selectedModule && (r.id === selectedModule.id || downstreamDeps.has(r.id));
           const isUnsupported = !isModuleApplicable(r.id, rows);
           
           return (
@@ -184,7 +185,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
                     {r.dependsOn.map((depId, depIdx) => (
                       <Text key={depId}>
                         {depIdx > 0 && <Text color="gray">, </Text>}
-                        {formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), upstreamDeps.has(depId))}
+                        {formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), downstreamDeps.has(depId))}
                       </Text>
                     ))}
                   </Text>
@@ -216,7 +217,8 @@ function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: 
 
 function formatStatus(status: ConfigurationStatus, isUnsupported?: boolean): string {
   if (isUnsupported) {
-    return chalk.dim.strikethrough(status);
+    // Use ANSI escape codes for strikethrough since chalk may not work properly
+    return `\u001b[9m\u001b[2m${status}\u001b[0m`;
   }
   
   switch (status) {
@@ -246,7 +248,8 @@ function formatDependency(depId: string, status?: ConfigurationStatus, isUnsuppo
   
   if (isUnsupported) {
     // Unsupported dependencies: strikethrough + dim + gray
-    formatted = chalk.strikethrough.dim.gray(depId);
+    // Use ANSI escape codes directly for strikethrough since chalk may not work properly
+    formatted = `\u001b[9m\u001b[2m${chalk.gray(depId)}\u001b[0m`;
   } else if (!status) {
     formatted = chalk.gray(depId);
   } else {
