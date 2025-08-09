@@ -114,15 +114,23 @@ export default function Dashboard({ verbose }: DashboardProps) {
         <Text>
           {chalk.bold('MODULE'.padEnd(32))}
           {chalk.bold('STATUS'.padEnd(10))}
-          {chalk.bold('ORDER')}
+          {chalk.bold('DEPENDENCIES')}
         </Text>
         {sorted.map((r) => (
           <Text key={r.id}>
             {r.id.padEnd(32)}
             {formatStatusPadded(r.status).padEnd(10)}
-            {formatPriority(r.priority)}
-            {r.dependsOn.length > 0 && (
-              <Text color="gray"> → {r.dependsOn.join(', ')}</Text>
+            {r.dependsOn.length > 0 ? (
+              <Text>
+                {r.dependsOn.map((depId, idx) => (
+                  <Text key={depId}>
+                    {idx > 0 && <Text color="gray">, </Text>}
+                    {formatDependency(depId, rows[depId]?.status)}
+                  </Text>
+                ))}
+              </Text>
+            ) : (
+              <Text color="gray">—</Text>
             )}
           </Text>
         ))}
@@ -156,13 +164,22 @@ function formatStatusPadded(status: ConfigurationStatus): string {
   return formatted + ' '.repeat(padding);
 }
 
-function formatPriority(priority: number): string {
-  // Convert priority to visual indicators
-  if (priority <= 10) return chalk.red('●●●'); // Critical/early
-  if (priority <= 25) return chalk.yellow('●●○'); // High
-  if (priority <= 50) return chalk.green('●○○'); // Medium
-  if (priority <= 75) return chalk.blue('○○○'); // Low
-  return chalk.gray('○○○'); // Very low
+function formatDependency(depId: string, status?: ConfigurationStatus): string {
+  if (!status) return chalk.gray(depId);
+  
+  switch (status) {
+    case 'applied':
+      return chalk.green(depId);
+    case 'pending':
+      return chalk.yellow(depId);
+    case 'failed':
+      return chalk.red(depId);
+    case 'skipped':
+      return chalk.cyan(depId);
+    case 'idle':
+    default:
+      return chalk.gray(depId);
+  }
 }
 
 
