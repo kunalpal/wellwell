@@ -12,10 +12,22 @@ export interface AliasContribution {
   platforms?: Platform[];
 }
 
+export interface PackageContribution {
+  name: string;
+  manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+  platforms?: Platform[];
+  /** For mise: language like 'node', 'python' */
+  language?: string;
+  /** For mise: version like '20.0.0', 'latest' */
+  version?: string;
+}
+
 const CONTRIB_PATHS_KEY = 'contrib.paths';
 const CONTRIB_ALIASES_KEY = 'contrib.aliases';
+const CONTRIB_PACKAGES_KEY = 'contrib.packages';
 const RESOLVED_PATHS_KEY = 'resolved.paths';
 const RESOLVED_ALIASES_KEY = 'resolved.aliases';
+const RESOLVED_PACKAGES_KEY = 'resolved.packages';
 
 export function listPathContributions(ctx: ConfigurationContext): PathContribution[] {
   return (ctx.state.get<PathContribution[]>(CONTRIB_PATHS_KEY) ?? []).slice();
@@ -91,6 +103,49 @@ export function readResolvedPaths(ctx: ConfigurationContext): string[] | undefin
 
 export function readResolvedAliases(ctx: ConfigurationContext): AliasContribution[] | undefined {
   return ctx.state.get<AliasContribution[]>(RESOLVED_ALIASES_KEY);
+}
+
+// Package contribution functions
+export function listPackageContributions(ctx: ConfigurationContext): PackageContribution[] {
+  return (ctx.state.get<PackageContribution[]>(CONTRIB_PACKAGES_KEY) ?? []).slice();
+}
+
+export function addPackageContribution(
+  ctx: ConfigurationContext,
+  contribution: PackageContribution,
+): boolean {
+  if (contribution.platforms && !contribution.platforms.includes(ctx.platform)) return false;
+  const current = ctx.state.get<PackageContribution[]>(CONTRIB_PACKAGES_KEY) ?? [];
+  const exists = current.some((c) => 
+    c.name === contribution.name && 
+    c.manager === contribution.manager &&
+    c.language === contribution.language &&
+    c.version === contribution.version
+  );
+  if (!exists) {
+    current.push(contribution);
+    ctx.state.set(CONTRIB_PACKAGES_KEY, current);
+    return true;
+  }
+  return false;
+}
+
+export function resolvePackages(ctx: ConfigurationContext): Record<string, PackageContribution[]> {
+  const contribs = listPackageContributions(ctx);
+  const byManager: Record<string, PackageContribution[]> = {};
+  for (const c of contribs) {
+    if (!byManager[c.manager]) byManager[c.manager] = [];
+    byManager[c.manager].push(c);
+  }
+  return byManager;
+}
+
+export function writeResolvedPackages(ctx: ConfigurationContext, packages: Record<string, PackageContribution[]>): void {
+  ctx.state.set(RESOLVED_PACKAGES_KEY, packages);
+}
+
+export function readResolvedPackages(ctx: ConfigurationContext): Record<string, PackageContribution[]> | undefined {
+  return ctx.state.get<Record<string, PackageContribution[]>>(RESOLVED_PACKAGES_KEY);
 }
 
 
