@@ -22,12 +22,20 @@ export interface PackageContribution {
   version?: string;
 }
 
+export interface ShellInitContribution {
+  name: string;
+  initCode: string;
+  platforms?: Platform[];
+}
+
 const CONTRIB_PATHS_KEY = 'contrib.paths';
 const CONTRIB_ALIASES_KEY = 'contrib.aliases';
 const CONTRIB_PACKAGES_KEY = 'contrib.packages';
+const CONTRIB_SHELL_INIT_KEY = 'contrib.shell.init';
 const RESOLVED_PATHS_KEY = 'resolved.paths';
 const RESOLVED_ALIASES_KEY = 'resolved.aliases';
 const RESOLVED_PACKAGES_KEY = 'resolved.packages';
+const RESOLVED_SHELL_INIT_KEY = 'resolved.shell.init';
 
 export function listPathContributions(ctx: ConfigurationContext): PathContribution[] {
   return (ctx.state.get<PathContribution[]>(CONTRIB_PATHS_KEY) ?? []).slice();
@@ -146,6 +154,38 @@ export function writeResolvedPackages(ctx: ConfigurationContext, packages: Recor
 
 export function readResolvedPackages(ctx: ConfigurationContext): Record<string, PackageContribution[]> | undefined {
   return ctx.state.get<Record<string, PackageContribution[]>>(RESOLVED_PACKAGES_KEY);
+}
+
+// Shell init contribution functions
+export function listShellInitContributions(ctx: ConfigurationContext): ShellInitContribution[] {
+  return (ctx.state.get<ShellInitContribution[]>(CONTRIB_SHELL_INIT_KEY) ?? []).slice();
+}
+
+export function addShellInitContribution(
+  ctx: ConfigurationContext,
+  contribution: ShellInitContribution,
+): boolean {
+  if (contribution.platforms && !contribution.platforms.includes(ctx.platform)) return false;
+  const current = ctx.state.get<ShellInitContribution[]>(CONTRIB_SHELL_INIT_KEY) ?? [];
+  const exists = current.some((c) => c.name === contribution.name);
+  if (!exists) {
+    current.push(contribution);
+    ctx.state.set(CONTRIB_SHELL_INIT_KEY, current);
+    return true;
+  }
+  return false;
+}
+
+export function resolveShellInit(ctx: ConfigurationContext): ShellInitContribution[] {
+  return listShellInitContributions(ctx);
+}
+
+export function writeResolvedShellInit(ctx: ConfigurationContext, shellInit: ShellInitContribution[]): void {
+  ctx.state.set(RESOLVED_SHELL_INIT_KEY, shellInit);
+}
+
+export function readResolvedShellInit(ctx: ConfigurationContext): ShellInitContribution[] | undefined {
+  return ctx.state.get<ShellInitContribution[]>(RESOLVED_SHELL_INIT_KEY);
 }
 
 

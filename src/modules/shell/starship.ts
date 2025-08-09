@@ -10,6 +10,7 @@ import type {
   PlanResult,
   StatusResult,
 } from '../../core/types.js';
+import { addShellInitContribution } from '../../core/contrib.js';
 
 const execAsync = promisify(exec);
 
@@ -121,29 +122,45 @@ export const starshipModule: ConfigurationModule = {
   async plan(ctx): Promise<PlanResult> {
     const changes = [];
     
-    const isInstalled = await isStarshipInstalled();
-    if (!isInstalled) {
-      changes.push({ summary: 'Install starship prompt via official installer' });
-    }
-    
-    const configDir = path.join(ctx.homeDir, '.config');
-    const configFile = path.join(configDir, 'starship.toml');
-    
     try {
-      const currentConfig = await fs.readFile(configFile, 'utf8');
-      const expectedConfig = getStarshipConfig();
-      if (currentConfig !== expectedConfig) {
-        changes.push({ summary: `Update starship config at ${configFile}` });
+      const isInstalled = await isStarshipInstalled();
+      if (!isInstalled) {
+        changes.push({ summary: 'Install starship prompt via official installer' });
       }
-    } catch {
-      changes.push({ summary: `Create starship config at ${configFile}` });
+      
+      const configDir = path.join(ctx.homeDir, '.config');
+      const configFile = path.join(configDir, 'starship.toml');
+      
+      try {
+        const currentConfig = await fs.readFile(configFile, 'utf8');
+        const expectedConfig = getStarshipConfig();
+        if (currentConfig !== expectedConfig) {
+          changes.push({ summary: `Update starship config at ${configFile}` });
+        }
+      } catch {
+        changes.push({ summary: `Create starship config at ${configFile}` });
+      }
+      
+      return { changes };
+    } catch (error) {
+      ctx.logger.error({ error, module: 'shell:starship' }, 'Error in plan method');
+      throw error;
     }
-    
-    return { changes };
   },
 
   async apply(ctx): Promise<ApplyResult> {
     try {
+      ctx.logger.info({ module: 'shell:starship' }, 'Starting starship apply');
+      
+      // Register shell initialization
+      addShellInitContribution(ctx, {
+        name: 'starship',
+        initCode: `# Initialize starship prompt if available
+if command -v starship > /dev/null 2>&1; then
+  eval "$(starship init zsh)"
+fi`,
+      });
+      
       const isInstalled = await isStarshipInstalled();
       let installChanged = false;
       

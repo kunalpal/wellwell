@@ -8,7 +8,7 @@ import type {
   PlanResult,
   StatusResult,
 } from '../../../core/types.js';
-import { readResolvedAliases, readResolvedPaths } from '../../../core/contrib.js';
+import { readResolvedAliases, readResolvedPaths, readResolvedShellInit } from '../../../core/contrib.js';
 
 const ZSHRC_MARKER_START = '# === wellwell:begin ===';
 const ZSHRC_MARKER_END = '# === wellwell:end ===';
@@ -20,25 +20,27 @@ function escapeDoubleQuotes(input: string): string {
 function renderZshrcBlock(ctx: ConfigurationContext): string {
   const resolvedPaths = readResolvedPaths(ctx) ?? [];
   const resolvedAliases = readResolvedAliases(ctx) ?? [];
+  const resolvedShellInit = readResolvedShellInit(ctx) ?? [];
+  
   const pathExport = resolvedPaths.length
     ? `export PATH="${escapeDoubleQuotes(resolvedPaths.join(':'))}:$PATH"`
     : 'export PATH="$HOME/bin:$PATH"';
+  
   const lines = [
     ZSHRC_MARKER_START,
     pathExport,
     'export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#555"',
     ...resolvedAliases.map((a) => `alias ${a.name}="${escapeDoubleQuotes(a.value)}"`),
     '',
-    '# Initialize starship prompt if available',
-    'if command -v starship > /dev/null 2>&1; then',
-    '  eval "$(starship init zsh)"',
-    'fi',
+    ...resolvedShellInit.map((init) => init.initCode),
     ZSHRC_MARKER_END,
     '',
   ];
+  
   if (ctx.platform === 'macos') {
     lines.splice(lines.length - 2, 0, 'export BROWSER="open"');
   }
+  
   return lines.join('\n');
 }
 
@@ -72,7 +74,7 @@ async function upsertBlock(filePath: string, newBlock: string): Promise<{ change
 export const zshrcBaseModule: ConfigurationModule = {
   id: 'shell:zshrc:base',
   description: 'Base zshrc block managed by wellwell',
-  dependsOn: ['common:homebin', 'core:paths', 'core:aliases', 'shell:starship'],
+  dependsOn: ['common:homebin', 'core:paths', 'core:aliases', 'core:shell-init'],
   priority: 50,
 
   async isApplicable(ctx) {
