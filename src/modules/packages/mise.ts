@@ -54,6 +54,21 @@ async function getInstalledLanguages(): Promise<Record<string, string[]>> {
   }
 }
 
+function isVersionSatisfied(requestedVersion: string, installedVersions: string[]): boolean {
+  if (requestedVersion === 'lts' || requestedVersion === 'latest') {
+    // For lts/latest, any installed version counts as satisfied
+    return installedVersions.length > 0;
+  }
+  
+  // Check for exact match first
+  if (installedVersions.includes(requestedVersion)) {
+    return true;
+  }
+  
+  // Check for partial version match (e.g. "3.11" matches "3.11.9", "3.11.13")
+  return installedVersions.some(installed => installed.startsWith(requestedVersion + '.'));
+}
+
 async function installLanguageVersion(language: string, version: string): Promise<boolean> {
   try {
     await execAsync(`mise install ${language}@${version}`);
@@ -112,7 +127,7 @@ export const miseModule: ConfigurationModule = {
       const installed = await getInstalledLanguages();
       const toInstall = misePackages.filter(p => {
         const versions = installed[p.language!] ?? [];
-        return !versions.includes(p.version!);
+        return !isVersionSatisfied(p.version!, versions);
       });
       
       if (toInstall.length > 0) {
@@ -152,7 +167,7 @@ fi`,
         const installed = await getInstalledLanguages();
         const toInstall = misePackages.filter(p => {
           const versions = installed[p.language!] ?? [];
-          return !versions.includes(p.version!);
+          return !isVersionSatisfied(p.version!, versions);
         });
         
         if (toInstall.length > 0) {
@@ -208,7 +223,7 @@ fi`,
     const installed = await getInstalledLanguages();
     const missing = misePackages.filter(p => {
       const versions = installed[p.language!] ?? [];
-      return !versions.includes(p.version!);
+      return !isVersionSatisfied(p.version!, versions);
     });
     
     return { 
