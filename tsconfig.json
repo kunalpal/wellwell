@@ -12,9 +12,9 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "jsx": "react-jsx",
-    "types": ["node", "react"]
+    "types": ["node", "react", "jest"]
   },
-  "include": ["src"]
+  "include": ["src", "tests"]
 }
 
 
