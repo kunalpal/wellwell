@@ -212,7 +212,7 @@ fi`,
   async status(ctx): Promise<StatusResult> {
     const isInstalled = await isStarshipInstalled();
     if (!isInstalled) {
-      return { status: 'idle', message: 'Starship not installed' };
+      return { status: 'stale', message: 'Starship not installed' };
     }
     
     const configFile = path.join(ctx.homeDir, '.config', 'starship.toml');
@@ -220,7 +220,7 @@ fi`,
       await fs.access(configFile);
       return { status: 'applied', message: 'Starship configured' };
     } catch {
-      return { status: 'idle', message: 'Starship config missing' };
+      return { status: 'stale', message: 'Starship config missing' };
     }
   },
 

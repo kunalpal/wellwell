@@ -57,7 +57,7 @@ export const ezaModule: ConfigurationModule = {
       await execAsync('which eza');
       return { status: 'applied', message: 'Eza available' };
     } catch {
-      return { status: 'idle', message: 'Eza not found in PATH' };
+      return { status: 'stale', message: 'Eza not found in PATH' };
     }
   },
 

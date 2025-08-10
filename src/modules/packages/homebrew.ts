@@ -146,7 +146,7 @@ export const homebrewModule: ConfigurationModule = {
 
   async status(ctx): Promise<StatusResult> {
     const isInstalled = await isHomebrewInstalled();
-    if (!isInstalled) return { status: 'idle', message: 'Homebrew not installed' };
+    if (!isInstalled) return { status: 'stale', message: 'Homebrew not installed' };
     
     const resolvedPackages = readResolvedPackages(ctx);
     const homebrewPackages = resolvedPackages?.homebrew ?? [];
@@ -159,7 +159,7 @@ export const homebrewModule: ConfigurationModule = {
     const missing = homebrewPackages.filter(p => !installed.has(p.name));
     
     return { 
-      status: missing.length === 0 ? 'applied' : 'idle',
+      status: missing.length === 0 ? 'applied' : 'stale',
       message: missing.length > 0 ? `${missing.length} packages missing` : 'All packages installed'
     };
   },

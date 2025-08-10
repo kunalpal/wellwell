@@ -211,7 +211,7 @@ fi`,
 
   async status(ctx): Promise<StatusResult> {
     const isInstalled = await isMiseInstalled();
-    if (!isInstalled) return { status: 'idle', message: 'Mise not installed' };
+    if (!isInstalled) return { status: 'stale', message: 'Mise not installed' };
     
     const resolvedPackages = readResolvedPackages(ctx);
     const misePackages = resolvedPackages?.mise ?? [];
@@ -227,7 +227,7 @@ fi`,
     });
     
     return { 
-      status: missing.length === 0 ? 'applied' : 'idle',
+      status: missing.length === 0 ? 'applied' : 'stale',
       message: missing.length > 0 ? `${missing.length} language versions missing` : 'All language versions installed'
     };
   },

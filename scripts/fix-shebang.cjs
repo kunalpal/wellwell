@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const cliPath = path.join(__dirname, '..', 'dist', 'cli', 'index.js');
+const cliPath = path.join(__dirname, '..', 'dist', 'src', 'cli', 'index.js');
 try {
   const content = fs.readFileSync(cliPath, 'utf8');
   const shebang = '#!/usr/bin/env node\n';

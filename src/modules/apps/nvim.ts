@@ -115,7 +115,7 @@ vim.keymap.set("n", "N", "Nzzzv")
       await fs.access(initFile);
       return { status: 'applied', message: 'Neovim config exists' };
     } catch {
-      return { status: 'idle', message: 'Neovim config missing' };
+      return { status: 'stale', message: 'Neovim config missing' };
     }
   },
 };

@@ -74,7 +74,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
         if (isApplicable) {
           applicableRows[m.id] = {
             id: m.id,
-            status: 'idle',
+            status: 'stale',
             priority: m.priority ?? 100,
             dependsOn: m.dependsOn ?? [],
           };
@@ -123,11 +123,11 @@ export default function Dashboard({ verbose }: DashboardProps) {
               // Mark dependent modules as needing re-apply
               setRows((prev) => {
                 const next = { ...prev };
-                // Mark themes module and its dependents as idle
+                // Mark themes module and its dependents as stale
                 Object.keys(next).forEach(moduleId => {
                   if (moduleId === 'themes:base16' || 
                       next[moduleId].dependsOn.includes('themes:base16')) {
-                    next[moduleId] = { ...next[moduleId], status: 'idle' };
+                    next[moduleId] = { ...next[moduleId], status: 'stale' };
                   }
                 });
                 return next;
@@ -353,8 +353,8 @@ function formatStatus(status: ConfigurationStatus, isUnsupported?: boolean): str
   }
   
   switch (status) {
-    case 'idle':
-      return chalk.blue('idle');
+    case 'stale':
+      return chalk.blue('stale');
     case 'pending':
       return chalk.yellow('pending');
     case 'applied':

@@ -159,7 +159,7 @@ export class Engine {
       if (selectedIds && !selectedIds.includes(mod.id)) continue;
       if (!(await mod.isApplicable(ctx))) continue;
       const status = await mod.status?.(ctx);
-      result[mod.id] = status?.status ?? 'idle';
+      result[mod.id] = status?.status ?? 'stale';
     }
     return result;
   }

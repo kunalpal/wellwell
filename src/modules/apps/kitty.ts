@@ -222,13 +222,13 @@ export const kittyModule: ConfigurationModule = {
   async status(ctx): Promise<StatusResult> {
     const isInstalled = await isKittyInstalled();
     if (!isInstalled) {
-      return { status: 'idle', message: 'Kitty not installed' };
+      return { status: 'stale', message: 'Kitty not installed' };
     }
     
     const configPath = await getKittyConfigPath(ctx.homeDir);
     const hasConfig = await hasKittyConfig(configPath);
     if (!hasConfig) {
-      return { status: 'idle', message: 'Kitty config missing' };
+      return { status: 'stale', message: 'Kitty config missing' };
     }
     
     return { status: 'applied', message: 'Kitty installed and configured' };

@@ -58,7 +58,7 @@ export const ripgrepModule: ConfigurationModule = {
       await execAsync('which rg');
       return { status: 'applied', message: 'Ripgrep available' };
     } catch {
-      return { status: 'idle', message: 'Ripgrep not found in PATH' };
+      return { status: 'stale', message: 'Ripgrep not found in PATH' };
     }
   },
 };

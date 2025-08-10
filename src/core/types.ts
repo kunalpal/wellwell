@@ -1,7 +1,7 @@
 export type Platform = 'macos' | 'ubuntu' | 'al2' | 'unknown';
 
 export type ConfigurationStatus =
-  | 'idle'
+  | 'stale'
   | 'pending'
   | 'applied'
   | 'skipped'

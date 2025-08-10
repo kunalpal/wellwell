@@ -19,15 +19,15 @@ export const zshrcCompositeModule: ConfigurationModule = {
   },
   async status(ctx): Promise<StatusResult> {
     // Check status of all dependencies
-    const baseStatus = await zshrcBaseModule.status?.(ctx) ?? { status: 'idle' as const };
-    const pluginsStatus = await zshrcPluginsModule.status?.(ctx) ?? { status: 'idle' as const };
+    const baseStatus = await zshrcBaseModule.status?.(ctx) ?? { status: 'stale' as const };
+    const pluginsStatus = await zshrcPluginsModule.status?.(ctx) ?? { status: 'stale' as const };
     
     if (baseStatus.status === 'applied' && pluginsStatus.status === 'applied') {
       return { status: 'applied', message: 'All components configured' };
     } else if (baseStatus.status === 'failed' || pluginsStatus.status === 'failed') {
       return { status: 'failed', message: 'One or more components failed' };
     } else {
-      return { status: 'idle', message: 'Components not ready' };
+      return { status: 'stale', message: 'Components not ready' };
     }
   },
 

@@ -80,7 +80,7 @@ fi`,
       await execAsync('which fzf');
       return { status: 'applied', message: 'Fzf available and configured' };
     } catch {
-      return { status: 'idle', message: 'Fzf not found in PATH' };
+      return { status: 'stale', message: 'Fzf not found in PATH' };
     }
   },
 

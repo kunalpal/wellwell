@@ -8,7 +8,7 @@
     "postbuild": "node ./scripts/fix-shebang.cjs",
     "dev": "tsx src/cli/index.tsx",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "cli": "node dist/cli/index.js",
+    "cli": "node dist/src/cli/index.js",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
@@ -46,6 +46,6 @@
     "typescript": "^5.9.2"
   },
   "bin": {
-    "wellwell": "dist/cli/index.js"
+    "wellwell": "dist/src/cli/index.js"
   }
 }

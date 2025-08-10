@@ -64,7 +64,7 @@ async function isWwCommandAvailable(): Promise<boolean> {
 
 async function createWwScript(projectRoot: string, binDir: string): Promise<void> {
   const wwScript = path.join(binDir, 'ww');
-  const wellwellExecutable = path.join(projectRoot, 'dist', 'cli', 'index.js');
+  const wellwellExecutable = path.join(projectRoot, 'dist', 'src', 'cli', 'index.js');
   
   // Create a shell script that runs the wellwell executable
   const scriptContent = `#!/bin/bash
@@ -192,7 +192,7 @@ export const wellwellModule: ConfigurationModule = {
   async status(_ctx): Promise<StatusResult> {
     const projectRoot = await getWellwellProjectRoot();
     if (!projectRoot) {
-      return { status: 'idle', message: 'Project root not found' };
+      return { status: 'stale', message: 'Project root not found' };
     }
     
     // Check if the built executable exists
@@ -200,14 +200,14 @@ export const wellwellModule: ConfigurationModule = {
     try {
       await fs.access(builtExecutable);
     } catch {
-      return { status: 'idle', message: 'Wellwell not built' };
+      return { status: 'stale', message: 'Wellwell not built' };
     }
     
     const isWwAvailable = await isWwCommandAvailable();
     if (isWwAvailable) {
       return { status: 'applied', message: '"ww" command available' };
     } else {
-      return { status: 'idle', message: '"ww" command not found' };
+      return { status: 'stale', message: '"ww" command not found' };
     }
   },
 

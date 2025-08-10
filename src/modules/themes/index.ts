@@ -331,7 +331,7 @@ source ~/.wellwell/themes/${currentTheme}/starship.conf`
         await fs.access(configDir);
         return { status: 'applied', message: `${currentTheme} theme active` };
       } catch {
-        return { status: 'idle', message: `${currentTheme} theme needs generation` };
+        return { status: 'stale', message: `${currentTheme} theme needs generation` };
       }
     } catch (error) {
       return { status: 'failed', message: `Error checking theme status: ${error}` };

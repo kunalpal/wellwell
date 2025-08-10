@@ -131,7 +131,7 @@ export const aptModule: ConfigurationModule = {
 
   async status(ctx): Promise<StatusResult> {
     const isAvailable = await isAptAvailable();
-    if (!isAvailable) return { status: 'idle', message: 'APT not available' };
+    if (!isAvailable) return { status: 'stale', message: 'APT not available' };
     
     const resolvedPackages = readResolvedPackages(ctx);
     const aptPackages = resolvedPackages?.apt ?? [];
@@ -144,7 +144,7 @@ export const aptModule: ConfigurationModule = {
     const missing = aptPackages.filter(p => !installed.has(p.name));
     
     return { 
-      status: missing.length === 0 ? 'applied' : 'idle',
+      status: missing.length === 0 ? 'applied' : 'stale',
       message: missing.length > 0 ? `${missing.length} packages missing` : 'All packages installed'
     };
   },

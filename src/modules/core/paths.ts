@@ -67,7 +67,7 @@ export const pathsModule: ConfigurationModule = {
 
   async status(ctx): Promise<StatusResult> {
     const resolved = readResolvedPaths(ctx) ?? [];
-    return { status: resolved.length > 0 ? 'applied' : 'idle' };
+    return { status: resolved.length > 0 ? 'applied' : 'stale' };
   },
 
   getDetails(ctx): string[] {

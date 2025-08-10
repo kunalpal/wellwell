@@ -71,7 +71,7 @@ export const aliasesModule: ConfigurationModule = {
 
   async status(ctx): Promise<StatusResult> {
     const resolved = readResolvedAliases(ctx) ?? [];
-    return { status: resolved.length > 0 ? 'applied' : 'idle' };
+    return { status: resolved.length > 0 ? 'applied' : 'stale' };
   },
 
   getDetails(ctx): string[] {

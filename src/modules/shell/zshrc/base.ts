@@ -127,9 +127,9 @@ export const zshrcBaseModule: ConfigurationModule = {
     const block = renderZshrcBlock(ctx);
     try {
       const content = await fs.readFile(target, 'utf8');
-      return { status: content.includes(block) ? 'applied' : 'idle' };
+      return { status: content.includes(block) ? 'applied' : 'stale' };
     } catch {
-      return { status: 'idle' };
+      return { status: 'stale' };
     }
   },
 

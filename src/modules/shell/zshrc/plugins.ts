@@ -190,7 +190,7 @@ export const zshrcPluginsModule: ConfigurationModule = {
       // Check if zinit is installed
       const zinitInstalled = await isZinitInstalled(ctx.homeDir);
       if (!zinitInstalled) {
-        return { status: 'idle', message: 'Zinit not installed' };
+        return { status: 'stale', message: 'Zinit not installed' };
       }
       
       // Check if plugins are configured in zshrc
@@ -201,10 +201,10 @@ export const zshrcPluginsModule: ConfigurationModule = {
         if (hasPluginsBlock) {
           return { status: 'applied', message: `Zinit configured with ${DEFAULT_PLUGINS.length} plugins` };
         } else {
-          return { status: 'idle', message: 'Plugins not configured in zshrc' };
+          return { status: 'stale', message: 'Plugins not configured in zshrc' };
         }
       } catch {
-        return { status: 'idle', message: 'Zshrc not found' };
+        return { status: 'stale', message: 'Zshrc not found' };
       }
     } catch (error) {
       return { status: 'failed', message: `Error checking status: ${error}` };

@@ -42,7 +42,7 @@ export const homeBinModule: ConfigurationModule = {
       const st = await fs.stat(target);
       if (st.isDirectory()) return { status: 'applied' };
     } catch {}
-    return { status: 'idle' };
+    return { status: 'stale' };
   },
 };
 

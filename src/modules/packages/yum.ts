@@ -121,7 +121,7 @@ export const yumModule: ConfigurationModule = {
 
   async status(ctx): Promise<StatusResult> {
     const isAvailable = await isYumAvailable();
-    if (!isAvailable) return { status: 'idle', message: 'YUM not available' };
+    if (!isAvailable) return { status: 'stale', message: 'YUM not available' };
     
     const resolvedPackages = readResolvedPackages(ctx);
     const yumPackages = resolvedPackages?.yum ?? [];
@@ -134,7 +134,7 @@ export const yumModule: ConfigurationModule = {
     const missing = yumPackages.filter(p => !installed.has(p.name));
     
     return { 
-      status: missing.length === 0 ? 'applied' : 'idle',
+      status: missing.length === 0 ? 'applied' : 'stale',
       message: missing.length > 0 ? `${missing.length} packages missing` : 'All packages installed'
     };
   },
