@@ -124,7 +124,7 @@ export const wellwellModule: ConfigurationModule = {
     }
     
     // Check if the built executable exists
-    const builtExecutable = path.join(projectRoot, 'dist', 'cli', 'index.js');
+    const builtExecutable = path.join(projectRoot, 'dist', 'src', 'cli', 'index.js');
     try {
       await fs.access(builtExecutable);
     } catch {
@@ -146,7 +146,7 @@ export const wellwellModule: ConfigurationModule = {
       }
       
       // Check if the built executable exists and rebuild if needed
-      const builtExecutable = path.join(projectRoot, 'dist', 'cli', 'index.js');
+      const builtExecutable = path.join(projectRoot, 'dist', 'src', 'cli', 'index.js');
       let needsRebuild = false;
       try {
         await fs.access(builtExecutable);
@@ -196,7 +196,7 @@ export const wellwellModule: ConfigurationModule = {
     }
     
     // Check if the built executable exists
-    const builtExecutable = path.join(projectRoot, 'dist', 'cli', 'index.js');
+    const builtExecutable = path.join(projectRoot, 'dist', 'src', 'cli', 'index.js');
     try {
       await fs.access(builtExecutable);
     } catch {
