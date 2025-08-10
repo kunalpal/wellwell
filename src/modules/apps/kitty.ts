@@ -12,6 +12,7 @@ import type {
   PlanChange,
 } from '../../core/types.js';
 import { addPackageContribution, addShellInitContribution } from '../../core/contrib.js';
+import { themeContextProvider } from '../../core/theme-context.js';
 
 const execAsync = promisify(exec);
 
@@ -138,10 +139,30 @@ async function hasKittyConfig(configPath: string): Promise<boolean> {
   }
 }
 
-async function createKittyConfig(configPath: string): Promise<void> {
+async function createKittyConfig(configPath: string, themeColors?: any): Promise<void> {
   const configDir = path.dirname(configPath);
   await fs.mkdir(configDir, { recursive: true });
-  await fs.writeFile(configPath, KITTY_CONFIG, 'utf8');
+  
+  let config = KITTY_CONFIG;
+  
+  if (themeColors) {
+    // Replace the hardcoded colors with theme colors
+    config = config.replace(/#c0caf5/g, themeColors.base05); // foreground
+    config = config.replace(/#1a1b26/g, themeColors.base00); // background
+    config = config.replace(/#33467c/g, themeColors.base02); // selection_background
+    config = config.replace(/#15161e/g, themeColors.base00); // color0
+    config = config.replace(/#414868/g, themeColors.base03); // color8
+    config = config.replace(/#f7768e/g, themeColors.base08); // color1/9 (red)
+    config = config.replace(/#9ece6a/g, themeColors.base0B); // color2/10 (green)
+    config = config.replace(/#e0af68/g, themeColors.base0A); // color3/11 (yellow)
+    config = config.replace(/#7aa2f7/g, themeColors.base0D); // color4/12 (blue)
+    config = config.replace(/#bb9af7/g, themeColors.base0E); // color5/13 (magenta)
+    config = config.replace(/#7dcfff/g, themeColors.base0C); // color6/14 (cyan)
+    config = config.replace(/#a9b1d6/g, themeColors.base05); // color7
+    config = config.replace(/#73daca/g, themeColors.base0D); // url_color
+  }
+  
+  await fs.writeFile(configPath, config, 'utf8');
 }
 
 export const kittyModule: ConfigurationModule = {
@@ -206,12 +227,16 @@ export const kittyModule: ConfigurationModule = {
       
 
 
+      // Generate theme-aware configuration
+      const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+      const themeColors = await themeContextProvider.getThemeColors(currentTheme);
+      
       // Create/update configuration (always ensure our config is in place)
       const configPath = await getKittyConfigPath(ctx.homeDir);
       const hasConfig = await hasKittyConfig(configPath);
-      await createKittyConfig(configPath);
+      await createKittyConfig(configPath, themeColors);
       changed = true;
-      installMessage += hasConfig ? ' and configuration updated' : ' and configured';
+      installMessage += hasConfig ? ' and configuration updated with theme' : ' and configured with theme';
       
       return { success: true, changed, message: installMessage };
     } catch (error) {

@@ -9,6 +9,7 @@ import type {
   StatusResult,
 } from '../../core/types.js';
 import { addPackageContribution } from '../../core/contrib.js';
+import { themeContextProvider } from '../../core/theme-context.js';
 
 export const nvimModule: ConfigurationModule = {
   id: 'apps:nvim',
@@ -56,13 +57,14 @@ export const nvimModule: ConfigurationModule = {
       const configDir = path.join(ctx.homeDir, '.config', 'nvim');
       const initFile = path.join(configDir, 'init.lua');
       
-      // Create basic Neovim config if it doesn't exist
-      try {
-        await fs.access(initFile);
-      } catch {
-        await fs.mkdir(configDir, { recursive: true });
-        
-        const basicConfig = `-- Basic Neovim configuration managed by wellwell
+      // Generate theme-aware configuration
+      const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+      const themeColors = await themeContextProvider.getThemeColors(currentTheme);
+      
+      // Always create/update the config to ensure theme colors are current
+      await fs.mkdir(configDir, { recursive: true });
+      
+      const themeConfig = `-- Neovim configuration managed by wellwell - ${currentTheme} theme
 vim.opt.number = true
 vim.opt.relativenumber = true
 vim.opt.tabstop = 2
@@ -93,15 +95,27 @@ vim.keymap.set("n", "<C-d>", "<C-d>zz")
 vim.keymap.set("n", "<C-u>", "<C-u>zz")
 vim.keymap.set("n", "n", "nzzzv")
 vim.keymap.set("n", "N", "Nzzzv")
+
+-- Theme configuration
+vim.cmd([[
+  set background=dark
+  colorscheme base16-${currentTheme}
+]])
+
+-- Set colors for specific highlights
+vim.api.nvim_set_hl(0, "Normal", { bg = "${themeColors.base00}", fg = "${themeColors.base05}" })
+vim.api.nvim_set_hl(0, "Comment", { fg = "${themeColors.base03}" })
+vim.api.nvim_set_hl(0, "String", { fg = "${themeColors.base0B}" })
+vim.api.nvim_set_hl(0, "Number", { fg = "${themeColors.base09}" })
+vim.api.nvim_set_hl(0, "Keyword", { fg = "${themeColors.base0E}" })
+vim.api.nvim_set_hl(0, "Function", { fg = "${themeColors.base0D}" })
+vim.api.nvim_set_hl(0, "Type", { fg = "${themeColors.base0A}" })
 `;
-        
-        await fs.writeFile(initFile, basicConfig);
-        ctx.logger.info({ file: initFile }, 'Created basic Neovim configuration');
-        
-        return { success: true, changed: true, message: 'Neovim config created' };
-      }
       
-      return { success: true, changed: false, message: 'Neovim config exists' };
+      await fs.writeFile(initFile, themeConfig);
+      ctx.logger.info({ file: initFile }, 'Created theme-aware Neovim configuration');
+      
+      return { success: true, changed: true, message: `Neovim configured with ${currentTheme} theme` };
     } catch (error) {
       return { success: false, error };
     }
