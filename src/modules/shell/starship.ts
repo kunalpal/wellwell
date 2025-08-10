@@ -11,6 +11,8 @@ import type {
   StatusResult,
 } from '../../core/types.js';
 import { addShellInitContribution } from '../../core/contrib.js';
+import { templateManager } from '../../core/template-manager.js';
+import { themeContextProvider } from '../../core/theme-context.js';
 
 const execAsync = promisify(exec);
 
@@ -29,85 +31,15 @@ async function installStarship(): Promise<void> {
   await execAsync(script);
 }
 
-function getStarshipConfig(): string {
-  return `# Starship configuration managed by wellwell
-format = """
-[╭╴](238)$env_var\\
-$all[╰─](238)$character"""
-
-[character]
-success_symbol = "[❯](bold green)"
-error_symbol = "[❯](bold red)"
-
-[directory]
-truncation_length = 3
-truncation_symbol = "…/"
-
-[git_branch]
-symbol = " "
-
-[git_status]
-ahead = "⇡\${count}"
-diverged = "⇕⇡\${ahead_count}⇣\${behind_count}"
-behind = "⇣\${count}"
-
-[nodejs]
-symbol = " "
-
-[python]
-symbol = " "
-
-[rust]
-symbol = " "
-
-[package]
-symbol = " "
-
-[docker_context]
-symbol = " "
-
-[aws]
-symbol = "  "
-
-[conda]
-symbol = " "
-
-[dart]
-symbol = " "
-
-[elixir]
-symbol = " "
-
-[elm]
-symbol = " "
-
-[golang]
-symbol = " "
-
-[haskell]
-symbol = " "
-
-[java]
-symbol = " "
-
-[julia]
-symbol = " "
-
-[kotlin]
-symbol = " "
-
-[nim]
-symbol = " "
-
-[nix_shell]
-symbol = " "
-
-[ruby]
-symbol = " "
-
-[scala]
-symbol = " "
-`;
+async function getStarshipConfig(ctx: ConfigurationContext): Promise<string> {
+  // Load module partials
+  await templateManager.loadModulePartials('shell');
+  
+  // Generate theme-aware context
+  const context = await themeContextProvider.generateContext(ctx);
+  
+  // Load and render the template
+  return templateManager.loadAndRender('shell', 'starship.toml.hbs', context);
 }
 
 export const starshipModule: ConfigurationModule = {
@@ -134,7 +66,7 @@ export const starshipModule: ConfigurationModule = {
       
       try {
         const currentConfig = await fs.readFile(configFile, 'utf8');
-        const expectedConfig = getStarshipConfig();
+        const expectedConfig = await getStarshipConfig(ctx);
         if (currentConfig !== expectedConfig) {
           changes.push({ summary: `Update starship config at ${configFile}` });
         }
@@ -182,7 +114,7 @@ fi`,
       await fs.mkdir(configDir, { recursive: true });
       
       // Write starship configuration
-      const config = getStarshipConfig();
+      const config = await getStarshipConfig(ctx);
       let configChanged = false;
       
       try {

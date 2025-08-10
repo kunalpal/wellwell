@@ -1,0 +1,29 @@
+# Starship configuration managed by wellwell
+format = """
+[╭╴]({{base0D}})$env_var$all
+[╰─]({{base0D}})$character
+"""
+
+[character]
+success_symbol = "[➜](bold {{base0B}})"
+error_symbol = "[✗](bold {{base08}})"
+
+[directory]
+truncation_length = 3
+truncation_symbol = "…/"
+style = "bold {{base0D}}"
+
+[git_branch]
+symbol = " "
+style = "bold {{base0E}}"
+
+[git_status]
+ahead = '⇡${count}'
+diverged = '⇕⇡${ahead_count}⇣${behind_count}'
+behind = '⇣${count}'
+style = "bold {{base0A}}"
+
+[env_var.NODE_ENV]
+format = "via [$env_value](dimmed blue) "
+
+{{> language-symbols}}

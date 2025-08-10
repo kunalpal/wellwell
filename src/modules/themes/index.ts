@@ -8,6 +8,8 @@ import type {
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { addShellInitContribution } from '../../core/contrib.js';
+import { templateManager } from '../../core/template-manager.js';
+import { themeContextProvider } from '../../core/theme-context.js';
 
 // Theme interface
 interface Base16Theme {
@@ -149,20 +151,31 @@ async function getThemeByName(name: string): Promise<Base16Theme | null> {
 
 // Generate theme-specific configurations
 async function generateThemeConfigs(theme: Base16Theme): Promise<void> {
-  const configs = {
-    fzf: generateFzfConfig(theme),
-    starship: generateStarshipConfig(theme),
-    kitty: generateKittyConfig(theme),
-    nvim: generateNvimConfig(theme)
-  };
-
-  // Write configs to appropriate locations
   const configDir = path.join(process.env.HOME || '', '.wellwell', 'themes', theme.name);
   await fs.mkdir(configDir, { recursive: true });
 
-  for (const [name, config] of Object.entries(configs)) {
-    await fs.writeFile(path.join(configDir, `${name}.conf`), config);
-  }
+  // Generate fzf config
+  const fzfConfig = generateFzfConfig(theme);
+  await fs.writeFile(path.join(configDir, 'fzf.conf'), fzfConfig);
+
+  // Generate starship config using template system
+  const context = {
+    ...theme.colors,
+    promptColor: '238',
+    successColor: 'green',
+    errorColor: 'red',
+    themeName: theme.name,
+  };
+  const starshipConfig = await templateManager.loadAndRender('shell', 'starship.toml.hbs', context);
+  await fs.writeFile(path.join(configDir, 'starship.conf'), starshipConfig);
+
+  // Generate kitty config
+  const kittyConfig = generateKittyConfig(theme);
+  await fs.writeFile(path.join(configDir, 'kitty.conf'), kittyConfig);
+
+  // Generate nvim config
+  const nvimConfig = generateNvimConfig(theme);
+  await fs.writeFile(path.join(configDir, 'init.lua'), nvimConfig);
 }
 
 function generateFzfConfig(theme: Base16Theme): string {
