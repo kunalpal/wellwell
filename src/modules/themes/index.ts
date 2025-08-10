@@ -103,20 +103,22 @@ async function getThemeByName(name: string): Promise<Base16Theme | null> {
 
 // Generate theme-specific configurations
 async function generateThemeConfigs(theme: Base16Theme): Promise<void> {
-  const configDir = path.join(process.env.HOME || '', '.wellwell', 'themes', theme.name);
-  await fs.mkdir(configDir, { recursive: true });
-
-  // Generate fzf config
+  // Generate fzf config in expected location
   const fzfConfig = generateFzfConfig(theme);
-  await fs.writeFile(path.join(configDir, 'fzf.conf'), fzfConfig);
+  const fzfConfigPath = path.join(process.env.HOME || '', '.fzf.zsh');
+  await fs.writeFile(fzfConfigPath, fzfConfig);
 
-  // Generate kitty config
+  // Generate kitty config in expected location
   const kittyConfig = generateKittyConfig(theme);
-  await fs.writeFile(path.join(configDir, 'kitty.conf'), kittyConfig);
+  const kittyConfigPath = path.join(process.env.HOME || '', '.config', 'kitty', 'kitty.conf');
+  await fs.mkdir(path.dirname(kittyConfigPath), { recursive: true });
+  await fs.writeFile(kittyConfigPath, kittyConfig);
 
-  // Generate nvim config
+  // Generate nvim config in expected location
   const nvimConfig = generateNvimConfig(theme);
-  await fs.writeFile(path.join(configDir, 'init.lua'), nvimConfig);
+  const nvimConfigPath = path.join(process.env.HOME || '', '.config', 'nvim', 'init.lua');
+  await fs.mkdir(path.dirname(nvimConfigPath), { recursive: true });
+  await fs.writeFile(nvimConfigPath, nvimConfig);
 }
 
 function generateFzfConfig(theme: Base16Theme): string {
@@ -230,9 +232,16 @@ export const themesModule: ConfigurationModule = {
     // Check if theme configs need to be generated
     const theme = await getThemeByName(currentTheme);
     if (theme) {
-      const configDir = path.join(process.env.HOME || '', '.wellwell', 'themes', currentTheme);
+      const fzfConfigPath = path.join(process.env.HOME || '', '.fzf.zsh');
+      const kittyConfigPath = path.join(process.env.HOME || '', '.config', 'kitty', 'kitty.conf');
+      const nvimConfigPath = path.join(process.env.HOME || '', '.config', 'nvim', 'init.lua');
+      
       try {
-        await fs.access(configDir);
+        await Promise.all([
+          fs.access(fzfConfigPath),
+          fs.access(kittyConfigPath),
+          fs.access(nvimConfigPath)
+        ]);
       } catch {
         changes.push({ summary: `Generate ${currentTheme} theme configurations` });
       }
@@ -252,14 +261,6 @@ export const themesModule: ConfigurationModule = {
 
       await generateThemeConfigs(theme);
       
-      // Add shell init contribution to source theme configs
-      addShellInitContribution(ctx, {
-        name: 'theme',
-        initCode: `# Source theme configurations
-export WELLWELL_THEME="${currentTheme}"
-source ~/.wellwell/themes/${currentTheme}/fzf.conf`
-      });
-
       // Store the current theme in state
       await setCurrentTheme(currentTheme, ctx);
 
@@ -282,9 +283,17 @@ source ~/.wellwell/themes/${currentTheme}/fzf.conf`
         return { status: 'failed', message: `Theme ${currentTheme} not found` };
       }
 
-      const configDir = path.join(process.env.HOME || '', '.wellwell', 'themes', currentTheme);
+      // Check if theme configs exist in expected locations
+      const fzfConfigPath = path.join(process.env.HOME || '', '.fzf.zsh');
+      const kittyConfigPath = path.join(process.env.HOME || '', '.config', 'kitty', 'kitty.conf');
+      const nvimConfigPath = path.join(process.env.HOME || '', '.config', 'nvim', 'init.lua');
+      
       try {
-        await fs.access(configDir);
+        await Promise.all([
+          fs.access(fzfConfigPath),
+          fs.access(kittyConfigPath),
+          fs.access(nvimConfigPath)
+        ]);
         return { status: 'applied', message: `${currentTheme} theme active` };
       } catch {
         return { status: 'stale', message: `${currentTheme} theme needs generation` };
