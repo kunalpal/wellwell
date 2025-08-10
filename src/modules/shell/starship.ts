@@ -35,8 +35,17 @@ async function getStarshipConfig(ctx: ConfigurationContext): Promise<string> {
   // Load module partials
   await templateManager.loadModulePartials('shell');
   
-  // Generate theme-aware context
-  const context = await themeContextProvider.generateContext(ctx);
+  // Get current theme from context
+  const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+  
+  // Get theme colors from theme context provider
+  const themeColors = await themeContextProvider.getThemeColors(currentTheme);
+  
+  // Generate context with theme colors
+  const context = {
+    ...themeColors,
+    themeName: currentTheme,
+  };
   
   // Load and render the template
   return templateManager.loadAndRender('shell', 'starship.toml.hbs', context);

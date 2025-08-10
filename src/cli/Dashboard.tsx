@@ -111,8 +111,8 @@ export default function Dashboard({ verbose }: DashboardProps) {
         void (async () => {
           const themesModule = modules.find(m => m.id === 'themes:base16');
           if (themesModule && themesModule.getAvailableThemes) {
-            const themes = themesModule.getAvailableThemes();
-            const currentIndex = themes.findIndex(t => t.name === currentTheme);
+            const themes = await themesModule.getAvailableThemes();
+            const currentIndex = themes.findIndex((t: any) => t.name === currentTheme);
             const nextIndex = (currentIndex + 1) % themes.length;
             const nextTheme = themes[nextIndex];
             

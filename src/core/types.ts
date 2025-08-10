@@ -48,7 +48,7 @@ export interface ConfigurationModule extends ConfigurationHookEvents {
   getDetails?(ctx: ConfigurationContext): Promise<string[]> | string[];
   /** Custom methods for theme modules */
   switchTheme?(themeName: string, ctx?: ConfigurationContext): Promise<boolean>;
-  getAvailableThemes?(): any[];
+  getAvailableThemes?(): any[] | Promise<any[]>;
 }
 
 export interface PlanChange {

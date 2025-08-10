@@ -8,8 +8,6 @@ import type {
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { addShellInitContribution } from '../../core/contrib.js';
-import { templateManager } from '../../core/template-manager.js';
-import { themeContextProvider } from '../../core/theme-context.js';
 
 // Theme interface
 interface Base16Theme {
@@ -35,97 +33,13 @@ interface Base16Theme {
   };
 }
 
-// Available themes
-const AVAILABLE_THEMES: Base16Theme[] = [
-  {
-    name: 'dracula',
-    description: 'Dracula theme - dark purple',
-    colors: {
-      base00: '#282936',
-      base01: '#3a3c4e',
-      base02: '#4d4f68',
-      base03: '#626483',
-      base04: '#62d6e8',
-      base05: '#e9e9f4',
-      base06: '#f1f2f8',
-      base07: '#f7f7fb',
-      base08: '#ea51b2',
-      base09: '#b45bcf',
-      base0A: '#00f769',
-      base0B: '#ebff87',
-      base0C: '#a1efe4',
-      base0D: '#62d6e8',
-      base0E: '#b45bcf',
-      base0F: '#00f769'
-    }
-  },
-  {
-    name: 'gruvbox-dark',
-    description: 'Gruvbox dark theme',
-    colors: {
-      base00: '#282828',
-      base01: '#3c3836',
-      base02: '#504945',
-      base03: '#665c54',
-      base04: '#bdae93',
-      base05: '#d5c4a1',
-      base06: '#ebdbb2',
-      base07: '#fbf1c7',
-      base08: '#fb4934',
-      base09: '#fe8019',
-      base0A: '#fabd2f',
-      base0B: '#b8bb26',
-      base0C: '#8ec07c',
-      base0D: '#83a598',
-      base0E: '#d3869b',
-      base0F: '#d65d0e'
-    }
-  },
-  {
-    name: 'solarized-dark',
-    description: 'Solarized dark theme',
-    colors: {
-      base00: '#002b36',
-      base01: '#073642',
-      base02: '#586e75',
-      base03: '#657b83',
-      base04: '#839496',
-      base05: '#93a1a1',
-      base06: '#eee8d5',
-      base07: '#fdf6e3',
-      base08: '#dc322f',
-      base09: '#cb4b16',
-      base0A: '#b58900',
-      base0B: '#859900',
-      base0C: '#2aa198',
-      base0D: '#268bd2',
-      base0E: '#6c71c4',
-      base0F: '#d33682'
-    }
-  },
-  {
-    name: 'nord',
-    description: 'Nord theme - arctic-inspired',
-    colors: {
-      base00: '#2e3440',
-      base01: '#3b4252',
-      base02: '#434c5e',
-      base03: '#4c566a',
-      base04: '#d8dee9',
-      base05: '#e5e9f0',
-      base06: '#eceff4',
-      base07: '#8fbcbb',
-      base08: '#bf616a',
-      base09: '#d08770',
-      base0A: '#ebcb8b',
-      base0B: '#a3be8c',
-      base0C: '#88c0d0',
-      base0D: '#81a1c1',
-      base0E: '#b48ead',
-      base0F: '#5e81ac'
-    }
-  }
-];
+// Theme descriptions
+const THEME_DESCRIPTIONS: Record<string, string> = {
+  'dracula': 'Dracula theme - dark purple',
+  'gruvbox-dark': 'Gruvbox dark theme',
+  'solarized-dark': 'Solarized dark theme',
+  'nord': 'Nord theme - arctic-inspired'
+};
 
 // Theme state management
 const THEME_STATE_KEY = 'themes.current';
@@ -146,7 +60,45 @@ async function setCurrentTheme(themeName: string, ctx?: ConfigurationContext): P
 }
 
 async function getThemeByName(name: string): Promise<Base16Theme | null> {
-  return AVAILABLE_THEMES.find(theme => theme.name === name) || null;
+  const description = THEME_DESCRIPTIONS[name];
+  if (!description) {
+    return null;
+  }
+  
+  // Load theme colors from JSON file
+  const themePath = path.join(process.cwd(), 'src', 'modules', 'themes', 'resources', `${name}.json`);
+  try {
+    const content = await fs.readFile(themePath, 'utf-8');
+    const terminalColors = JSON.parse(content);
+    
+    // Derive Base16 colors from terminal colors
+    const colors = {
+      base00: terminalColors['terminal.background'],
+      base01: terminalColors['terminal.ansiBrightBlack'],
+      base02: terminalColors['terminal.ansiBlack'],
+      base03: terminalColors['terminal.ansiBrightBlack'],
+      base04: terminalColors['terminal.ansiWhite'],
+      base05: terminalColors['terminal.foreground'],
+      base06: terminalColors['terminal.ansiBrightWhite'],
+      base07: terminalColors['terminal.ansiBrightWhite'],
+      base08: terminalColors['terminal.ansiRed'],
+      base09: terminalColors['terminal.ansiYellow'],
+      base0A: terminalColors['terminal.ansiBrightYellow'],
+      base0B: terminalColors['terminal.ansiGreen'],
+      base0C: terminalColors['terminal.ansiCyan'],
+      base0D: terminalColors['terminal.ansiBlue'],
+      base0E: terminalColors['terminal.ansiMagenta'],
+      base0F: terminalColors['terminal.ansiBrightRed']
+    };
+    
+    return {
+      name,
+      description,
+      colors
+    };
+  } catch (error) {
+    return null;
+  }
 }
 
 // Generate theme-specific configurations
@@ -157,17 +109,6 @@ async function generateThemeConfigs(theme: Base16Theme): Promise<void> {
   // Generate fzf config
   const fzfConfig = generateFzfConfig(theme);
   await fs.writeFile(path.join(configDir, 'fzf.conf'), fzfConfig);
-
-  // Generate starship config using template system
-  const context = {
-    ...theme.colors,
-    promptColor: '238',
-    successColor: 'green',
-    errorColor: 'red',
-    themeName: theme.name,
-  };
-  const starshipConfig = await templateManager.loadAndRender('shell', 'starship.toml.hbs', context);
-  await fs.writeFile(path.join(configDir, 'starship.conf'), starshipConfig);
 
   // Generate kitty config
   const kittyConfig = generateKittyConfig(theme);
@@ -316,9 +257,11 @@ export const themesModule: ConfigurationModule = {
         name: 'theme',
         initCode: `# Source theme configurations
 export WELLWELL_THEME="${currentTheme}"
-source ~/.wellwell/themes/${currentTheme}/fzf.conf
-source ~/.wellwell/themes/${currentTheme}/starship.conf`
+source ~/.wellwell/themes/${currentTheme}/fzf.conf`
       });
+
+      // Store the current theme in state
+      await setCurrentTheme(currentTheme, ctx);
 
       return { 
         success: true, 
@@ -356,7 +299,7 @@ source ~/.wellwell/themes/${currentTheme}/starship.conf`
       'Base16 Color Scheme Management',
       '',
       'Available themes:',
-      ...AVAILABLE_THEMES.map(theme => `  • ${theme.name} - ${theme.description}`),
+      ...Object.entries(THEME_DESCRIPTIONS).map(([name, description]) => `  • ${name} - ${description}`),
       '',
       'Press TAB to cycle through themes',
       'Dependent modules will be marked for re-apply when theme changes'
@@ -375,7 +318,14 @@ source ~/.wellwell/themes/${currentTheme}/starship.conf`
   },
 
   // Get available themes for UI
-  getAvailableThemes(): Base16Theme[] {
-    return AVAILABLE_THEMES;
+  async getAvailableThemes(): Promise<Base16Theme[]> {
+    const themes: Base16Theme[] = [];
+    for (const [name, description] of Object.entries(THEME_DESCRIPTIONS)) {
+      const theme = await getThemeByName(name);
+      if (theme) {
+        themes.push(theme);
+      }
+    }
+    return themes;
   }
 };
