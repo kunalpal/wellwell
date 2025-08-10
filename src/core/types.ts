@@ -46,6 +46,9 @@ export interface ConfigurationModule extends ConfigurationHookEvents {
   status?(ctx: ConfigurationContext): Promise<StatusResult> | StatusResult;
   /** Get detailed information about this module for display in UI. */
   getDetails?(ctx: ConfigurationContext): Promise<string[]> | string[];
+  /** Custom methods for theme modules */
+  switchTheme?(themeName: string, ctx?: ConfigurationContext): Promise<boolean>;
+  getAvailableThemes?(): any[];
 }
 
 export interface PlanChange {

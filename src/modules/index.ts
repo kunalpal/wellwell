@@ -15,12 +15,14 @@ import { ezaModule } from './apps/eza.js';
 import { kittyModule } from './apps/kitty.js';
 import { wellwellModule } from './apps/wellwell.js';
 import { starshipModule } from './shell/starship.js';
+import { themesModule } from './themes/index.js';
 
 export const allModules: ConfigurationModule[] = [
   homeBinModule,
   pathsModule,
   aliasesModule,
   shellInitModule,
+  themesModule,
   homebrewModule,
   aptModule,
   yumModule,

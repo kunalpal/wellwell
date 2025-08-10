@@ -114,6 +114,7 @@ export const starshipModule: ConfigurationModule = {
   id: 'shell:starship',
   description: 'Starship cross-shell prompt',
   priority: 30, // Install early, no dependencies on package managers
+  dependsOn: ['themes:base16'],
 
   async isApplicable(_ctx) {
     return true;

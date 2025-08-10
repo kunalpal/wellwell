@@ -147,7 +147,7 @@ async function createKittyConfig(configPath: string): Promise<void> {
 export const kittyModule: ConfigurationModule = {
   id: 'apps:kitty',
   description: 'Kitty terminal emulator with custom configuration (macOS only)',
-  dependsOn: ['packages:homebrew'],
+  dependsOn: ['packages:homebrew', 'themes:base16'],
   priority: 65,
 
   async isApplicable(ctx) {

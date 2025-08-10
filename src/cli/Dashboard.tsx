@@ -44,6 +44,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [moduleDetails, setModuleDetails] = useState<string[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<string>('dracula');
   const engineRef = useRef<Engine | null>(null);
   const detailsCache = useRef<Record<string, string[]>>({});
 
@@ -103,6 +104,38 @@ export default function Dashboard({ verbose }: DashboardProps) {
       setSelectedIndex(prev => Math.max(0, prev - 1));
     } else if (key.downArrow || input === 'j') {
       setSelectedIndex(prev => Math.min(sorted.length - 1, prev + 1));
+    } else if (key.tab) {
+      // Theme switching - only when themes module is selected
+      const selectedModule = sorted[selectedIndex];
+      if (selectedModule && selectedModule.id === 'themes:base16') {
+        void (async () => {
+          const themesModule = modules.find(m => m.id === 'themes:base16');
+          if (themesModule && themesModule.getAvailableThemes) {
+            const themes = themesModule.getAvailableThemes();
+            const currentIndex = themes.findIndex(t => t.name === currentTheme);
+            const nextIndex = (currentIndex + 1) % themes.length;
+            const nextTheme = themes[nextIndex];
+            
+            if (themesModule.switchTheme && nextTheme) {
+              await themesModule.switchTheme(nextTheme.name, engineRef.current?.buildContext());
+              setCurrentTheme(nextTheme.name);
+              
+              // Mark dependent modules as needing re-apply
+              setRows((prev) => {
+                const next = { ...prev };
+                // Mark themes module and its dependents as idle
+                Object.keys(next).forEach(moduleId => {
+                  if (moduleId === 'themes:base16' || 
+                      next[moduleId].dependsOn.includes('themes:base16')) {
+                    next[moduleId] = { ...next[moduleId], status: 'idle' };
+                  }
+                });
+                return next;
+              });
+            }
+          }
+        })();
+      }
     } else if (input === 'a') {
       if (!isApplying) {
         setIsApplying(true);
@@ -213,7 +246,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
       <Box>
         <Text>
           {chalk.bold('wellwell')} {chalk.gray('– ')}
-          {chalk.gray('↑/↓/j/k: navigate  a: apply  A: apply all  p: plan  s: refresh  1/2/3: sort  q: quit')}
+          {chalk.gray('↑/↓/j/k: navigate  a: apply  A: apply all  p: plan  s: refresh  1/2/3: sort  tab: switch theme  q: quit')}
         </Text>
       </Box>
       <Box>
@@ -275,12 +308,11 @@ export default function Dashboard({ verbose }: DashboardProps) {
         {selectedModule && (
           <Box marginTop={1} flexDirection="column">
             <Box>
-              <Text>DETAILS | </Text>
-              <Text color="cyan">{selectedModule.id}</Text>
+              <Text bold>DETAILS</Text>
               {detailsLoading && <Text color="yellow"> <Spinner type="dots" /></Text>}
             </Box>
             {moduleDetails.length > 0 && (
-              <Box flexDirection="column" paddingTop={1}>
+              <Box flexDirection="column" paddingTop={1} paddingLeft={2}>
                 {moduleDetails.map((detail, idx) => (
                   <Box key={idx}>
                     <Text>{detail}</Text>

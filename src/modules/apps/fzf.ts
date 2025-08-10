@@ -11,7 +11,7 @@ import { addPackageContribution, addShellInitContribution } from '../../core/con
 export const fzfModule: ConfigurationModule = {
   id: 'apps:fzf',
   description: 'Fzf - command-line fuzzy finder',
-  dependsOn: ['apps:ripgrep'], // fzf requires ripgrep as backend
+  dependsOn: ['apps:ripgrep', 'themes:base16'], // fzf requires ripgrep as backend and theme support
   priority: 61,
 
   async isApplicable(_ctx) {
