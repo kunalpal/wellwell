@@ -178,13 +178,13 @@ describe('Neovim App Module', () => {
       expect(result.message).toBe('Neovim config exists');
     });
 
-    it('should return idle when config is missing', async () => {
+    it('should return stale when config is missing', async () => {
       const ctx = createMockContext({ homeDir: '/mock/home' });
       mockFs.promises.access.mockRejectedValue(new Error('ENOENT')); // init.lua doesn't exist
 
       const result = await nvimModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('Neovim config missing');
     });
   });

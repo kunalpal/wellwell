@@ -201,13 +201,13 @@ describe('APT Package Manager', () => {
   });
 
   describe('status', () => {
-    it('should return idle when APT is not available', async () => {
+    it('should return stale when APT is not available', async () => {
       const ctx = createMockContext({ platform: 'ubuntu' });
       mockExecAsync.mockRejectedValue(new Error('which: apt: not found'));
 
       const result = await aptModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('APT not available');
     });
 
@@ -241,7 +241,7 @@ describe('APT Package Manager', () => {
       expect(result.message).toBe('All packages installed');
     });
 
-    it('should return idle when packages are missing', async () => {
+    it('should return stale when packages are missing', async () => {
       const ctx = createMockContext({ platform: 'ubuntu' });
       mockReadResolvedPackages.mockReturnValue({
         apt: [
@@ -256,7 +256,7 @@ describe('APT Package Manager', () => {
 
       const result = await aptModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('1 packages missing');
     });
   });

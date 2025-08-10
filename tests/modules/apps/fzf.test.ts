@@ -122,13 +122,13 @@ describe('Fzf App Module', () => {
       expect(mockExecAsync).toHaveBeenCalledWith('which fzf');
     });
 
-    it('should return idle when fzf is not found', async () => {
+    it('should return stale when fzf is not found', async () => {
       const ctx = createMockContext();
       mockCommandFailure('which: fzf: not found')(mockExecAsync);
 
       const result = await fzfModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('Fzf not found in PATH');
     });
   });

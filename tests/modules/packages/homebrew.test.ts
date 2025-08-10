@@ -213,13 +213,13 @@ describe('Homebrew Package Manager', () => {
   });
 
   describe('status', () => {
-    it('should return idle when Homebrew is not installed', async () => {
+    it('should return stale when Homebrew is not installed', async () => {
       const ctx = createMockContext({ platform: 'macos' });
       mockExecAsync.mockRejectedValue(new Error('which: brew: not found'));
 
       const result = await homebrewModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('Homebrew not installed');
     });
 
@@ -254,7 +254,7 @@ describe('Homebrew Package Manager', () => {
       expect(result.message).toBe('All packages installed');
     });
 
-    it('should return idle when packages are missing', async () => {
+    it('should return stale when packages are missing', async () => {
       const ctx = createMockContext({ platform: 'macos' });
       mockReadResolvedPackages.mockReturnValue({
         homebrew: [
@@ -270,7 +270,7 @@ describe('Homebrew Package Manager', () => {
 
       const result = await homebrewModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('1 packages missing');
     });
   });

@@ -89,13 +89,13 @@ describe('Eza App Module', () => {
       expect(mockExecAsync).toHaveBeenCalledWith('which eza');
     });
 
-    it('should return idle when eza is not found', async () => {
+    it('should return stale when eza is not found', async () => {
       const ctx = createMockContext();
       mockCommandFailure('which: eza: not found')(mockExecAsync);
 
       const result = await ezaModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('Eza not found in PATH');
     });
   });

@@ -196,13 +196,13 @@ describe('YUM Package Manager', () => {
   });
 
   describe('status', () => {
-    it('should return idle when YUM is not available', async () => {
+    it('should return stale when YUM is not available', async () => {
       const ctx = createMockContext({ platform: 'al2' });
       mockExecAsync.mockRejectedValue(new Error('which: yum: not found'));
 
       const result = await yumModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('YUM not available');
     });
 
@@ -236,7 +236,7 @@ describe('YUM Package Manager', () => {
       expect(result.message).toBe('All packages installed');
     });
 
-    it('should return idle when packages are missing', async () => {
+    it('should return stale when packages are missing', async () => {
       const ctx = createMockContext({ platform: 'al2' });
       mockReadResolvedPackages.mockReturnValue({
         yum: [
@@ -251,7 +251,7 @@ describe('YUM Package Manager', () => {
 
       const result = await yumModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('1 packages missing');
     });
   });

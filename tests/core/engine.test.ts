@@ -384,7 +384,7 @@ describe('Engine', () => {
       expect(results['test-module']).toBe('applied');
     });
 
-    it('should default to idle status when no status method', async () => {
+    it('should default to stale status when no status method', async () => {
       const module: ConfigurationModule = {
         id: 'test-module',
         isApplicable: jest.fn().mockResolvedValue(true),
@@ -396,7 +396,7 @@ describe('Engine', () => {
 
       const results = await engine.statuses();
 
-      expect(results['test-module']).toBe('idle');
+      expect(results['test-module']).toBe('stale');
     });
 
     it('should skip non-applicable modules for status', async () => {

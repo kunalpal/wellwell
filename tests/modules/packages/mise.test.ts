@@ -227,13 +227,13 @@ describe('Mise Version Manager', () => {
   });
 
   describe('status', () => {
-    it('should return idle when mise is not installed', async () => {
+    it('should return stale when mise is not installed', async () => {
       const ctx = createMockContext();
       mockExecAsync.mockRejectedValue(new Error('which: mise: not found'));
 
       const result = await miseModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('Mise not installed');
     });
 
@@ -267,7 +267,7 @@ describe('Mise Version Manager', () => {
       expect(result.message).toBe('All language versions installed');
     });
 
-    it('should return idle when language versions are missing', async () => {
+    it('should return stale when language versions are missing', async () => {
       const ctx = createMockContext();
       mockReadResolvedPackages.mockReturnValue({
         mise: [
@@ -282,7 +282,7 @@ describe('Mise Version Manager', () => {
 
       const result = await miseModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('2 language versions missing');
     });
   });

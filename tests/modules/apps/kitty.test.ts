@@ -233,7 +233,7 @@ describe('Kitty App Module', () => {
   });
 
   describe('status', () => {
-    it('should return idle when kitty is not installed', async () => {
+    it('should return stale when kitty is not installed', async () => {
       const ctx = createMockContext({ platform: 'macos', homeDir: '/mock/home' });
       mockExecAsync
         .mockRejectedValueOnce(new Error('which: kitty: not found'))
@@ -242,18 +242,18 @@ describe('Kitty App Module', () => {
 
       const result = await kittyModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('Kitty not installed');
     });
 
-    it('should return idle when config is missing', async () => {
+    it('should return stale when config is missing', async () => {
       const ctx = createMockContext({ platform: 'macos', homeDir: '/mock/home' });
       mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' }); // kitty installed
       mockFs.promises.readFile.mockRejectedValue(new Error('ENOENT')); // config missing
 
       const result = await kittyModule.status!(ctx);
 
-      expect(result.status).toBe('idle');
+      expect(result.status).toBe('stale');
       expect(result.message).toBe('Kitty config missing');
     });
 
