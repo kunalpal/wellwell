@@ -140,7 +140,6 @@ export abstract class AppConfig extends BaseModule {
         const content = this.template(ctx, themeColors);
         await this.writeConfig(ctx, content);
         
-        this.logProgress(ctx, `Created ${this.configFile} configuration`);
         return this.createSuccessResult(true, `Configuration created/updated`);
       }
       

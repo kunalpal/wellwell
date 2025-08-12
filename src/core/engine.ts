@@ -158,8 +158,17 @@ export class Engine {
     for (const mod of graph) {
       if (selectedIds && !selectedIds.includes(mod.id)) continue;
       if (!(await mod.isApplicable(ctx))) continue;
-      const status = await mod.status?.(ctx);
-      result[mod.id] = status?.status ?? 'stale';
+      
+      // Derive status from plan instead of using module's status method
+      try {
+        const plan = await mod.plan(ctx);
+        // If plan has no changes, status is 'applied', otherwise 'stale'
+        result[mod.id] = plan.changes.length === 0 ? 'applied' : 'stale';
+      } catch (error) {
+        // If plan fails, fall back to module's status method or default to 'stale'
+        const status = await mod.status?.(ctx);
+        result[mod.id] = status?.status ?? 'stale';
+      }
     }
     return result;
   }
