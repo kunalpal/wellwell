@@ -31,6 +31,43 @@ export function ThemeProvider({ children, initialTheme = 'dracula', engineContex
   const [themeColors, setThemeColors] = useState<ThemeColors | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Initialize theme from engine context
+  useEffect(() => {
+    async function initializeTheme() {
+      try {
+        // Try to get the current theme from the engine's state
+        let savedTheme = initialTheme;
+        try {
+          const savedThemeFromState = engineContext.state.get<string>('themes.current');
+          if (savedThemeFromState) {
+            savedTheme = savedThemeFromState;
+          }
+        } catch (stateError) {
+          // If state read fails, try to read from the state file directly
+          try {
+            const { readFile } = await import('node:fs/promises');
+            const { join } = await import('node:path');
+            const { homedir } = await import('node:os');
+            const statePath = join(homedir(), '.wellwell', 'state.json');
+            const stateContent = await readFile(statePath, 'utf-8');
+            const state = JSON.parse(stateContent);
+            savedTheme = state.themes?.current || initialTheme;
+          } catch (fileError) {
+            // Fallback to initialTheme if all else fails
+            savedTheme = initialTheme;
+          }
+        }
+        
+        setCurrentTheme(savedTheme);
+      } catch (error) {
+        console.error('Failed to initialize theme from state:', error);
+        setCurrentTheme(initialTheme);
+      }
+    }
+
+    void initializeTheme();
+  }, [engineContext, initialTheme]);
+
   // Load theme colors
   useEffect(() => {
     async function loadThemeColors() {

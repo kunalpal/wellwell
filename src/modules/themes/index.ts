@@ -175,12 +175,18 @@ export const themesModule: ConfigurationModule = {
     }
   },
 
-  getDetails(ctx): string[] {
+  async getDetails(ctx): Promise<string[]> {
+    const currentTheme = await getCurrentTheme(ctx);
     return [
       'Base16 Color Scheme Management',
       '',
+      `Current theme: ${currentTheme}`,
+      '',
       'Available themes:',
-      ...Object.entries(THEME_DESCRIPTIONS).map(([name, description]) => `  • ${name} - ${description}`),
+      ...Object.entries(THEME_DESCRIPTIONS).map(([name, description]) => {
+        const marker = name === currentTheme ? '  ❯ ' : '  - ';
+        return `${marker}${name} - ${description}`;
+      }),
       '',
       'Press TAB to cycle through themes',
       'Dependent modules will be marked for re-apply when theme changes'

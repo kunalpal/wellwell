@@ -138,7 +138,11 @@ export default function Dashboard({ verbose }: DashboardProps) {
           const nextTheme = themes[nextIndex];
           
           if (nextTheme && engineRef.current) {
+            // Switch theme in the UI context
             await switchTheme(nextTheme, engineRef.current.buildContext());
+            
+            // Apply the theme change to actually update configurations
+            const results = await engineRef.current.apply(['themes:base16']);
             
             // Mark dependent modules as needing re-apply
             setRows((prev) => {

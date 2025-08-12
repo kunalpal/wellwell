@@ -7,6 +7,7 @@ import type {
   ConfigurationStatus,
   ModuleStateSnapshot,
 } from './types.js';
+import { createHash } from 'node:crypto';
 
 export interface BaseModuleOptions {
   id: string;
@@ -63,7 +64,7 @@ export abstract class BaseModule implements Module {
   // State comparison helper methods
   protected createStateChecksum(state: any): string {
     const stateStr = typeof state === 'string' ? state : JSON.stringify(state, null, 2);
-    return require('node:crypto').createHash('sha256').update(stateStr).digest('hex').substring(0, 16);
+    return createHash('sha256').update(stateStr).digest('hex').substring(0, 16);
   }
 
   protected createStateSnapshot(state: any): ModuleStateSnapshot {
