@@ -24,33 +24,16 @@ export interface StateStore {
   flush(): Promise<void>;
 }
 
-export interface ConfigurationHookEvents {
-  onStatusChange?: (status: ConfigurationStatus) => void;
-  onProgress?: (message: string) => void;
+// Simplified result types
+export interface ModuleResult {
+  success: boolean;
+  changed?: boolean;
+  message?: string;
+  error?: unknown;
 }
 
-export interface ConfigurationModule extends ConfigurationHookEvents {
-  id: string;
-  description?: string;
-  /** Lower number runs earlier. Default 100. */
-  priority?: number;
-  /** Other configuration ids that must run before this one. */
-  dependsOn?: string[];
-  /** Return true to indicate this configuration is applicable on this system. */
-  isApplicable(ctx: ConfigurationContext): Promise<boolean> | boolean;
-  /** Perform a dry-run to compute planned changes. */
-  plan(ctx: ConfigurationContext): Promise<PlanResult> | PlanResult;
-  /** Apply the configuration; must be idempotent. */
-  apply(ctx: ConfigurationContext): Promise<ApplyResult> | ApplyResult;
-  /** Inspect current status. */
-  status?(ctx: ConfigurationContext): Promise<StatusResult> | StatusResult;
-  /** Get detailed information about this module for display in UI. */
-  getDetails?(ctx: ConfigurationContext): Promise<string[]> | string[];
-  /** Custom methods for theme modules */
-  switchTheme?(themeName: string, ctx?: ConfigurationContext): Promise<boolean>;
-  getAvailableThemes?(): any[] | Promise<any[]>;
-}
-
+// Legacy types for backward compatibility
+export interface ApplyResult extends ModuleResult {}
 export interface PlanChange {
   summary: string;
   details?: string;
@@ -58,13 +41,6 @@ export interface PlanChange {
 
 export interface PlanResult {
   changes: PlanChange[];
-}
-
-export interface ApplyResult {
-  success: boolean;
-  changed?: boolean;
-  message?: string;
-  error?: unknown;
 }
 
 export interface StatusResult {
@@ -84,5 +60,55 @@ export interface StatusResult {
     checksum?: string;
   };
 }
+
+// Core module interface - simplified and focused
+export interface Module {
+  id: string;
+  description?: string;
+  priority?: number;
+  dependsOn?: string[];
+  
+  // Core lifecycle methods
+  isApplicable(ctx: ConfigurationContext): Promise<boolean> | boolean;
+  plan(ctx: ConfigurationContext): Promise<PlanResult> | PlanResult;
+  apply(ctx: ConfigurationContext): Promise<ModuleResult> | ModuleResult;
+  
+  // Optional methods
+  status?(ctx: ConfigurationContext): Promise<StatusResult> | StatusResult;
+  getDetails?(ctx: ConfigurationContext): Promise<string[]> | string[];
+  
+  // Event hooks
+  onStatusChange?(status: ConfigurationStatus): void;
+  onProgress?(message: string): void;
+  
+  // Theme-specific methods (optional for backward compatibility)
+  switchTheme?(themeName: string, ctx?: ConfigurationContext): Promise<boolean>;
+  getAvailableThemes?(): any[] | Promise<any[]>;
+}
+
+// Specialized module types for better type safety
+export interface PackageModule extends Module {
+  type: 'package';
+  packages: Array<{
+    name: string;
+    manager: 'homebrew' | 'apt' | 'yum';
+    platforms?: Platform[];
+  }>;
+}
+
+export interface ConfigModule extends Module {
+  type: 'config';
+  configPath: string;
+  template: (ctx: ConfigurationContext, themeColors?: any) => string;
+}
+
+export interface ThemeModule extends Module {
+  type: 'theme';
+  switchTheme(themeName: string, ctx?: ConfigurationContext): Promise<boolean>;
+  getAvailableThemes(): any[] | Promise<any[]>;
+}
+
+// Union type for all module types
+export type ConfigurationModule = Module | PackageModule | ConfigModule | ThemeModule;
 
 

@@ -5,7 +5,7 @@
 
 import { Engine } from '../../src/core/engine.js';
 import { createMockContext, mockLogger, resetAllMocks } from '../mocks/index.js';
-import type { ConfigurationModule, ConfigurationContext, ApplyResult, PlanResult } from '../../src/core/types.js';
+import type { ConfigurationModule, ConfigurationContext, ModuleResult, PlanResult } from '../../src/core/types.js';
 
 // Mock all dependencies
 jest.mock('../../src/core/platform.js', () => ({

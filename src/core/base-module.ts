@@ -1,7 +1,7 @@
 import type {
-  ApplyResult,
+  ModuleResult,
   ConfigurationContext,
-  ConfigurationModule,
+  Module,
   PlanResult,
   StatusResult,
   ConfigurationStatus,
@@ -14,7 +14,7 @@ export interface BaseModuleOptions {
   dependsOn?: string[];
 }
 
-export abstract class BaseModule implements ConfigurationModule {
+export abstract class BaseModule implements Module {
   public readonly id: string;
   public readonly description?: string;
   public readonly priority: number;
@@ -32,7 +32,7 @@ export abstract class BaseModule implements ConfigurationModule {
 
   abstract isApplicable(ctx: ConfigurationContext): Promise<boolean> | boolean;
   abstract plan(ctx: ConfigurationContext): Promise<PlanResult> | PlanResult;
-  abstract apply(ctx: ConfigurationContext): Promise<ApplyResult> | ApplyResult;
+  abstract apply(ctx: ConfigurationContext): Promise<ModuleResult> | ModuleResult;
 
   status?(ctx: ConfigurationContext): Promise<StatusResult> | StatusResult;
   getDetails?(ctx: ConfigurationContext): Promise<string[]> | string[];
@@ -47,11 +47,11 @@ export abstract class BaseModule implements ConfigurationModule {
     ctx.logger.error({ module: this.id, error }, message || 'Operation failed');
   }
 
-  protected createSuccessResult(changed: boolean = false, message?: string): ApplyResult {
+  protected createSuccessResult(changed: boolean = false, message?: string): ModuleResult {
     return { success: true, changed, message };
   }
 
-  protected createErrorResult(error: unknown, message?: string): ApplyResult {
+  protected createErrorResult(error: unknown, message?: string): ModuleResult {
     return { success: false, error, message };
   }
 
