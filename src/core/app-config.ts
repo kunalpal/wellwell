@@ -190,7 +190,47 @@ export abstract class AppConfig extends BaseModule {
       };
     }
     
-    // Get current content
+    // For dynamic content, we need to check if the plan would show changes
+    // This ensures that status is consistent with plan-based checking
+    try {
+      const plan = await this.plan(ctx);
+      if (plan.changes.length > 0) {
+        // Get current and desired content for detailed reporting
+        const currentContent = await this.readConfig(ctx);
+        
+        // Get desired content
+        let themeColors: any = undefined;
+        try {
+          const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+          const { themeContextProvider } = await import('./theme-context.js');
+          themeColors = await themeContextProvider.getThemeColors(currentTheme);
+        } catch {
+          // Theme colors not available, continue without them
+        }
+        
+        const desiredContent = this.template(ctx, themeColors);
+        
+        // Generate diff
+        const diff = this.generateDiff(currentContent || '', desiredContent);
+        
+        return {
+          status: 'stale',
+          message: `${this.configFile} needs update`,
+          details: {
+            current: currentContent,
+            desired: desiredContent,
+            diff: diff,
+            issues: ['Configuration content differs from expected'],
+            recommendations: ['Run apply to update the configuration']
+          }
+        };
+      }
+    } catch (error) {
+      // If plan fails, fall back to content comparison
+      ctx.logger.warn({ module: this.id, error }, 'Plan-based status check failed, falling back to content comparison');
+    }
+    
+    // Fallback: Get current content and compare with desired content
     const currentContent = await this.readConfig(ctx);
     
     // Get desired content
@@ -210,10 +250,10 @@ export abstract class AppConfig extends BaseModule {
       return { 
         status: 'applied', 
         message: `${this.configFile} is up to date`,
-                        metadata: {
-                  lastChecked: new Date(),
-                  checksum: await this.generateChecksum(desiredContent)
-                }
+        metadata: {
+          lastChecked: new Date(),
+          checksum: await this.generateChecksum(desiredContent)
+        }
       };
     }
     

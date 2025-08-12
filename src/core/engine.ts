@@ -30,6 +30,7 @@ export class Engine {
   private readonly modules: Map<string, ConfigurationModule> = new Map();
   private readonly options: Required<Omit<EngineOptions, 'hooks'>> & Pick<EngineOptions, 'hooks'>;
   private readonly hooks?: EngineHooks;
+  private readonly sharedState: JsonFileStateStore;
 
   constructor(options?: EngineOptions) {
     this.options = {
@@ -40,6 +41,7 @@ export class Engine {
       hooks: options?.hooks,
     };
     this.hooks = this.options.hooks;
+    this.sharedState = new JsonFileStateStore(this.options.stateFilePath);
   }
 
   register(module: ConfigurationModule): void {
@@ -51,14 +53,13 @@ export class Engine {
 
   public buildContext(): ConfigurationContext {
     const logger = createLogger({ pretty: this.options.prettyLogs, verbose: this.options.verbose });
-    const state = new JsonFileStateStore(this.options.stateFilePath);
     return {
       platform: detectPlatform(),
       homeDir: os.homedir(),
       cwd: process.cwd(),
       isCI: Boolean(process.env.CI),
       logger,
-      state,
+      state: this.sharedState,
     };
   }
 

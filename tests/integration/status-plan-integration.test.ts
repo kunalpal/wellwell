@@ -75,18 +75,86 @@ import { createMockContext } from '../mocks/index.js';
 
 // Create a test app config for integration testing
 class TestIntegrationConfig extends AppConfig {
+  private customTemplate?: (ctx: any, themeColors?: any) => string;
+
   constructor(options: any) {
     super(options);
+    this.customTemplate = options.template;
   }
 
   async isApplicable(): Promise<boolean> {
     return true;
   }
 
-  // Override the template to return a simple, predictable value
-  protected template = (ctx: any, themeColors?: any): string => {
-    return '# Integration Test Configuration\nversion: 1.0';
-  };
+  // Override the plan method to use the custom template
+  async plan(ctx: any): Promise<any> {
+    const changes = [];
+    
+    // Add package dependencies
+    if (this.packageDependencies) {
+      for (const dep of this.packageDependencies) {
+        if (!dep.platforms || dep.platforms.includes(ctx.platform)) {
+          const { addPackageContribution } = await import('../../src/core/contrib.js');
+          addPackageContribution(ctx, dep);
+        }
+      }
+    }
+    
+    // Check if config needs to be created/updated
+    if (this.customTemplate) {
+      const exists = await this.configExists(ctx);
+      if (!exists) {
+        changes.push({ summary: `Create ${this.configFile} configuration` });
+      } else {
+        // Compare current content with desired content
+        const currentContent = await this.readConfig(ctx);
+        
+        // Get theme colors if available
+        let themeColors: any = undefined;
+        try {
+          const currentTheme = (ctx.state.get as any)('themes.current') || 'dracula';
+          const { themeContextProvider } = await import('../../src/core/theme-context.js');
+          themeColors = await themeContextProvider.getThemeColors(currentTheme);
+        } catch {
+          // Theme colors not available, continue without them
+        }
+        
+        const desiredContent = this.customTemplate(ctx, themeColors);
+        
+        if (currentContent !== desiredContent) {
+          changes.push({ summary: `Update ${this.configFile} configuration` });
+        }
+      }
+    }
+    
+    return this.createPlanResult(changes);
+  }
+
+  // Override the apply method to use the custom template
+  async apply(ctx: any): Promise<any> {
+    try {
+      if (this.customTemplate) {
+        // Get theme colors if available
+        let themeColors: any = undefined;
+        try {
+          const currentTheme = (ctx.state.get as any)('themes.current') || 'dracula';
+          const { themeContextProvider } = await import('../../src/core/theme-context.js');
+          themeColors = await themeContextProvider.getThemeColors(currentTheme);
+        } catch {
+          // Theme colors not available, continue without them
+        }
+        
+        const content = this.customTemplate(ctx, themeColors);
+        await this.writeConfig(ctx, content);
+        
+        return this.createSuccessResult(true, `Configuration created/updated`);
+      }
+      
+      return this.createSuccessResult(false, 'No configuration template');
+    } catch (error) {
+      return this.createErrorResult(error);
+    }
+  }
 }
 
 describe('Plan-Status-Apply Integration', () => {
@@ -313,16 +381,26 @@ describe('Plan-Status-Apply Integration', () => {
         id: 'test:theme-error',
         configDir: '.config/test',
         configFile: 'theme-error.conf',
-        template: (ctx: any, themeColors?: any) => '# Theme Error Test\n',
+        template: (ctx: any, themeColors?: any) => {
+          let config = '# Theme Error Test\n';
+          if (themeColors) {
+            config += `theme: ${themeColors.name}\n`;
+          }
+          return config;
+        },
       });
 
-      // Mock file exists - use the mock home directory path
+      // Mock file exists with content that includes theme info
       const themeErrorPath = '/mock/home/.config/test/theme-error.conf';
-      mockFileContents[themeErrorPath] = '# Theme Error Test\n';
+      mockFileContents[themeErrorPath] = '# Theme Error Test\ntheme: dracula\n';
 
       engine.register(themeConfig);
 
-      // Should still work without theme colors, but content might differ
+      // Mock theme context to fail
+      const { themeContextProvider } = await import('../../src/core/theme-context.js');
+      (themeContextProvider.getThemeColors as jest.Mock).mockRejectedValue(new Error('Theme context failed'));
+
+      // Should still work without theme colors, but content will differ
       const statuses = await engine.statuses();
       expect(statuses['test:theme-error']).toBe('stale');
 
@@ -373,7 +451,7 @@ describe('Plan-Status-Apply Integration', () => {
 
       engine.register(themeConfig);
 
-      // Step 1: Apply with initial theme
+      // Step 1: Apply with initial theme (dracula)
       const results = await engine.apply();
       expect(results['test:theme-change'].success).toBe(true);
 
@@ -381,9 +459,15 @@ describe('Plan-Status-Apply Integration', () => {
       const statusesAfter = await engine.statuses();
       expect(statusesAfter['test:theme-change']).toBe('applied');
 
-      // Step 3: Mock theme change
+      // Step 3: Change the theme in the state and mock the theme context
       const { themeContextProvider } = await import('../../src/core/theme-context.js');
-      (themeContextProvider.getThemeColors as any).mockResolvedValue({ name: 'nord' });
+      (themeContextProvider.getThemeColors as jest.Mock).mockResolvedValue({ name: 'nord' });
+      
+      // Also update the state to reflect the theme change
+      const engineCtx = engine.buildContext();
+      engineCtx.state.set('themes.current', 'nord');
+
+
 
       // Step 4: Status should now be stale due to expected state change
       const statusesAfterThemeChange = await engine.statuses();
@@ -471,9 +555,10 @@ describe('Plan-Status-Apply Integration', () => {
       const statusesAfter = await engine.statuses();
       expect(statusesAfter['test:dynamic']).toBe('applied');
 
-      // Step 2: Change the dynamic value in state
-      const ctx = engine.buildContext();
-      ctx.state.set('dynamic.timestamp', 'updated');
+      // Step 2: Change the dynamic value in state by modifying the mock state store
+      // We need to access the actual state store that the engine uses
+      const engineCtx = engine.buildContext();
+      engineCtx.state.set('dynamic.timestamp', 'updated');
 
       // Step 3: Status should now be stale because plan will show changes
       const statusesAfterStateChange = await engine.statuses();
