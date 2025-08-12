@@ -453,6 +453,32 @@ describe('Engine', () => {
       expect(module.status).not.toHaveBeenCalled();
       expect(results).toEqual({});
     });
+
+    it('should handle multiple modules with different statuses correctly', async () => {
+      const appliedModule: ConfigurationModule = {
+        id: 'applied-module',
+        isApplicable: jest.fn().mockResolvedValue(true),
+        plan: jest.fn().mockResolvedValue({ changes: [] }),
+        apply: jest.fn().mockResolvedValue({ success: true }),
+      };
+
+      const staleModule: ConfigurationModule = {
+        id: 'stale-module',
+        isApplicable: jest.fn().mockResolvedValue(true),
+        plan: jest.fn().mockResolvedValue({ 
+          changes: [{ summary: 'Update configuration' }] 
+        }),
+        apply: jest.fn().mockResolvedValue({ success: true }),
+      };
+
+      engine.register(appliedModule);
+      engine.register(staleModule);
+
+      const results = await engine.statuses();
+
+      expect(results['applied-module']).toBe('applied');
+      expect(results['stale-module']).toBe('stale');
+    });
   });
 
   describe('engine options', () => {
