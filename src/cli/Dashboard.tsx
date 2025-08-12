@@ -5,6 +5,7 @@ import Spinner from 'ink-spinner';
 import { Engine } from '../core/engine.js';
 import type { ConfigurationModule, ConfigurationStatus } from '../core/types.js';
 import { allModules } from '../modules/index.js';
+import { formatStatus } from './status-format.js';
 
 
 type SortKey = 'id' | 'status' | 'priority';
@@ -320,7 +321,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
           <Box width={32}>
             <Text bold>MODULE</Text>
           </Box>
-          <Box width={16}>
+          <Box width={12}>
             <Text bold>STATUS</Text>
           </Box>
           <Box flexGrow={1}>
@@ -342,7 +343,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
                     {(isSelected ? '❯ ' : '  ')}{formatModuleName(r.id, isSelected, isHighlighted, isUnsupported)}
                   </Text>
                 </Box>
-                <Box width={16}>
+                <Box width={12}>
                   <Text>
                     {formatStatus(r.status, isUnsupported)}
                   </Text>
@@ -425,27 +426,7 @@ function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: 
   return moduleId;
 }
 
-function formatStatus(status: ConfigurationStatus, isUnsupported?: boolean): string {
-  if (isUnsupported) {
-    // Use ANSI escape codes for strikethrough since chalk may not work properly
-    return `\u001b[9m\u001b[2m${status}\u001b[0m`;
-  }
-  
-  switch (status) {
-    case 'stale':
-      return chalk.blue('stale');
-    case 'pending':
-      return chalk.yellow('pending');
-    case 'applied':
-      return chalk.green('applied');
-    case 'failed':
-      return chalk.red('failed');
-    case 'skipped':
-      return chalk.cyan('skipped');
-    default:
-      return status;
-  }
-}
+
 
 function isModuleApplicable(moduleId: string, rows: Record<string, ModuleRow>): boolean {
   // If we have the module in our rows, it's applicable on this platform

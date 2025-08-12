@@ -259,40 +259,114 @@ describe('Kitty App Module', () => {
   });
 
   describe('status', () => {
-    it('should return stale when kitty is not installed', async () => {
-      const ctx = createMockContext({ platform: 'macos', homeDir: '/mock/home' });
-      mockExecAsync
-        .mockRejectedValueOnce(new Error('which: kitty: not found'))
-        .mockRejectedValueOnce(new Error('No such package'));
-      mockFs.promises.access.mockRejectedValue(new Error('ENOENT'));
-
-      const result = await kittyModule.status!(ctx);
-
-      expect(result.status).toBe('stale');
-      expect(result.message).toBe('Kitty not installed');
-    });
-
     it('should return stale when config is missing', async () => {
       const ctx = createMockContext({ platform: 'macos', homeDir: '/mock/home' });
-      mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' }); // kitty installed
       mockFs.promises.access.mockRejectedValue(new Error('ENOENT')); // config missing
 
       const result = await kittyModule.status!(ctx);
 
       expect(result.status).toBe('stale');
-      expect(result.message).toBe('Kitty config missing');
+      expect(result.message).toBe('kitty.conf missing');
     });
 
-    it('should return applied when kitty is installed and configured', async () => {
+    it('should return applied when kitty is installed and configured with matching content', async () => {
       const ctx = createMockContext({ platform: 'macos', homeDir: '/mock/home' });
-      mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' }); // kitty installed
       mockFs.promises.access.mockResolvedValue(undefined); // config exists
-      mockFs.promises.readFile.mockResolvedValue('# Kitty Configuration by wellwell\nconfig'); // config content
+      
+      // Mock the exact content that the template would generate (with Gruvbox theme colors)
+      const expectedContent = `# Kitty Configuration by wellwell
+# Font configuration
+font_family      Cascadia Code PL
+font_size        12.0
+adjust_line_height  0
+adjust_column_width 0
+
+# Window layout
+remember_window_size  yes
+initial_window_width  1200
+initial_window_height 800
+window_padding_width  4
+
+# Tab bar
+tab_bar_edge            top
+tab_bar_style           powerline
+tab_powerline_style     slanted
+tab_title_template      {title}{' :{}:'.format(num_windows) if num_windows > 1 else ''}
+
+# Color scheme (based on Tokyo Night)
+foreground            #d5c4a1
+background            #282828
+selection_foreground  #d5c4a1
+selection_background  #282828
+
+# Black
+color0   #282828
+color8   #665c54
+
+# Red
+color1   #fb4934
+color9   #fb4934
+
+# Green
+color2   #b8bb26
+color10  #b8bb26
+
+# Yellow
+color3   #fabd2f
+color11  #fabd2f
+
+# Blue
+color4   #83a598
+color12  #83a598
+
+# Magenta
+color5   #d3869b
+color13  #d3869b
+
+# Cyan
+color6   #8ec07c
+color14  #8ec07c
+
+# White
+color7   #d5c4a1
+color15  #d5c4a1
+
+# Cursor colors
+cursor            #d5c4a1
+cursor_text_color #282828
+
+# URL underline color when hovering with mouse
+url_color #83a598
+
+# Performance tuning
+repaint_delay   10
+input_delay     3
+sync_to_monitor yes
+
+# macOS specific
+macos_option_as_alt yes
+macos_quit_when_last_window_closed yes
+macos_window_resizable yes
+macos_traditional_fullscreen no
+
+# Key mappings
+map cmd+c copy_to_clipboard
+map cmd+v paste_from_clipboard
+map cmd+t new_tab
+map cmd+w close_tab
+map cmd+shift+] next_tab
+map cmd+shift+[ previous_tab
+map cmd+plus change_font_size all +2.0
+map cmd+minus change_font_size all -2.0
+map cmd+0 change_font_size all 0
+`;
+      
+      mockFs.promises.readFile.mockResolvedValue(expectedContent);
 
       const result = await kittyModule.status!(ctx);
 
       expect(result.status).toBe('applied');
-      expect(result.message).toBe('Kitty installed and configured');
+      expect(result.message).toBe('kitty.conf is up to date');
     });
   });
 

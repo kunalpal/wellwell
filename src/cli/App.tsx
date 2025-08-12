@@ -5,6 +5,7 @@ import chalk from 'chalk';
 
 import { Engine } from '../core/engine.js';
 import { allModules } from '../modules/index.js';
+import { formatStatus } from './status-format.js';
 
 type Mode = 'plan' | 'apply' | 'status';
 
@@ -48,7 +49,7 @@ export default function App({ mode, ids, verbose }: AppProps) {
         } else if (mode === 'status') {
           const statuses = await engine.statuses(ids);
           for (const [id, st] of Object.entries(statuses)) {
-            setLines((l) => [...l, `${chalk.cyan(id)}: ${st}`]);
+            setLines((l) => [...l, `${formatStatus(st)} ${formatModuleId(id)}`]);
           }
         }
       } finally {
@@ -72,4 +73,20 @@ export default function App({ mode, ids, verbose }: AppProps) {
   );
 }
 
-
+/**
+ * Format module ID with the last part in white, similar to Jest's test name formatting
+ * Example: "apps:kitty" becomes "apps:" in grey + "kitty" in white
+ */
+function formatModuleId(id: string): string {
+  const parts = id.split(':');
+  if (parts.length === 1) {
+    // No colon, just return the whole ID in white
+    return chalk.white(id);
+  }
+  
+  // Split by colon and format: prefix in grey, last part in white
+  const prefix = parts.slice(0, -1).join(':') + ':';
+  const lastPart = parts[parts.length - 1];
+  
+  return chalk.grey(prefix) + chalk.white(lastPart);
+}

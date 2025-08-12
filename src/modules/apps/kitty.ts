@@ -168,22 +168,7 @@ map cmd+0 change_font_size all 0
     }
   }
 
-  async status(ctx: ConfigurationContext): Promise<any> {
-    try {
-      // Check if Kitty is installed
-      await execAsync('which kitty');
-      
-      // Check if config exists
-      const exists = await this.configExists(ctx);
-      if (!exists) {
-        return { status: 'stale', message: 'Kitty config missing' };
-      }
-      
-      return { status: 'applied', message: 'Kitty installed and configured' };
-    } catch {
-      return { status: 'stale', message: 'Kitty not installed' };
-    }
-  }
+
 
   getDetails(_ctx: ConfigurationContext): string[] {
     return [
