@@ -8,7 +8,7 @@ import { homebrewModule } from './packages/homebrew.js';
 import { aptModule } from './packages/apt.js';
 import { yumModule } from './packages/yum.js';
 import { miseModule } from './packages/mise.js';
-import { nvimModule } from './apps/nvim.js';
+
 import { ripgrepModule } from './apps/ripgrep.js';
 import { fzfModule } from './apps/fzf.js';
 import { ezaModule } from './apps/eza.js';
@@ -33,7 +33,7 @@ export const allModules: ConfigurationModule[] = [
   fzfModule,
   kittyModule,
   wellwellModule,
-  nvimModule,
+
   ...zshrcModules,
 ];
 
