@@ -6,6 +6,8 @@ import { Engine } from '../core/engine.js';
 import type { ConfigurationModule, ConfigurationStatus } from '../core/types.js';
 import { allModules } from '../modules/index.js';
 import { formatStatus } from './status-format.js';
+import { useTheme } from './theme-context.js';
+import { getThemeColors } from './theme-utils.js';
 
 
 type SortKey = 'id' | 'status' | 'priority';
@@ -56,6 +58,7 @@ async function getModulePlan(module: ConfigurationModule, ctx: any): Promise<str
 
 export default function Dashboard({ verbose }: DashboardProps) {
   const { exit } = useApp();
+  const { currentTheme, themeColors, switchTheme, getAvailableThemes } = useTheme();
   const [rows, setRows] = useState<Record<string, ModuleRow>>({});
   const [sortKey, setSortKey] = useState<SortKey>('priority');
   const [isApplying, setIsApplying] = useState(false);
@@ -64,7 +67,6 @@ export default function Dashboard({ verbose }: DashboardProps) {
   const [modulePlan, setModulePlan] = useState<string[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [planLoading, setPlanLoading] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<string>('dracula');
   const engineRef = useRef<Engine | null>(null);
   const detailsCache = useRef<Record<string, string[]>>({});
   const planCache = useRef<Record<string, string[]>>({});
@@ -130,30 +132,26 @@ export default function Dashboard({ verbose }: DashboardProps) {
       const selectedModule = sorted[selectedIndex];
       if (selectedModule && selectedModule.id === 'themes:base16') {
         void (async () => {
-          const themesModule = modules.find(m => m.id === 'themes:base16');
-          if (themesModule && themesModule.getAvailableThemes) {
-            const themes = await themesModule.getAvailableThemes();
-            const currentIndex = themes.findIndex((t: any) => t.name === currentTheme);
-            const nextIndex = (currentIndex + 1) % themes.length;
-            const nextTheme = themes[nextIndex];
+          const themes = await getAvailableThemes();
+          const currentIndex = themes.findIndex((t: string) => t === currentTheme);
+          const nextIndex = (currentIndex + 1) % themes.length;
+          const nextTheme = themes[nextIndex];
+          
+          if (nextTheme && engineRef.current) {
+            await switchTheme(nextTheme, engineRef.current.buildContext());
             
-            if (themesModule.switchTheme && nextTheme) {
-              await themesModule.switchTheme(nextTheme.name, engineRef.current?.buildContext());
-              setCurrentTheme(nextTheme.name);
-              
-              // Mark dependent modules as needing re-apply
-              setRows((prev) => {
-                const next = { ...prev };
-                // Mark themes module and its dependents as stale
-                Object.keys(next).forEach(moduleId => {
-                  if (moduleId === 'themes:base16' || 
-                      next[moduleId].dependsOn.includes('themes:base16')) {
-                    next[moduleId] = { ...next[moduleId], status: 'stale' };
-                  }
-                });
-                return next;
+            // Mark dependent modules as needing re-apply
+            setRows((prev) => {
+              const next = { ...prev };
+              // Mark themes module and its dependents as stale
+              Object.keys(next).forEach(moduleId => {
+                if (moduleId === 'themes:base16' || 
+                    next[moduleId].dependsOn.includes('themes:base16')) {
+                  next[moduleId] = { ...next[moduleId], status: 'stale' };
+                }
               });
-            }
+              return next;
+            });
           }
         })();
       }
@@ -311,8 +309,14 @@ export default function Dashboard({ verbose }: DashboardProps) {
       </Box>
       <Box>
         <Text>
-          Sort: {sortKey} {selectedModule && (<Text color="cyan"> | Selected: {selectedModule.id}</Text>)}
-          {isApplying && (<Text color="yellow"> <Spinner type="dots" /> applying</Text>)}
+          Sort: {sortKey} {selectedModule && (<Text>{formatSelectedModuleInfo(selectedModule.id, themeColors)}</Text>)}
+          {isApplying && (
+            <Text>
+              {getThemeColors(themeColors).semantic.warning(' ')}
+              <Spinner type="dots" />
+              {getThemeColors(themeColors).semantic.warning(' applying')}
+            </Text>
+          )}
         </Text>
       </Box>
       <Box marginTop={1} flexDirection="column">
@@ -339,13 +343,13 @@ export default function Dashboard({ verbose }: DashboardProps) {
             return (
               <Box key={r.id}>
                 <Box width={32}>
-                  <Text color={isSelected ? 'blue' : undefined}>
-                    {(isSelected ? '❯ ' : '  ')}{formatModuleName(r.id, isSelected, isHighlighted, isUnsupported)}
+                  <Text>
+                    {formatModuleNameWithSelection(r.id, isSelected, isHighlighted, isUnsupported, themeColors)}
                   </Text>
                 </Box>
                 <Box width={12}>
                   <Text>
-                    {formatStatus(r.status, isUnsupported)}
+                    {formatStatus(r.status, isUnsupported, themeColors)}
                   </Text>
                 </Box>
                 <Box flexGrow={1}>
@@ -353,9 +357,9 @@ export default function Dashboard({ verbose }: DashboardProps) {
                     {r.dependsOn.length > 0 
                       ? r.dependsOn.map((depId, depIdx) => 
                           (depIdx > 0 ? ', ' : '') + 
-                          formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), downstreamDeps.has(depId))
+                          formatDependency(depId, rows[depId]?.status, !isModuleApplicable(depId, rows), downstreamDeps.has(depId), themeColors)
                         ).join('')
-                      : chalk.grey('~')
+                      : getThemeColors(themeColors).semantic.muted('~')
                     }
                   </Text>
                 </Box>
@@ -370,7 +374,12 @@ export default function Dashboard({ verbose }: DashboardProps) {
             {/* Details Section */}
             <Box>
               <Text bold>DETAILS</Text>
-              {detailsLoading && <Text color="yellow"> <Spinner type="dots" /></Text>}
+              {detailsLoading && (
+                <Text>
+                  {getThemeColors(themeColors).semantic.warning(' ')}
+                  <Spinner type="dots" />
+                </Text>
+              )}
             </Box>
             {moduleDetails.length > 0 && (
               <Box flexDirection="column" paddingTop={1} paddingLeft={2}>
@@ -386,14 +395,19 @@ export default function Dashboard({ verbose }: DashboardProps) {
             {selectedModule.status !== 'applied' && (
               <>
                 <Box marginTop={1}>
-                  <Text bold color="orange">PLAN</Text>
-                  {planLoading && <Text color="orange"> <Spinner type="dots" /></Text>}
+                  <Text bold>{getThemeColors(themeColors).semantic.warning('PLAN')}</Text>
+                  {planLoading && (
+                    <Text>
+                      {getThemeColors(themeColors).semantic.warning(' ')}
+                      <Spinner type="dots" />
+                    </Text>
+                  )}
                 </Box>
                 {modulePlan.length > 0 && (
                   <Box flexDirection="column" paddingTop={1} paddingLeft={2}>
                     {modulePlan.map((planItem, idx) => (
                       <Box key={idx}>
-                        <Text color="orange">{planItem}</Text>
+                        <Text>{getThemeColors(themeColors).semantic.warning(planItem)}</Text>
                       </Box>
                     ))}
                   </Box>
@@ -409,18 +423,42 @@ export default function Dashboard({ verbose }: DashboardProps) {
 
 
 
-function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: boolean, isUnsupported: boolean): string {
-  // Don't use chalk for selected items since we handle that with Ink's color prop
+function formatModuleNameWithSelection(moduleId: string, isSelected: boolean, isHighlighted: boolean, isUnsupported: boolean, themeColors: any): string {
+  const colors = getThemeColors(themeColors);
+  
+  // Handle selection indicator and module name with theme colors
   if (isSelected) {
-    return moduleId;
+    return `${colors.semantic.info('❯ ')}${colors.semantic.info(moduleId)}`;
   }
   
+  // Non-selected modules
+  let formattedName = moduleId;
+  
   if (isUnsupported) {
-    return chalk.yellow(moduleId);
+    formattedName = colors.semantic.warning(moduleId);
+  } else if (isHighlighted) {
+    formattedName = colors.semantic.accent.underline(moduleId);
+  }
+  
+  return `  ${formattedName}`;
+}
+
+function formatSelectedModuleInfo(moduleId: string, themeColors: any): string {
+  const colors = getThemeColors(themeColors);
+  return ` ${colors.semantic.info('| Selected: ')}${colors.semantic.info(moduleId)}`;
+}
+
+
+
+function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: boolean, isUnsupported: boolean, themeColors: any): string {
+  const colors = getThemeColors(themeColors);
+  
+  if (isUnsupported) {
+    return colors.semantic.warning(moduleId);
   }
   
   if (isHighlighted) {
-    return chalk.underline(moduleId);
+    return colors.semantic.accent.underline(moduleId);
   }
   
   return moduleId;
@@ -434,20 +472,21 @@ function isModuleApplicable(moduleId: string, rows: Record<string, ModuleRow>): 
   return rows[moduleId] !== undefined;
 }
 
-function formatDependency(depId: string, status?: ConfigurationStatus, isUnsupported?: boolean, isHighlighted?: boolean): string {
+function formatDependency(depId: string, status?: ConfigurationStatus, isUnsupported?: boolean, isHighlighted?: boolean, themeColors?: any): string {
+  const colors = getThemeColors(themeColors);
   let formatted = depId;
   
   if (isUnsupported) {
     // Unsupported dependencies: strikethrough + dim + gray
     // Use ANSI escape codes directly for strikethrough since chalk may not work properly
-    formatted = `\u001b[9m\u001b[2m${chalk.gray(depId)}\u001b[0m`;
+    formatted = `\u001b[9m\u001b[2m${colors.semantic.muted(depId)}\u001b[0m`;
   } else {
-    // All supported dependencies are shown in orange
-    formatted = chalk.hex('#FFA500')(depId);
+    // All supported dependencies are shown in theme accent color
+    formatted = colors.semantic.accent(depId);
   }
   
   if (isHighlighted) {
-    formatted = chalk.underline(formatted);
+    formatted = colors.semantic.accent.underline(formatted);
   }
   
   return formatted;

@@ -1,11 +1,15 @@
 import chalk from 'chalk';
 import type { ConfigurationStatus } from '../core/types.js';
+import type { ThemeColors } from '../core/theme-context.js';
+import { getThemeColors } from './theme-utils.js';
 
 /**
  * Format a configuration status with background colors for better visual distinction
  * Similar to Jest's test result format with consistent width and capitalization
  */
-export function formatStatus(status: ConfigurationStatus, isUnsupported?: boolean): string {
+export function formatStatus(status: ConfigurationStatus, isUnsupported?: boolean, themeColors?: ThemeColors | null): string {
+  const colors = getThemeColors(themeColors || null);
+  
   if (isUnsupported) {
     // Use ANSI escape codes for strikethrough since chalk may not work properly
     return `\u001b[9m\u001b[2m${status.toUpperCase()}\u001b[0m`.padEnd(16);
@@ -21,16 +25,16 @@ export function formatStatus(status: ConfigurationStatus, isUnsupported?: boolea
   
   switch (status) {
     case 'stale':
-      return chalk.bgBlue.black(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
+      return colors.status.stale(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
     case 'pending':
-      return chalk.bgYellow.black(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
+      return colors.status.pending(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
     case 'applied':
-      return chalk.bgGreen.black(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
+      return colors.status.applied(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
     case 'failed':
-      return chalk.bgRed.black(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
+      return colors.status.failed(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
     case 'skipped':
-      return chalk.bgCyan.black(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
+      return colors.status.skipped(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
     default:
-      return chalk.bgGray.black(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
+      return colors.semantic.muted(statusText + ' '.repeat(paddingNeeded)).padEnd(10);
   }
 }
