@@ -139,14 +139,20 @@ export class ThemeContextProvider {
    * Get available themes by scanning the themes directory
    */
   async getAvailableThemes(): Promise<string[]> {
+    // Use the same order as defined in THEME_DESCRIPTIONS
+    const orderedThemes = ['dracula', 'gruvbox-dark', 'solarized-dark', 'nord'];
     const themesDir = path.join(process.cwd(), 'src', 'modules', 'themes', 'resources');
+    
     try {
       const files = await fs.readdir(themesDir);
-      return files
+      const availableFiles = files
         .filter(file => file.endsWith('.json'))
         .map(file => file.replace('.json', ''));
+      
+      // Return themes in the defined order, but only if they exist
+      return orderedThemes.filter(theme => availableFiles.includes(theme));
     } catch {
-      return [];
+      return orderedThemes;
     }
   }
 
