@@ -33,13 +33,26 @@ interface Base16Theme {
   };
 }
 
-// Theme descriptions
-const THEME_DESCRIPTIONS: Record<string, string> = {
-  'dracula': 'Dracula theme - dark purple',
-  'gruvbox-dark': 'Gruvbox dark theme',
-  'solarized-dark': 'Solarized dark theme',
-  'nord': 'Nord theme - arctic-inspired'
-};
+// Theme descriptions - will be populated dynamically
+let THEME_DESCRIPTIONS: Record<string, string> = {};
+
+// Initialize theme descriptions from available theme files
+async function initializeThemeDescriptions(): Promise<void> {
+  const themesDir = path.join(process.cwd(), 'src', 'modules', 'themes', 'resources');
+  try {
+    const files = await fs.readdir(themesDir);
+    const themeFiles = files.filter(file => file.endsWith('.json'));
+    
+    THEME_DESCRIPTIONS = {};
+    for (const file of themeFiles) {
+      const themeName = file.replace('.json', '');
+      THEME_DESCRIPTIONS[themeName] = themeName; // Just use the name as description
+    }
+  } catch (error) {
+    // Fallback to empty object if directory doesn't exist
+    THEME_DESCRIPTIONS = {};
+  }
+}
 
 // Theme state management
 const THEME_STATE_KEY = 'themes.current';
@@ -59,11 +72,6 @@ async function setCurrentTheme(themeName: string, ctx?: ConfigurationContext): P
 }
 
 async function getThemeByName(name: string): Promise<Base16Theme | null> {
-  const description = THEME_DESCRIPTIONS[name];
-  if (!description) {
-    return null;
-  }
-  
   // Load theme colors from JSON file
   const themePath = path.join(process.cwd(), 'src', 'modules', 'themes', 'resources', `${name}.json`);
   try {
@@ -92,7 +100,7 @@ async function getThemeByName(name: string): Promise<Base16Theme | null> {
     
     return {
       name,
-      description,
+      description: name, // Use name as description
       colors
     };
   } catch (error) {
@@ -163,6 +171,12 @@ export const themesModule: ConfigurationModule = {
 
   async getDetails(ctx): Promise<string[]> {
     const currentTheme = await getCurrentTheme(ctx);
+    
+    // Initialize theme descriptions if not already done
+    if (Object.keys(THEME_DESCRIPTIONS).length === 0) {
+      await initializeThemeDescriptions();
+    }
+    
     return [
       'Base16 Color Scheme Management',
       '',
@@ -171,7 +185,7 @@ export const themesModule: ConfigurationModule = {
       'Available themes:',
       ...Object.entries(THEME_DESCRIPTIONS).map(([name, description]) => {
         const marker = name === currentTheme ? '  ❯ ' : '  - ';
-        return `${marker}${name} - ${description}`;
+        return `${marker}${name}`;
       }),
       '',
       'Press TAB to cycle through themes',
@@ -192,6 +206,11 @@ export const themesModule: ConfigurationModule = {
 
   // Get available themes for UI
   async getAvailableThemes(): Promise<Base16Theme[]> {
+    // Initialize theme descriptions if not already done
+    if (Object.keys(THEME_DESCRIPTIONS).length === 0) {
+      await initializeThemeDescriptions();
+    }
+    
     const themes: Base16Theme[] = [];
     for (const [name, description] of Object.entries(THEME_DESCRIPTIONS)) {
       const theme = await getThemeByName(name);
