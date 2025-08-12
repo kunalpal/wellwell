@@ -156,6 +156,9 @@ export default function Dashboard({ verbose }: DashboardProps) {
               });
               return next;
             });
+            
+            // Clear the details cache to force re-render of theme module details
+            delete detailsCache.current['themes:base16'];
           }
         })();
       }
