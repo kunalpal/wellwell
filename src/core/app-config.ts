@@ -153,10 +153,95 @@ export abstract class AppConfig extends BaseModule {
   async status(ctx: ConfigurationContext): Promise<StatusResult> {
     const exists = await this.configExists(ctx);
     if (!exists) {
-      return { status: 'stale', message: `${this.configFile} missing` };
+      return { 
+        status: 'stale', 
+        message: `${this.configFile} missing`,
+        details: {
+          issues: [`Configuration file ${this.configFile} does not exist`],
+          recommendations: ['Run apply to create the configuration']
+        }
+      };
     }
     
-    return { status: 'applied', message: `${this.configFile} exists` };
+    if (!this.template) {
+      return { 
+        status: 'applied', 
+        message: `${this.configFile} exists`,
+        metadata: {
+          lastChecked: new Date()
+        }
+      };
+    }
+    
+    // Get current content
+    const currentContent = await this.readConfig(ctx);
+    
+    // Get desired content
+    let themeColors: any = undefined;
+    try {
+      const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+      const { themeContextProvider } = await import('./theme-context.js');
+      themeColors = await themeContextProvider.getThemeColors(currentTheme);
+    } catch {
+      // Theme colors not available, continue without them
+    }
+    
+    const desiredContent = this.template(ctx, themeColors);
+    
+    // Compare content
+    if (currentContent === desiredContent) {
+      return { 
+        status: 'applied', 
+        message: `${this.configFile} is up to date`,
+                        metadata: {
+                  lastChecked: new Date(),
+                  checksum: await this.generateChecksum(desiredContent)
+                }
+      };
+    }
+    
+    // Generate diff
+    const diff = this.generateDiff(currentContent || '', desiredContent);
+    
+    return {
+      status: 'stale',
+      message: `${this.configFile} needs update`,
+      details: {
+        current: currentContent,
+        desired: desiredContent,
+        diff: diff,
+        issues: ['Configuration content differs from expected'],
+        recommendations: ['Run apply to update the configuration']
+      }
+    };
+  }
+
+  private generateDiff(current: string, desired: string): string[] {
+    // Simple line-by-line diff
+    const currentLines = current.split('\n');
+    const desiredLines = desired.split('\n');
+    const diff: string[] = [];
+    
+    const maxLines = Math.max(currentLines.length, desiredLines.length);
+    
+    for (let i = 0; i < maxLines; i++) {
+      const currentLine = currentLines[i] || '';
+      const desiredLine = desiredLines[i] || '';
+      
+      if (currentLine !== desiredLine) {
+        diff.push(`Line ${i + 1}:`);
+        if (currentLine) diff.push(`- ${currentLine}`);
+        if (desiredLine) diff.push(`+ ${desiredLine}`);
+      }
+    }
+    
+    return diff;
+  }
+
+  private async generateChecksum(content: string): Promise<string> {
+    // Simple hash for content validation
+    const crypto = await import('crypto');
+    return crypto.createHash('md5').update(content).digest('hex');
   }
 
   getDetails(_ctx: ConfigurationContext): string[] {

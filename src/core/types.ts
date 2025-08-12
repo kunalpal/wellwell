@@ -70,6 +70,19 @@ export interface ApplyResult {
 export interface StatusResult {
   status: ConfigurationStatus;
   message?: string;
+  details?: {
+    current?: any;
+    desired?: any;
+    diff?: string[];
+    issues?: string[];
+    recommendations?: string[];
+  };
+  metadata?: {
+    lastApplied?: Date;
+    lastChecked?: Date;
+    version?: string;
+    checksum?: string;
+  };
 }
 
 

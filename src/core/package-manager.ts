@@ -176,7 +176,14 @@ export abstract class PackageManager extends BaseModule {
   async status(ctx: ConfigurationContext): Promise<StatusResult> {
     const isAvailable = await this.isAvailable();
     if (!isAvailable) {
-      return { status: 'stale', message: `${this.config.name} not available` };
+      return { 
+        status: 'stale', 
+        message: `${this.config.name} not available`,
+        details: {
+          issues: [`${this.config.name} package manager is not installed`],
+          recommendations: [`Install ${this.config.name} first`]
+        }
+      };
     }
     
     const resolvedPackages = readResolvedPackages(ctx);
@@ -185,16 +192,73 @@ export abstract class PackageManager extends BaseModule {
     const packages = resolvedPackages?.[packageKey] ?? [];
     
     if (packages.length === 0) {
-      return { status: 'applied', message: `${this.config.name} available, no packages` };
+      return { 
+        status: 'applied', 
+        message: `${this.config.name} available, no packages configured`,
+        metadata: {
+          lastChecked: new Date()
+        }
+      };
     }
     
     const installed = await this.getInstalledPackages();
     const missing = packages.filter(p => !installed.has(p.name));
+    const outdated = await this.checkOutdatedPackages(packages, installed);
     
-    return { 
-      status: missing.length === 0 ? 'applied' : 'stale',
-      message: missing.length > 0 ? `${missing.length} packages missing` : 'All packages installed'
+    if (missing.length === 0 && outdated.length === 0) {
+      return {
+        status: 'applied',
+        message: 'All packages installed and up to date',
+        metadata: {
+          lastChecked: new Date(),
+          version: await this.getVersion()
+        }
+      };
+    }
+    
+    const issues: string[] = [];
+    const recommendations: string[] = [];
+    
+    if (missing.length > 0) {
+      issues.push(`${missing.length} packages missing: ${missing.map(p => p.name).join(', ')}`);
+      recommendations.push('Run apply to install missing packages');
+    }
+    
+    if (outdated.length > 0) {
+      issues.push(`${outdated.length} packages outdated: ${outdated.map(p => p.name).join(', ')}`);
+      recommendations.push('Run apply to update outdated packages');
+    }
+    
+    return {
+      status: 'stale',
+      message: `${missing.length + outdated.length} packages need attention`,
+      details: {
+        current: { installed: Array.from(installed) },
+        desired: { packages: packages },
+        issues: issues,
+        recommendations: recommendations
+      }
     };
+  }
+
+  private async checkOutdatedPackages(packages: any[], installed: Set<string>): Promise<any[]> {
+    // Implementation to check for outdated packages
+    // This would be specific to each package manager
+    // For now, return empty array - can be overridden by subclasses
+    return [];
+  }
+
+  private async getVersion(): Promise<string | undefined> {
+    try {
+      const { exec } = await import('node:child_process');
+      const { promisify } = await import('node:util');
+      const execAsync = promisify(exec);
+      
+      const result = await execAsync(`${this.config.command} --version`);
+      return result.stdout.trim();
+    } catch {
+      return undefined;
+    }
   }
 
   getDetails(ctx: ConfigurationContext): string[] {

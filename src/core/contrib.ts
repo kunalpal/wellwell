@@ -1,4 +1,5 @@
 import type { ConfigurationContext, Platform } from './types.js';
+import { packageManager, type Contribution } from './contribution-manager.js';
 
 export interface PathContribution {
   path: string;
@@ -115,7 +116,25 @@ export function readResolvedAliases(ctx: ConfigurationContext): AliasContributio
 
 // Package contribution functions
 export function listPackageContributions(ctx: ConfigurationContext): PackageContribution[] {
-  return (ctx.state.get<PackageContribution[]>(CONTRIB_PACKAGES_KEY) ?? []).slice();
+  const contribs = ctx.state.get<Contribution<PackageContribution>[]>(CONTRIB_PACKAGES_KEY);
+  if (contribs) {
+    return contribs.map(c => c.data);
+  }
+  
+  // Migration: handle old format
+  const oldContribs = ctx.state.get<PackageContribution[]>(CONTRIB_PACKAGES_KEY);
+  if (oldContribs && Array.isArray(oldContribs)) {
+    // Migrate old format to new format
+    const newContribs: Contribution<PackageContribution>[] = oldContribs.map(contrib => ({
+      id: `${contrib.manager}:${contrib.name}`,
+      data: contrib,
+      platforms: contrib.platforms
+    }));
+    ctx.state.set(CONTRIB_PACKAGES_KEY, newContribs);
+    return oldContribs;
+  }
+  
+  return [];
 }
 
 export function addPackageContribution(
@@ -123,15 +142,19 @@ export function addPackageContribution(
   contribution: PackageContribution,
 ): boolean {
   if (contribution.platforms && !contribution.platforms.includes(ctx.platform)) return false;
-  const current = ctx.state.get<PackageContribution[]>(CONTRIB_PACKAGES_KEY) ?? [];
+  const current = ctx.state.get<Contribution<PackageContribution>[]>(CONTRIB_PACKAGES_KEY) ?? [];
   const exists = current.some((c) => 
-    c.name === contribution.name && 
-    c.manager === contribution.manager &&
-    c.language === contribution.language &&
-    c.version === contribution.version
+    c.data.name === contribution.name && 
+    c.data.manager === contribution.manager &&
+    c.data.language === contribution.language &&
+    c.data.version === contribution.version
   );
   if (!exists) {
-    current.push(contribution);
+    current.push({
+      id: `${contribution.manager}:${contribution.name}`,
+      data: contribution,
+      platforms: contribution.platforms
+    });
     ctx.state.set(CONTRIB_PACKAGES_KEY, current);
     return true;
   }
@@ -139,21 +162,15 @@ export function addPackageContribution(
 }
 
 export function resolvePackages(ctx: ConfigurationContext): Record<string, PackageContribution[]> {
-  const contribs = listPackageContributions(ctx);
-  const byManager: Record<string, PackageContribution[]> = {};
-  for (const c of contribs) {
-    if (!byManager[c.manager]) byManager[c.manager] = [];
-    byManager[c.manager].push(c);
-  }
-  return byManager;
+  return packageManager.resolveByManager(ctx);
 }
 
 export function writeResolvedPackages(ctx: ConfigurationContext, packages: Record<string, PackageContribution[]>): void {
-  ctx.state.set(RESOLVED_PACKAGES_KEY, packages);
+  packageManager.writeByManager(ctx, packages);
 }
 
 export function readResolvedPackages(ctx: ConfigurationContext): Record<string, PackageContribution[]> | undefined {
-  return ctx.state.get<Record<string, PackageContribution[]>>(RESOLVED_PACKAGES_KEY);
+  return packageManager.readByManager(ctx);
 }
 
 // Shell init contribution functions

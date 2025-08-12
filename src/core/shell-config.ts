@@ -17,10 +17,10 @@ export interface ShellConfigOptions extends BaseModuleOptions {
 }
 
 export abstract class ShellConfig extends BaseModule {
-  protected abstract shellFile: string;
-  protected abstract markerStart: string;
-  protected abstract markerEnd: string;
-  protected abstract platforms?: string[];
+  protected shellFile!: string;
+  protected markerStart!: string;
+  protected markerEnd!: string;
+  protected platforms?: string[];
 
   constructor(options: ShellConfigOptions) {
     super(options);
@@ -126,14 +126,101 @@ export abstract class ShellConfig extends BaseModule {
 
   async status(ctx: ConfigurationContext): Promise<StatusResult> {
     const target = this.getShellFilePath(ctx);
-    const block = this.renderShellBlock(ctx);
+    const desiredBlock = this.renderShellBlock(ctx);
     
     try {
       const content = await fs.readFile(target, 'utf8');
-      return { status: content.includes(block) ? 'applied' : 'stale' };
-    } catch {
-      return { status: 'stale' };
+      
+      if (content.includes(desiredBlock)) {
+        return {
+          status: 'applied',
+          message: `${this.shellFile} is properly configured`,
+          metadata: {
+            lastChecked: new Date(),
+            checksum: await this.generateChecksum(desiredBlock)
+          }
+        };
+      }
+      
+      // Check if block exists but is different
+      const hasBlock = content.includes(this.markerStart) && content.includes(this.markerEnd);
+      
+      if (hasBlock) {
+        // Extract current block and compare
+        const currentBlock = this.extractBlock(content);
+        const diff = this.generateDiff(currentBlock, desiredBlock);
+        
+        return {
+          status: 'stale',
+          message: `${this.shellFile} block needs update`,
+          details: {
+            current: currentBlock,
+            desired: desiredBlock,
+            diff: diff,
+            issues: ['Shell configuration block differs from expected'],
+            recommendations: ['Run apply to update the shell configuration']
+          }
+        };
+      }
+      
+      return {
+        status: 'stale',
+        message: `${this.shellFile} missing configuration block`,
+        details: {
+          issues: [`No wellwell configuration block found in ${this.shellFile}`],
+          recommendations: ['Run apply to add the configuration block']
+        }
+      };
+      
+    } catch (error) {
+      return {
+        status: 'stale',
+        message: `${this.shellFile} not accessible`,
+        details: {
+          issues: [`Cannot read ${this.shellFile}: ${error}`],
+          recommendations: ['Check file permissions and try again']
+        }
+      };
     }
+  }
+
+  private extractBlock(content: string): string {
+    const startIdx = content.indexOf(this.markerStart);
+    const endIdx = content.indexOf(this.markerEnd);
+    
+    if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+      return '';
+    }
+    
+    return content.substring(startIdx, endIdx + this.markerEnd.length);
+  }
+
+  private generateDiff(current: string, desired: string): string[] {
+    // Simple line-by-line diff
+    const currentLines = current.split('\n');
+    const desiredLines = desired.split('\n');
+    const diff: string[] = [];
+    
+    const maxLines = Math.max(currentLines.length, desiredLines.length);
+    
+    for (let i = 0; i < maxLines; i++) {
+      const currentLine = currentLines[i] || '';
+      const desiredLine = desiredLines[i] || '';
+      
+      if (currentLine !== desiredLine) {
+        diff.push(`Line ${i + 1}:`);
+        if (currentLine) diff.push(`- ${currentLine}`);
+        if (desiredLine) diff.push(`+ ${desiredLine}`);
+      }
+    }
+    
+    return diff;
+  }
+
+  private async generateChecksum(content: string): Promise<string> {
+    // Simple hash for content validation
+    const crypto = await import('crypto');
+    return crypto.createHash('md5').update(content).digest('hex');
   }
 }
 
@@ -142,6 +229,7 @@ export class ZshConfig extends ShellConfig {
   protected shellFile = '.zshrc';
   protected markerStart = '# === wellwell:begin ===';
   protected markerEnd = '# === wellwell:end ===';
+  protected platforms = ['macos', 'ubuntu'];
 
   protected renderShellBlock(ctx: ConfigurationContext): string {
     const resolvedPaths = readResolvedPaths(ctx) ?? [];
@@ -160,7 +248,6 @@ export class ZshConfig extends ShellConfig {
       '',
       ...resolvedShellInit.map((init) => init.initCode),
       this.markerEnd,
-      '',
     ];
     
     if (ctx.platform === 'macos') {

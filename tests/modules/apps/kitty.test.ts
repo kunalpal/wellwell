@@ -250,18 +250,19 @@ describe('Kitty App Module', () => {
     it('should return stale when config is missing', async () => {
       const ctx = createMockContext({ platform: 'macos', homeDir: '/mock/home' });
       mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' }); // kitty installed
-      mockFs.promises.readFile.mockRejectedValue(new Error('ENOENT')); // config missing
+      mockFs.promises.access.mockRejectedValue(new Error('ENOENT')); // config missing
 
       const result = await kittyModule.status!(ctx);
 
-      expect(result.status).toBe('applied');
-      expect(result.message).toBe('Kitty installed and configured');
+      expect(result.status).toBe('stale');
+      expect(result.message).toBe('Kitty config missing');
     });
 
     it('should return applied when kitty is installed and configured', async () => {
       const ctx = createMockContext({ platform: 'macos', homeDir: '/mock/home' });
       mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' }); // kitty installed
-      mockFs.promises.readFile.mockResolvedValue('# Kitty Configuration by wellwell\nconfig'); // config exists
+      mockFs.promises.access.mockResolvedValue(undefined); // config exists
+      mockFs.promises.readFile.mockResolvedValue('# Kitty Configuration by wellwell\nconfig'); // config content
 
       const result = await kittyModule.status!(ctx);
 

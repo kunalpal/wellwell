@@ -1,7 +1,7 @@
 import { ZshConfig } from '../../../core/shell-config.js';
 
 class ZshrcBaseConfig extends ZshConfig {
-  protected platforms = undefined; // All platforms
+  protected platforms: string[] = ['macos', 'ubuntu', 'al2']; // All platforms
 
   constructor() {
     super({

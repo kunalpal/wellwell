@@ -229,7 +229,11 @@ describe('Contribution System', () => {
       const result = addPackageContribution(ctx, contribution);
 
       expect(result).toBe(true);
-      expect(ctx.state.set).toHaveBeenCalledWith('contrib.packages', [contribution]);
+      expect(ctx.state.set).toHaveBeenCalledWith('contrib.packages', [{
+        id: 'homebrew:eza',
+        data: contribution,
+        platforms: ['macos']
+      }]);
     });
 
     it('should not add package contribution for non-matching platform', () => {
@@ -258,13 +262,17 @@ describe('Contribution System', () => {
       const result = addPackageContribution(ctx, contribution);
 
       expect(result).toBe(true);
-      expect(ctx.state.set).toHaveBeenCalledWith('contrib.packages', [contribution]);
+      expect(ctx.state.set).toHaveBeenCalledWith('contrib.packages', [{
+        id: 'mise:node',
+        data: contribution,
+        platforms: undefined
+      }]);
     });
 
     it('should not add duplicate package contributions', () => {
       const ctx = createMockContext();
-      const existing: PackageContribution[] = [
-        { name: 'eza', manager: 'homebrew' },
+      const existing = [
+        { id: 'homebrew:eza', data: { name: 'eza', manager: 'homebrew' }, platforms: undefined },
       ];
       (ctx.state.get as jest.Mock).mockReturnValue(existing);
 
@@ -281,11 +289,11 @@ describe('Contribution System', () => {
 
     it('should resolve packages by manager', () => {
       const ctx = createMockContext();
-      const contributions: PackageContribution[] = [
-        { name: 'eza', manager: 'homebrew' },
-        { name: 'ripgrep', manager: 'homebrew' },
-        { name: 'eza', manager: 'apt' },
-        { name: 'node', manager: 'mise', language: 'node', version: '20.0.0' },
+      const contributions = [
+        { id: '1', data: { name: 'eza', manager: 'homebrew' } },
+        { id: '2', data: { name: 'ripgrep', manager: 'homebrew' } },
+        { id: '3', data: { name: 'eza', manager: 'apt' } },
+        { id: '4', data: { name: 'node', manager: 'mise', language: 'node', version: '20.0.0' } },
       ];
       (ctx.state.get as jest.Mock).mockReturnValue(contributions);
 

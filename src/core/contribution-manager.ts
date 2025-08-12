@@ -127,67 +127,227 @@ export class AliasContributionManager extends GenericContributionManager<{ name:
   }
 }
 
-export class PackageContributionManager extends GenericContributionManager<{
+export class PackageContributionManager implements ContributionManager<{
   name: string;
-  manager: string;
+  manager: 'homebrew' | 'apt' | 'yum' | 'mise';
   language?: string;
   version?: string;
 }> {
-  constructor() {
-    super(
-      'contrib.packages',
-      'resolved.packages',
-      (pkg) => `${pkg.manager}:${pkg.name}`,
-      undefined
-    );
+  private readonly contribKey = 'contrib.packages';
+  private readonly resolvedKey = 'resolved.packages';
+
+  add(ctx: ConfigurationContext, contribution: Contribution<{
+    name: string;
+    manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+    language?: string;
+    version?: string;
+  }>): boolean {
+    if (contribution.platforms && !contribution.platforms.includes(ctx.platform)) {
+      return false;
+    }
+
+    const current = ctx.state.get<Contribution<{
+      name: string;
+      manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+      language?: string;
+      version?: string;
+    }>[]>(this.contribKey) ?? [];
+    const exists = current.some(c => `${c.data.manager}:${c.data.name}` === `${contribution.data.manager}:${contribution.data.name}`);
+    
+    if (!exists) {
+      current.push(contribution);
+      ctx.state.set(this.contribKey, current);
+      return true;
+    }
+    
+    return false;
   }
 
-  resolve(ctx: ConfigurationContext): Record<string, Array<{
+  list(ctx: ConfigurationContext): {
     name: string;
-    manager: string;
+    manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+    language?: string;
+    version?: string;
+  }[] {
+    let contribs = ctx.state.get<Contribution<{
+      name: string;
+      manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+      language?: string;
+      version?: string;
+    }>[]>(this.contribKey);
+    
+    // Migration: handle old format
+    if (!contribs) {
+      const oldContribs = ctx.state.get<Array<{
+        name: string;
+        manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+        language?: string;
+        version?: string;
+        platforms?: Platform[];
+      }>>(this.contribKey);
+      
+      if (oldContribs && Array.isArray(oldContribs)) {
+        // Migrate old format to new format
+        contribs = oldContribs.map(contrib => ({
+          id: `${contrib.manager}:${contrib.name}`,
+          data: contrib,
+          platforms: contrib.platforms
+        }));
+        ctx.state.set(this.contribKey, contribs);
+      } else {
+        contribs = [];
+      }
+    }
+    
+    return contribs!.map(c => c.data);
+  }
+
+  resolve(ctx: ConfigurationContext): {
+    name: string;
+    manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+    language?: string;
+    version?: string;
+  }[] {
+    let contribs = ctx.state.get<Contribution<{
+      name: string;
+      manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+      language?: string;
+      version?: string;
+    }>[]>('contrib.packages');
+    
+    // Migration: handle old format
+    if (!contribs) {
+      const oldContribs = ctx.state.get<Array<{
+        name: string;
+        manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+        language?: string;
+        version?: string;
+        platforms?: Platform[];
+      }>>('contrib.packages');
+      
+      if (oldContribs && Array.isArray(oldContribs)) {
+        // Migrate old format to new format
+        contribs = oldContribs.map(contrib => ({
+          id: `${contrib.manager}:${contrib.name}`,
+          data: contrib,
+          platforms: contrib.platforms
+        }));
+        ctx.state.set('contrib.packages', contribs);
+      } else {
+        contribs = [];
+      }
+    }
+    
+    return contribs!
+      .filter(c => !c.platforms || c.platforms.includes(ctx.platform))
+      .map(c => c.data);
+  }
+
+  resolveByManager(ctx: ConfigurationContext): Record<string, Array<{
+    name: string;
+    manager: 'homebrew' | 'apt' | 'yum' | 'mise';
     language?: string;
     version?: string;
   }>> {
-    const contribs = ctx.state.get<Contribution<{
+    let contribs = ctx.state.get<Contribution<{
       name: string;
-      manager: string;
+      manager: 'homebrew' | 'apt' | 'yum' | 'mise';
       language?: string;
       version?: string;
-    }>[]>('contrib.packages') ?? [];
+    }>[]>('contrib.packages');
+    
+    // Migration: handle old format
+    if (!contribs) {
+      const oldContribs = ctx.state.get<Array<{
+        name: string;
+        manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+        language?: string;
+        version?: string;
+        platforms?: Platform[];
+      }>>('contrib.packages');
+      
+      if (oldContribs && Array.isArray(oldContribs)) {
+        // Migrate old format to new format
+        contribs = oldContribs.map(contrib => ({
+          id: `${contrib.manager}:${contrib.name}`,
+          data: contrib,
+          platforms: contrib.platforms
+        }));
+        ctx.state.set('contrib.packages', contribs);
+      } else {
+        contribs = [];
+      }
+    } else {
+      // Check if existing contribs are in old format (missing data property)
+      if (contribs.length > 0 && !contribs[0].data) {
+        const oldContribs = contribs as any[];
+        contribs = oldContribs.map(contrib => ({
+          id: `${contrib.manager}:${contrib.name}`,
+          data: contrib,
+          platforms: contrib.platforms
+        }));
+        ctx.state.set('contrib.packages', contribs);
+      }
+    }
     
     const byManager: Record<string, Array<{
       name: string;
-      manager: string;
+      manager: 'homebrew' | 'apt' | 'yum' | 'mise';
       language?: string;
       version?: string;
     }>> = {};
     
-    for (const c of contribs) {
-      if (!byManager[c.data.manager]) byManager[c.data.manager] = [];
-      byManager[c.data.manager].push(c.data);
+    for (const c of contribs!) {
+      if (!c.platforms || c.platforms.includes(ctx.platform)) {
+        if (!byManager[c.data.manager]) byManager[c.data.manager] = [];
+        byManager[c.data.manager].push(c.data);
+      }
     }
     
     return byManager;
   }
 
-  write(ctx: ConfigurationContext, resolved: Record<string, Array<{
+  write(ctx: ConfigurationContext, resolved: {
     name: string;
-    manager: string;
+    manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+    language?: string;
+    version?: string;
+  }[]): void {
+    ctx.state.set('resolved.packages', resolved);
+  }
+
+  read(ctx: ConfigurationContext): {
+    name: string;
+    manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+    language?: string;
+    version?: string;
+  }[] | undefined {
+    return ctx.state.get<{
+      name: string;
+      manager: 'homebrew' | 'apt' | 'yum' | 'mise';
+      language?: string;
+      version?: string;
+    }[]>('resolved.packages');
+  }
+
+  writeByManager(ctx: ConfigurationContext, resolved: Record<string, Array<{
+    name: string;
+    manager: 'homebrew' | 'apt' | 'yum' | 'mise';
     language?: string;
     version?: string;
   }>>): void {
     ctx.state.set('resolved.packages', resolved);
   }
 
-  read(ctx: ConfigurationContext): Record<string, Array<{
+  readByManager(ctx: ConfigurationContext): Record<string, Array<{
     name: string;
-    manager: string;
+    manager: 'homebrew' | 'apt' | 'yum' | 'mise';
     language?: string;
     version?: string;
   }>> | undefined {
     return ctx.state.get<Record<string, Array<{
       name: string;
-      manager: string;
+      manager: 'homebrew' | 'apt' | 'yum' | 'mise';
       language?: string;
       version?: string;
     }>>>('resolved.packages');

@@ -36,6 +36,23 @@ async function getModuleDetails(module: ConfigurationModule, ctx: any): Promise<
   }
 }
 
+async function getModulePlan(module: ConfigurationModule, ctx: any): Promise<string[]> {
+  try {
+    const plan = await module.plan(ctx);
+    if (plan.changes.length === 0) {
+      return ['No changes planned'];
+    }
+    
+    return plan.changes.map(change => {
+      const summary = change.summary;
+      const details = change.details ? `\n    ${change.details}` : '';
+      return `• ${summary}${details}`;
+    });
+  } catch (error) {
+    return [`Error loading plan: ${error}`];
+  }
+}
+
 export default function Dashboard({ verbose }: DashboardProps) {
   const { exit } = useApp();
   const [rows, setRows] = useState<Record<string, ModuleRow>>({});
@@ -43,10 +60,13 @@ export default function Dashboard({ verbose }: DashboardProps) {
   const [isApplying, setIsApplying] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [moduleDetails, setModuleDetails] = useState<string[]>([]);
+  const [modulePlan, setModulePlan] = useState<string[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [planLoading, setPlanLoading] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<string>('dracula');
   const engineRef = useRef<Engine | null>(null);
   const detailsCache = useRef<Record<string, string[]>>({});
+  const planCache = useRef<Record<string, string[]>>({});
 
   const modules: ConfigurationModule[] = useMemo(() => allModules, []);
 
@@ -142,7 +162,11 @@ export default function Dashboard({ verbose }: DashboardProps) {
         const selectedModule = sorted[selectedIndex];
         if (selectedModule) {
           // Apply selected module and its dependencies
-          void engineRef.current!.apply([selectedModule.id]).finally(() => setIsApplying(false));
+          void engineRef.current!.apply([selectedModule.id]).finally(() => {
+            setIsApplying(false);
+            // Clear plan cache for the applied module
+            delete planCache.current[selectedModule.id];
+          });
         } else {
           setIsApplying(false);
         }
@@ -151,7 +175,11 @@ export default function Dashboard({ verbose }: DashboardProps) {
       if (!isApplying) {
         setIsApplying(true);
         // Apply all modules in topological order
-        void engineRef.current!.apply().finally(() => setIsApplying(false));
+        void engineRef.current!.apply().finally(() => {
+          setIsApplying(false);
+          // Clear all plan cache since all modules were applied
+          planCache.current = {};
+        });
       }
     } else if (input === 'p') {
       // plan
@@ -165,6 +193,8 @@ export default function Dashboard({ verbose }: DashboardProps) {
           for (const [id, st] of Object.entries(statuses)) next[id] = { ...next[id], status: st };
           return next;
         });
+        // Clear plan cache when status is refreshed
+        planCache.current = {};
       })();
     } else if (input === '1') setSortKey('priority');
     else if (input === '2') setSortKey('id');
@@ -205,39 +235,68 @@ export default function Dashboard({ verbose }: DashboardProps) {
   useEffect(() => {
     if (!selectedModule || !engineRef.current) {
       setModuleDetails([]);
+      setModulePlan([]);
       setDetailsLoading(false);
+      setPlanLoading(false);
       return;
     }
 
-    // Check cache first
+    // Check cache first for details
     if (detailsCache.current[selectedModule.id]) {
       setModuleDetails(detailsCache.current[selectedModule.id]);
       setDetailsLoading(false);
-      return;
+    } else {
+      setDetailsLoading(true);
     }
 
-    setDetailsLoading(true);
+    // Check cache first for plan
+    if (planCache.current[selectedModule.id]) {
+      setModulePlan(planCache.current[selectedModule.id]);
+      setPlanLoading(false);
+    } else {
+      setPlanLoading(true);
+    }
     
-    const loadDetails = async () => {
+    const loadModuleInfo = async () => {
       try {
         const module = modules.find(m => m.id === selectedModule.id);
         if (module) {
-          const details = await getModuleDetails(module, engineRef.current!.buildContext());
-          // Cache the result
-          detailsCache.current[selectedModule.id] = details;
-          setModuleDetails(details);
+          const ctx = engineRef.current!.buildContext();
+          
+          // Load details
+          if (!detailsCache.current[selectedModule.id]) {
+            const details = await getModuleDetails(module, ctx);
+            detailsCache.current[selectedModule.id] = details;
+            setModuleDetails(details);
+            setDetailsLoading(false);
+          }
+          
+          // Load plan for non-applied modules
+          if (!planCache.current[selectedModule.id] && selectedModule.status !== 'applied') {
+            const plan = await getModulePlan(module, ctx);
+            planCache.current[selectedModule.id] = plan;
+            setModulePlan(plan);
+            setPlanLoading(false);
+          } else if (selectedModule.status === 'applied') {
+            setModulePlan([]);
+            setPlanLoading(false);
+          }
         } else {
           setModuleDetails([]);
+          setModulePlan([]);
+          setDetailsLoading(false);
+          setPlanLoading(false);
         }
       } catch (error) {
         setModuleDetails([`Error loading details: ${error}`]);
-      } finally {
+        setModulePlan([`Error loading plan: ${error}`]);
         setDetailsLoading(false);
+        setPlanLoading(false);
       }
     };
 
     // Use setTimeout to make it non-blocking
-    const timeoutId = setTimeout(loadDetails, 0);
+    const timeoutId = setTimeout(loadModuleInfo, 0);
     return () => clearTimeout(timeoutId);
   }, [selectedModule, modules]);
 
@@ -307,6 +366,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
         {/* Details Pane */}
         {selectedModule && (
           <Box marginTop={1} flexDirection="column">
+            {/* Details Section */}
             <Box>
               <Text bold>DETAILS</Text>
               {detailsLoading && <Text color="yellow"> <Spinner type="dots" /></Text>}
@@ -319,6 +379,25 @@ export default function Dashboard({ verbose }: DashboardProps) {
                   </Box>
                 ))}
               </Box>
+            )}
+            
+            {/* Plan Section - Only show for non-applied modules */}
+            {selectedModule.status !== 'applied' && (
+              <>
+                <Box marginTop={1}>
+                  <Text bold color="orange">PLAN</Text>
+                  {planLoading && <Text color="orange"> <Spinner type="dots" /></Text>}
+                </Box>
+                {modulePlan.length > 0 && (
+                  <Box flexDirection="column" paddingTop={1} paddingLeft={2}>
+                    {modulePlan.map((planItem, idx) => (
+                      <Box key={idx}>
+                        <Text color="orange">{planItem}</Text>
+                      </Box>
+                    ))}
+                  </Box>
+                )}
+              </>
             )}
           </Box>
         )}

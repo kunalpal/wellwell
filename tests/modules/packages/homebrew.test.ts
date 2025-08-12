@@ -219,7 +219,7 @@ describe('Homebrew Package Manager', () => {
       const result = await homebrewModule.status!(ctx);
 
       expect(result.status).toBe('applied');
-      expect(result.message).toBe('Homebrew available, no packages');
+      expect(result.message).toBe('Homebrew available, no packages configured');
     });
 
     it('should return applied when all packages installed', async () => {
@@ -238,7 +238,7 @@ describe('Homebrew Package Manager', () => {
       const result = await homebrewModule.status!(ctx);
 
       expect(result.status).toBe('applied');
-      expect(result.message).toBe('All packages installed');
+      expect(result.message).toBe('All packages installed and up to date');
     });
 
     it('should return stale when packages are missing', async () => {
@@ -257,7 +257,7 @@ describe('Homebrew Package Manager', () => {
       const result = await homebrewModule.status!(ctx);
 
       expect(result.status).toBe('stale');
-      expect(result.message).toBe('1 packages missing');
+      expect(result.message).toBe('1 packages need attention');
     });
   });
 
