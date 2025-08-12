@@ -117,7 +117,24 @@ export abstract class AppConfig extends BaseModule {
       if (!exists) {
         changes.push({ summary: `Create ${this.configFile} configuration` });
       } else {
-        changes.push({ summary: `Update ${this.configFile} configuration` });
+        // Compare current content with desired content
+        const currentContent = await this.readConfig(ctx);
+        
+        // Get theme colors if available
+        let themeColors: any = undefined;
+        try {
+          const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+          const { themeContextProvider } = await import('./theme-context.js');
+          themeColors = await themeContextProvider.getThemeColors(currentTheme);
+        } catch {
+          // Theme colors not available, continue without them
+        }
+        
+        const desiredContent = this.template(ctx, themeColors);
+        
+        if (currentContent !== desiredContent) {
+          changes.push({ summary: `Update ${this.configFile} configuration` });
+        }
       }
     }
     
