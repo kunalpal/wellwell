@@ -42,9 +42,6 @@ export function ThemeProvider({ children, initialTheme = 'dracula', engineContex
         console.error('Failed to load theme colors:', error);
         // Fallback to default colors
         setThemeColors({
-          promptColor: '238',
-          successColor: 'green',
-          errorColor: 'red',
           base00: '#282828',
           base01: '#3c3836',
           base02: '#504945',

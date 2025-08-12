@@ -26,9 +26,6 @@ export interface TerminalColors {
 }
 
 export interface ThemeColors {
-  promptColor: string;
-  successColor: string;
-  errorColor: string;
   // Base16 color variables derived from terminal colors
   base00: string; // Default Background
   base01: string; // Lighter Background
@@ -69,11 +66,6 @@ export class ThemeContextProvider {
    */
   private deriveBase16Colors(terminalColors: TerminalColors): ThemeColors {
     return {
-      // Basic colors
-      promptColor: '238',
-      successColor: 'green',
-      errorColor: 'red',
-      
       // Base16 colors derived from terminal colors
       base00: terminalColors['terminal.background'],           // Default Background
       base01: terminalColors['terminal.ansiBrightBlack'],      // Lighter Background
