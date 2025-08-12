@@ -32,8 +32,9 @@ export interface ModuleResult {
   error?: unknown;
 }
 
-// Legacy types for backward compatibility
-export interface ApplyResult extends ModuleResult {}
+// Legacy alias - deprecated, use ModuleResult instead
+export type ApplyResult = ModuleResult;
+
 export interface PlanChange {
   summary: string;
   details?: string;
@@ -58,7 +59,32 @@ export interface StatusResult {
     lastChecked?: Date;
     version?: string;
     checksum?: string;
+    expectedChecksum?: string;
+    actualChecksum?: string;
+    stateComparison?: {
+      beforeApply?: string;
+      afterApply?: string;
+      expectedAfterApply?: string;
+      differs: boolean;
+      lastValidated?: Date;
+    };
   };
+}
+
+export interface ModuleStateSnapshot {
+  moduleId: string;
+  timestamp: Date;
+  checksum: string;
+  state: any;
+}
+
+export interface ModuleApplyMetadata {
+  moduleId: string;
+  appliedAt: Date;
+  beforeState?: ModuleStateSnapshot;
+  afterState?: ModuleStateSnapshot;
+  expectedState?: ModuleStateSnapshot;
+  planChecksum?: string;
 }
 
 // Core module interface - simplified and focused
@@ -77,38 +103,19 @@ export interface Module {
   status?(ctx: ConfigurationContext): Promise<StatusResult> | StatusResult;
   getDetails?(ctx: ConfigurationContext): Promise<string[]> | string[];
   
+  // State comparison methods for robust status checks
+  captureState?(ctx: ConfigurationContext): Promise<ModuleStateSnapshot> | ModuleStateSnapshot;
+  compareState?(beforeState: ModuleStateSnapshot, afterState: ModuleStateSnapshot): boolean;
+  getExpectedState?(ctx: ConfigurationContext): Promise<ModuleStateSnapshot> | ModuleStateSnapshot;
+  
   // Event hooks
   onStatusChange?(status: ConfigurationStatus): void;
   onProgress?(message: string): void;
   
-  // Theme-specific methods (optional for backward compatibility)
+  // Theme-specific methods (optional)
   switchTheme?(themeName: string, ctx?: ConfigurationContext): Promise<boolean>;
   getAvailableThemes?(): any[] | Promise<any[]>;
 }
 
-// Specialized module types for better type safety
-export interface PackageModule extends Module {
-  type: 'package';
-  packages: Array<{
-    name: string;
-    manager: 'homebrew' | 'apt' | 'yum';
-    platforms?: Platform[];
-  }>;
-}
-
-export interface ConfigModule extends Module {
-  type: 'config';
-  configPath: string;
-  template: (ctx: ConfigurationContext, themeColors?: any) => string;
-}
-
-export interface ThemeModule extends Module {
-  type: 'theme';
-  switchTheme(themeName: string, ctx?: ConfigurationContext): Promise<boolean>;
-  getAvailableThemes(): any[] | Promise<any[]>;
-}
-
-// Union type for all module types
-export type ConfigurationModule = Module | PackageModule | ConfigModule | ThemeModule;
-
-
+// Simplified type alias
+export type ConfigurationModule = Module;

@@ -4,12 +4,14 @@ import os from 'node:os';
 import { detectPlatform } from './platform.js';
 import { createLogger } from './logger.js';
 import { JsonFileStateStore } from './state.js';
+import { StateComparison } from './state-comparison.js';
 import type {
   ApplyResult,
   ConfigurationContext,
   ConfigurationModule,
   ConfigurationStatus,
   PlanResult,
+  StatusResult,
 } from './types.js';
 
 export interface EngineOptions {
@@ -135,7 +137,30 @@ export class Engine {
         prevOnStatus?.(status);
       };
       try {
-        const res = await mod.apply(ctx);
+        // First capture initial state
+        const beforeState = await mod.captureState?.(ctx);
+        const expectedState = await mod.getExpectedState?.(ctx);
+
+        // Use state comparison to record apply execution
+        const res = await StateComparison.recordApplyExecution(ctx, mod, async () => {
+          return await mod.apply(ctx);
+        });
+
+        // Capture final state and store metadata
+        const afterState = await mod.captureState?.(ctx);
+        
+        if (beforeState && afterState && expectedState) {
+          const metadata = {
+            moduleId: mod.id,
+            appliedAt: new Date(),
+            beforeState,
+            afterState,
+            expectedState,
+            planChecksum: expectedState.checksum,
+          };
+          StateComparison.storeApplyMetadata(ctx, metadata);
+        }
+
         results[mod.id] = res;
         mod.onStatusChange?.(res.success ? 'applied' : 'failed');
       } catch (error) {
@@ -155,23 +180,70 @@ export class Engine {
     const ctx = this.buildContext();
     const graph = this.topoSortModules();
     const result: Record<string, ConfigurationStatus> = {};
+    
     for (const mod of graph) {
       if (selectedIds && !selectedIds.includes(mod.id)) continue;
       if (!(await mod.isApplicable(ctx))) continue;
       
-      // Derive status from plan instead of using module's status method
       try {
-        const plan = await mod.plan(ctx);
-        // If plan has no changes, status is 'applied', otherwise 'stale'
-        result[mod.id] = plan.changes.length === 0 ? 'applied' : 'stale';
+        // Try module status method first if available
+        if (mod.status) {
+          try {
+            const status = await mod.status(ctx);
+            result[mod.id] = status.status;
+          } catch (statusError) {
+            // Fall back to plan-based checking when status fails
+            try {
+              const plan = await mod.plan(ctx);
+              result[mod.id] = plan.changes.length > 0 ? 'stale' : 'applied';
+            } catch (planError) {
+              ctx.logger.error({ module: mod.id, error: planError }, 'Both status and plan failed');
+              result[mod.id] = 'stale'; // Default to stale on error
+            }
+          }
+        } else {
+          // Fall back to plan-based checking when no status method
+          const plan = await mod.plan(ctx);
+          result[mod.id] = plan.changes.length > 0 ? 'stale' : 'applied';
+        }
       } catch (error) {
-        // If plan fails, fall back to module's status method or default to 'stale'
-        const status = await mod.status?.(ctx);
-        result[mod.id] = status?.status ?? 'stale';
+        ctx.logger.error({ module: mod.id, error }, 'Status check failed');
+        result[mod.id] = 'stale'; // Default to stale on error
       }
     }
+    
+    await ctx.state.flush();
+    return result;
+  }
+
+  async detailedStatuses(selectedIds?: string[]): Promise<Record<string, StatusResult>> {
+    const ctx = this.buildContext();
+    const graph = this.topoSortModules();
+    const result: Record<string, StatusResult> = {};
+    
+    for (const mod of graph) {
+      if (selectedIds && !selectedIds.includes(mod.id)) continue;
+      if (!(await mod.isApplicable(ctx))) continue;
+      
+      try {
+        // Use robust status checking with state comparison
+        result[mod.id] = await StateComparison.getRobustStatus(ctx, mod);
+      } catch (error) {
+        ctx.logger.error({ module: mod.id, error }, 'Detailed status check failed');
+        result[mod.id] = {
+          status: 'stale',
+          message: 'Status check failed',
+          details: {
+            issues: [error instanceof Error ? error.message : String(error)],
+          },
+          metadata: {
+            lastChecked: new Date(),
+          },
+        };
+      }
+    }
+    
+    await ctx.state.flush();
     return result;
   }
 }
-
-

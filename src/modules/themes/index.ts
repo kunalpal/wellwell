@@ -2,9 +2,9 @@ import type {
   ConfigurationModule,
   ConfigurationContext,
   PlanResult,
-  ApplyResult,
+  ModuleResult,
   StatusResult,
-} from '../../core/types';
+} from '../../core/types.js';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { addShellInitContribution } from '../../core/contrib.js';
@@ -136,7 +136,7 @@ export const themesModule: ConfigurationModule = {
     return { changes };
   },
 
-  async apply(ctx): Promise<ApplyResult> {
+  async apply(ctx): Promise<ModuleResult> {
     try {
       const currentTheme = await getCurrentTheme(ctx);
       const theme = await getThemeByName(currentTheme);

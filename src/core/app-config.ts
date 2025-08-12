@@ -7,6 +7,7 @@ import type {
   ConfigurationContext,
   PlanResult,
   StatusResult,
+  ModuleStateSnapshot,
 } from './types.js';
 import { addPackageContribution } from './contrib.js';
 
@@ -267,5 +268,105 @@ export abstract class AppConfig extends BaseModule {
       `  • Config directory: ${this.configDir}`,
       ...(this.packageDependencies ? [`  • Package dependencies: ${this.packageDependencies.length}`] : []),
     ];
+  }
+
+  // State comparison implementation for robust status checks
+  async captureState(ctx: ConfigurationContext): Promise<ModuleStateSnapshot> {
+    const configPath = this.getConfigPath(ctx);
+    const exists = await this.configExists(ctx);
+    
+    let state: any = {
+      configFile: this.configFile,
+      configPath,
+      exists,
+      content: null,
+      fileStats: null,
+    };
+
+    if (exists) {
+      try {
+        state.content = await this.readConfig(ctx);
+        const stats = await fs.stat(configPath);
+        state.fileStats = {
+          size: stats.size,
+          mtime: stats.mtime.toISOString(),
+          mode: stats.mode,
+        };
+      } catch (error) {
+        state.error = error instanceof Error ? error.message : String(error);
+      }
+    }
+
+    return this.createStateSnapshot(state);
+  }
+
+  async getExpectedState(ctx: ConfigurationContext): Promise<ModuleStateSnapshot> {
+    const configPath = this.getConfigPath(ctx);
+    let expectedContent: string | null = null;
+    
+    if (this.template) {
+      try {
+        // Get theme colors if available
+        let themeColors: any = undefined;
+        try {
+          const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+          const { themeContextProvider } = await import('./theme-context.js');
+          themeColors = await themeContextProvider.getThemeColors(currentTheme);
+        } catch {
+          // Theme colors not available, continue without them
+        }
+        
+        expectedContent = this.template(ctx, themeColors);
+      } catch (error) {
+        // If template fails, we can't determine expected state
+      }
+    }
+
+    const expectedState = {
+      configFile: this.configFile,
+      configPath,
+      exists: expectedContent !== null,
+      content: expectedContent,
+      templateAvailable: this.template !== undefined,
+      // Include theme context if available for state change detection
+      themeContext: ctx.state.get<string>('themes.current'),
+    };
+
+    return this.createStateSnapshot(expectedState);
+  }
+
+  compareState(beforeState: ModuleStateSnapshot, afterState: ModuleStateSnapshot): boolean {
+    try {
+      const before = beforeState.state;
+      const after = afterState.state;
+      
+      // Compare file existence
+      if (before.exists !== after.exists) {
+        return true;
+      }
+      
+      // Compare expected content (this is key for theme changes)
+      if (before.content !== after.content) {
+        return true;
+      }
+      
+      // Compare theme context
+      if (before.themeContext !== after.themeContext) {
+        return true;
+      }
+      
+      // Compare file stats for additional validation if file exists
+      if (before.exists && after.exists && before.fileStats && after.fileStats) {
+        if (before.fileStats.size !== after.fileStats.size ||
+            before.fileStats.mtime !== after.fileStats.mtime) {
+          return true;
+        }
+      }
+      
+      return false;
+    } catch (error) {
+      // If comparison fails, assume they differ to be safe
+      return true;
+    }
   }
 }

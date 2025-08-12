@@ -380,7 +380,7 @@ describe('Engine', () => {
 
       const results = await engine.statuses();
 
-      expect(module.plan).toHaveBeenCalled();
+      expect(module.status).toHaveBeenCalled();
       expect(results['test-module']).toBe('applied');
     });
 
@@ -402,21 +402,21 @@ describe('Engine', () => {
       expect(results['test-module']).toBe('stale');
     });
 
-    it('should fall back to module status method when plan fails', async () => {
+    it('should fall back to plan when status method fails', async () => {
       const module: ConfigurationModule = {
         id: 'test-module',
         isApplicable: jest.fn().mockResolvedValue(true),
-        plan: jest.fn().mockRejectedValue(new Error('Plan failed')),
+        plan: jest.fn().mockResolvedValue({ changes: [] }),
         apply: jest.fn().mockResolvedValue({ success: true }),
-        status: jest.fn().mockResolvedValue({ status: 'applied', message: 'All good' }),
+        status: jest.fn().mockRejectedValue(new Error('Status failed')),
       };
 
       engine.register(module);
 
       const results = await engine.statuses();
 
-      expect(module.plan).toHaveBeenCalled();
       expect(module.status).toHaveBeenCalled();
+      expect(module.plan).toHaveBeenCalled();
       expect(results['test-module']).toBe('applied');
     });
 

@@ -3,14 +3,8 @@ import { promisify } from 'node:util';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
-import type {
-  ApplyResult,
-  ConfigurationContext,
-  ConfigurationModule,
-  PlanResult,
-  StatusResult,
-  PlanChange,
-} from '../../core/types.js';
+import { createAppModule } from '../../core/app-module-factory.js';
+import { ModuleHelpers } from '../../core/module-helpers.js';
 import { addPathContribution } from '../../core/contrib.js';
 
 const execAsync = promisify(exec);
@@ -93,18 +87,15 @@ async function rebuildProject(projectRoot: string): Promise<boolean> {
   }
 }
 
-export const wellwellModule: ConfigurationModule = {
+export const wellwellModule = createAppModule({
   id: 'apps:wellwell',
   description: 'Wellwell self-management - provides "ww" command',
   dependsOn: ['common:homebin'], // Ensure ~/bin exists
   priority: 70,
+  packageName: 'wellwell', // Not a real package, but needed for factory
 
-  async isApplicable(_ctx) {
-    return true;
-  },
-
-  async plan(ctx): Promise<PlanResult> {
-    const changes: PlanChange[] = [];
+  customPlan: async (ctx) => {
+    const changes = [];
     
     // Add ~/bin to PATH
     addPathContribution(ctx, {
@@ -134,15 +125,14 @@ export const wellwellModule: ConfigurationModule = {
     return { changes };
   },
 
-  async apply(ctx): Promise<ApplyResult> {
+  customApply: async (ctx) => {
     try {
       const projectRoot = await getWellwellProjectRoot();
       if (!projectRoot) {
-        return { 
-          success: false, 
-          error: new Error('Cannot find wellwell project root'), 
-          message: 'Project root not found' 
-        };
+        return ModuleHelpers.createErrorResult(
+          new Error('Cannot find wellwell project root'), 
+          'Project root not found'
+        );
       }
       
       // Check if the built executable exists and rebuild if needed
@@ -158,11 +148,10 @@ export const wellwellModule: ConfigurationModule = {
         ctx.logger.info('Rebuilding wellwell project...');
         const rebuildSuccess = await rebuildProject(projectRoot);
         if (!rebuildSuccess) {
-          return { 
-            success: false, 
-            error: new Error('Failed to rebuild wellwell project'), 
-            message: 'Build failed' 
-          };
+          return ModuleHelpers.createErrorResult(
+            new Error('Failed to rebuild wellwell project'), 
+            'Build failed'
+          );
         }
       }
       
@@ -179,17 +168,13 @@ export const wellwellModule: ConfigurationModule = {
           ? '"ww" command script updated'
           : 'Created "ww" command script';
       
-      return { 
-        success: true, 
-        changed: true, 
-        message 
-      };
+      return ModuleHelpers.createSuccessResult(true, message);
     } catch (error) {
-      return { success: false, error };
+      return ModuleHelpers.createErrorResult(error);
     }
   },
 
-  async status(_ctx): Promise<StatusResult> {
+  customStatus: async (_ctx) => {
     const projectRoot = await getWellwellProjectRoot();
     if (!projectRoot) {
       return { status: 'stale', message: 'Project root not found' };
@@ -211,12 +196,10 @@ export const wellwellModule: ConfigurationModule = {
     }
   },
 
-  getDetails(_ctx): string[] {
-    return [
-      'Self-management:',
-      '  • Creates "ww" command in ~/bin',
-      '  • Adds ~/bin to PATH',
-      '  • Enables global wellwell access',
-    ];
-  },
-};
+  getDetails: (_ctx) => [
+    'Self-management:',
+    '  • Creates "ww" command in ~/bin',
+    '  • Adds ~/bin to PATH',
+    '  • Enables global wellwell access',
+  ],
+});

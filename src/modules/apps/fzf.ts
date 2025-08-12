@@ -1,52 +1,18 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import type {
-  ApplyResult,
-  ConfigurationContext,
-  ConfigurationModule,
-  PlanResult,
-  StatusResult,
-  PlanChange,
-} from '../../core/types.js';
-import { addPackageContribution, addShellInitContribution } from '../../core/contrib.js';
+import { createAppModule, createCrossPlatformPackages } from '../../core/app-module-factory.js';
+import { addShellInitContribution } from '../../core/contrib.js';
 import { themeContextProvider } from '../../core/theme-context.js';
 
-export const fzfModule: ConfigurationModule = {
+export const fzfModule = createAppModule({
   id: 'apps:fzf',
   description: 'Fzf - command-line fuzzy finder',
   dependsOn: ['apps:ripgrep', 'themes:base16'], // fzf requires ripgrep as backend and theme support
   priority: 61,
+  packageName: 'fzf',
+  packageMappings: createCrossPlatformPackages('fzf'),
 
-  async isApplicable(_ctx) {
-    return true;
-  },
-
-  async plan(ctx): Promise<PlanResult> {
-    const changes: PlanChange[] = [];
-    
-    // Add platform-specific package contributions
-    addPackageContribution(ctx, {
-      name: 'fzf',
-      manager: 'homebrew',
-      platforms: ['macos'],
-    });
-    
-    addPackageContribution(ctx, {
-      name: 'fzf',
-      manager: 'apt',
-      platforms: ['ubuntu'],
-    });
-    
-    addPackageContribution(ctx, {
-      name: 'fzf',
-      manager: 'yum',
-      platforms: ['al2'],
-    });
-    
-    return { changes };
-  },
-
-  async apply(ctx): Promise<ApplyResult> {
+  customApply: async (ctx) => {
     try {
       // Generate theme-aware fzf configuration
       const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
@@ -95,7 +61,7 @@ fi`,
     }
   },
 
-  async status(ctx): Promise<StatusResult> {
+  customStatus: async (ctx) => {
     try {
       // Check if fzf is available in PATH
       const { exec } = await import('node:child_process');
@@ -114,12 +80,10 @@ fi`,
     }
   },
 
-  getDetails(_ctx): string[] {
-    return [
-      'Fuzzy finder configuration:',
-      '  • Backend: ripgrep for file search',
-      '  • Key bindings: Ctrl+T, Ctrl+R, Alt+C',
-      '  • Completion: Command line completion',
-    ];
-  },
-};
+  getDetails: (_ctx) => [
+    'Fuzzy finder configuration:',
+    '  • Backend: ripgrep for file search',
+    '  • Key bindings: Ctrl+T, Ctrl+R, Alt+C',
+    '  • Completion: Command line completion',
+  ],
+});
