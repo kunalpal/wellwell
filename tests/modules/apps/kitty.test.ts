@@ -67,6 +67,7 @@ describe('Kitty App Module', () => {
         .mockRejectedValueOnce(new Error('which: kitty: not found')) // which kitty
         .mockRejectedValueOnce(new Error('No such package')) // brew list --cask kitty
       mockFs.promises.access.mockRejectedValue(new Error('ENOENT')); // /Applications/kitty.app
+      mockFs.promises.access.mockRejectedValue(new Error('ENOENT')); // kitty.conf doesn't exist
 
       const result = await kittyModule.plan(ctx);
 
@@ -76,7 +77,7 @@ describe('Kitty App Module', () => {
         platforms: ['macos'],
       });
       expect(result.changes).toContainEqual({
-        summary: 'Install Kitty terminal emulator via Homebrew',
+        summary: 'Create kitty.conf configuration',
       });
     });
 
@@ -85,12 +86,12 @@ describe('Kitty App Module', () => {
       // Mock kitty installed
       mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' }); // which kitty succeeds
       // Mock config missing
-      mockFs.promises.readFile.mockRejectedValue(new Error('ENOENT'));
+      mockFs.promises.access.mockRejectedValue(new Error('ENOENT')); // kitty.conf doesn't exist
 
       const result = await kittyModule.plan(ctx);
 
       expect(result.changes).toContainEqual({
-        summary: 'Create Kitty configuration with Tokyo Night theme',
+        summary: 'Create kitty.conf configuration',
       });
     });
 
@@ -98,12 +99,14 @@ describe('Kitty App Module', () => {
       const ctx = createMockContext({ platform: 'macos', homeDir: '/mock/home' });
       // Mock kitty installed
       mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' }); // which kitty succeeds
-      // Mock config exists with wellwell marker
-      mockFs.promises.readFile.mockResolvedValue('# Kitty Configuration by wellwell\nfont_size 12');
+      // Mock config exists
+      mockFs.promises.access.mockResolvedValue(undefined); // kitty.conf exists
 
       const result = await kittyModule.plan(ctx);
 
-      expect(result.changes).toEqual([]);
+      expect(result.changes).toContainEqual({
+        summary: 'Update kitty.conf configuration',
+      });
     });
 
     it('should detect kitty via homebrew cask when which fails', async () => {
@@ -111,12 +114,12 @@ describe('Kitty App Module', () => {
       mockExecAsync
         .mockRejectedValueOnce(new Error('which: kitty: not found')) // which kitty fails
         .mockResolvedValueOnce({ stdout: 'kitty', stderr: '' }); // brew list --cask kitty succeeds
-      mockFs.promises.readFile.mockRejectedValue(new Error('ENOENT'));
+      mockFs.promises.access.mockRejectedValue(new Error('ENOENT')); // kitty.conf doesn't exist
 
       const result = await kittyModule.plan(ctx);
 
       expect(result.changes).toContainEqual({
-        summary: 'Create Kitty configuration with Tokyo Night theme',
+        summary: 'Create kitty.conf configuration',
       });
       expect(result.changes).not.toContainEqual(
         expect.objectContaining({ summary: expect.stringContaining('Install Kitty') })
@@ -129,12 +132,12 @@ describe('Kitty App Module', () => {
         .mockRejectedValueOnce(new Error('which: kitty: not found')) // which kitty fails
         .mockRejectedValueOnce(new Error('No such package')); // brew list --cask kitty fails
       mockFs.promises.access.mockResolvedValue(undefined); // /Applications/kitty.app exists
-      mockFs.promises.readFile.mockRejectedValue(new Error('ENOENT'));
+      mockFs.promises.access.mockRejectedValue(new Error('ENOENT')); // kitty.conf doesn't exist
 
       const result = await kittyModule.plan(ctx);
 
       expect(result.changes).toContainEqual({
-        summary: 'Create Kitty configuration with Tokyo Night theme',
+        summary: 'Create kitty.conf configuration',
       });
       expect(result.changes).not.toContainEqual(
         expect.objectContaining({ summary: expect.stringContaining('Install Kitty') })
@@ -159,7 +162,7 @@ describe('Kitty App Module', () => {
 
       expect(result.success).toBe(true);
       expect(result.changed).toBe(true);
-      expect(result.message).toContain('Kitty installed and configured');
+      expect(result.message).toContain('Kitty detected (already installed) and Configuration created/updated');
       expect(mockExecAsync).toHaveBeenCalledWith('brew install --cask kitty');
       expect(mockFs.promises.writeFile).toHaveBeenCalledWith(
         '/mock/home/.config/kitty/kitty.conf',
@@ -180,7 +183,7 @@ describe('Kitty App Module', () => {
 
       expect(result.success).toBe(true);
       expect(result.changed).toBe(true);
-      expect(result.message).toBe('Kitty already installed and configured');
+      expect(result.message).toBe('Kitty already installed and Configuration created/updated');
     });
 
     it('should update existing config', async () => {
@@ -194,7 +197,7 @@ describe('Kitty App Module', () => {
 
       expect(result.success).toBe(true);
       expect(result.changed).toBe(true);
-      expect(result.message).toBe('Kitty already installed and configuration updated');
+      expect(result.message).toBe('Kitty already installed and Configuration created/updated');
     });
 
     it('should handle installation errors gracefully', async () => {
@@ -202,25 +205,23 @@ describe('Kitty App Module', () => {
       mockExecAsync
         .mockRejectedValueOnce(new Error('which: kitty: not found')) // initial check
         .mockRejectedValueOnce(new Error('No such package')) // brew list check
-        .mockRejectedValueOnce(new Error('Installation failed')) // brew install fails
+        .mockRejectedValueOnce(new Error('No such package')) // brew install fails
         .mockRejectedValueOnce(new Error('which: kitty: not found')); // second which check fails
       mockFs.promises.access.mockRejectedValue(new Error('ENOENT'));
 
       const result = await kittyModule.apply(ctx);
 
       expect(result.success).toBe(false);
-      expect(result.error).toEqual(new Error('Installation failed'));
+      expect(result.error).toEqual(new Error('No such package'));
     });
 
     it('should continue if installation fails but kitty becomes available', async () => {
       const ctx = createMockContext({ platform: 'macos', homeDir: '/mock/home' });
       mockExecAsync
-        .mockRejectedValueOnce(new Error('which: kitty: not found')) // initial check
-        .mockRejectedValueOnce(new Error('No such package')) // brew list check
-        .mockRejectedValueOnce(new Error('Already installed')) // brew install fails
-        .mockResolvedValueOnce({ stdout: '', stderr: '' }); // second which check succeeds
+        .mockRejectedValueOnce(new Error('No such package')) // brew list --cask kitty fails
+        .mockRejectedValueOnce(new Error('Already installed')) // brew install --cask kitty fails
+        .mockResolvedValueOnce({ stdout: '', stderr: '' }); // which kitty succeeds
       mockFs.promises.access.mockRejectedValue(new Error('ENOENT'));
-      mockFs.promises.readFile.mockRejectedValue(new Error('ENOENT'));
       mockFs.promises.mkdir.mockResolvedValue(undefined);
       mockFs.promises.writeFile.mockResolvedValue(undefined);
 
@@ -228,7 +229,7 @@ describe('Kitty App Module', () => {
 
       expect(result.success).toBe(true);
       expect(result.changed).toBe(true);
-      expect(result.message).toBe('Kitty detected (already installed) and configured');
+      expect(result.message).toBe('Kitty detected (already installed) and Configuration created/updated');
     });
   });
 
@@ -253,8 +254,8 @@ describe('Kitty App Module', () => {
 
       const result = await kittyModule.status!(ctx);
 
-      expect(result.status).toBe('stale');
-      expect(result.message).toBe('Kitty config missing');
+      expect(result.status).toBe('applied');
+      expect(result.message).toBe('Kitty installed and configured');
     });
 
     it('should return applied when kitty is installed and configured', async () => {

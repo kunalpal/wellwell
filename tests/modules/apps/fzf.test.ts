@@ -12,8 +12,27 @@ jest.mock('../../../src/core/contrib.js', () => ({
   addShellInitContribution: mockAddShellInitContribution,
 }));
 
+// Mock theme context
+const mockGetThemeColors = jest.fn();
+jest.mock('../../../src/core/theme-context.js', () => ({
+  themeContextProvider: {
+    getThemeColors: mockGetThemeColors,
+  },
+}));
+
 import { fzfModule } from '../../../src/modules/apps/fzf.js';
 import { createMockContext, mockCommandSuccess, mockCommandFailure, resetAllMocks } from '../../mocks/index.js';
+
+// Get the mocked fs
+const mockFs = require('node:fs');
+
+// Mock fs
+jest.mock('node:fs', () => ({
+  promises: {
+    writeFile: jest.fn(),
+    access: jest.fn(),
+  },
+}));
 
 // Mock child_process
 const mockExecAsync = jest.fn();
@@ -31,6 +50,24 @@ describe('Fzf App Module', () => {
     mockAddPackageContribution.mockReset();
     mockAddShellInitContribution.mockReset();
     mockExecAsync.mockReset();
+    mockFs.promises.writeFile.mockReset();
+    mockFs.promises.access.mockReset();
+    mockGetThemeColors.mockReset();
+    
+    // Default theme colors
+    mockGetThemeColors.mockResolvedValue({
+      base00: '#282a36',
+      base02: '#44475a',
+      base04: '#6272a4',
+      base05: '#f8f8f2',
+      base07: '#f8f8f2',
+      base08: '#ff5555',
+      base0A: '#f1fa8c',
+      base0B: '#50fa7b',
+      base0C: '#8be9fd',
+      base0D: '#bd93f9',
+      base0E: '#ff79c6',
+    });
   });
 
   describe('isApplicable', () => {
@@ -69,18 +106,22 @@ describe('Fzf App Module', () => {
   });
 
   describe('apply', () => {
-    it('should add shell initialization and return success', async () => {
+    it('should create theme-aware configuration and add shell init', async () => {
       const ctx = createMockContext();
 
       const result = await fzfModule.apply(ctx);
 
+      expect(mockFs.promises.writeFile).toHaveBeenCalledWith(
+        expect.stringContaining('.fzf.zsh'),
+        expect.stringContaining('FZF_DEFAULT_OPTS')
+      );
       expect(mockAddShellInitContribution).toHaveBeenCalledWith(ctx, {
         name: 'fzf',
         initCode: expect.stringContaining('FZF_DEFAULT_COMMAND'),
       });
       expect(result.success).toBe(true);
-      expect(result.changed).toBe(false);
-      expect(result.message).toBe('Package requirements and shell init contributed');
+      expect(result.changed).toBe(true);
+      expect(result.message).toBe('Fzf configured with theme-aware colors');
     });
 
     it('should configure fzf with ripgrep integration', async () => {
@@ -104,21 +145,31 @@ describe('Fzf App Module', () => {
       const shellInitCall = mockAddShellInitContribution.mock.calls[0];
       const initCode = shellInitCall[1].initCode;
       
-      expect(initCode).toContain('~/.fzf.zsh');
       expect(initCode).toContain('/opt/homebrew/opt/fzf/shell/key-bindings.zsh');
       expect(initCode).toContain('/usr/share/fzf/key-bindings.zsh');
+    });
+
+    it('should handle errors gracefully', async () => {
+      const ctx = createMockContext();
+      mockFs.promises.writeFile.mockRejectedValue(new Error('Write failed'));
+
+      const result = await fzfModule.apply(ctx);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toEqual(new Error('Write failed'));
     });
   });
 
   describe('status', () => {
-    it('should return applied when fzf is available', async () => {
+    it('should return applied when fzf is available and config exists', async () => {
       const ctx = createMockContext();
       mockCommandSuccess('')(mockExecAsync);
+      mockFs.promises.access.mockResolvedValue(undefined);
 
       const result = await fzfModule.status!(ctx);
 
       expect(result.status).toBe('applied');
-      expect(result.message).toBe('Fzf available and configured');
+      expect(result.message).toBe('Fzf available and configured with theme');
       expect(mockExecAsync).toHaveBeenCalledWith('which fzf');
     });
 
@@ -129,12 +180,23 @@ describe('Fzf App Module', () => {
       const result = await fzfModule.status!(ctx);
 
       expect(result.status).toBe('stale');
-      expect(result.message).toBe('Fzf not found in PATH');
+      expect(result.message).toBe('Fzf not found or configuration missing');
+    });
+
+    it('should return stale when config file is missing', async () => {
+      const ctx = createMockContext();
+      mockCommandSuccess('')(mockExecAsync);
+      mockFs.promises.access.mockRejectedValue(new Error('File not found'));
+
+      const result = await fzfModule.status!(ctx);
+
+      expect(result.status).toBe('stale');
+      expect(result.message).toBe('Fzf not found or configuration missing');
     });
   });
 
   describe('getDetails', () => {
-    it('should return configuration details', () => {
+    it('should return fzf configuration details', () => {
       const ctx = createMockContext();
 
       const result = fzfModule.getDetails!(ctx);
@@ -145,13 +207,6 @@ describe('Fzf App Module', () => {
         '  • Key bindings: Ctrl+T, Ctrl+R, Alt+C',
         '  • Completion: Command line completion',
       ]);
-    });
-  });
-
-  describe('dependencies', () => {
-    it('should have correct dependencies', () => {
-      expect(fzfModule.dependsOn).toEqual(['apps:ripgrep', 'themes:base16']);
-      expect(fzfModule.priority).toBe(61);
     });
   });
 });

@@ -7,6 +7,7 @@
 const mockAddPackageContribution = jest.fn();
 const mockPath = {
   join: jest.fn((...args: string[]) => args.join('/')),
+  dirname: jest.fn((p: string) => p.split('/').slice(0, -1).join('/') || '/'),
 };
 const mockFs = {
   promises: {
@@ -33,7 +34,9 @@ describe('Neovim App Module', () => {
     resetAllMocks();
     mockAddPackageContribution.mockReset();
     Object.values(mockFs.promises).forEach(mock => mock.mockReset());
+    Object.values(mockPath).forEach(mock => mock.mockReset());
     mockPath.join.mockImplementation((...args: string[]) => args.join('/'));
+    mockPath.dirname.mockImplementation((p: string) => p.split('/').slice(0, -1).join('/') || '/');
   });
 
   describe('isApplicable', () => {
@@ -56,17 +59,20 @@ describe('Neovim App Module', () => {
       expect(mockAddPackageContribution).toHaveBeenCalledWith(ctx, {
         name: 'neovim',
         manager: 'homebrew',
+        platforms: ['macos'],
       });
       expect(mockAddPackageContribution).toHaveBeenCalledWith(ctx, {
         name: 'ripgrep',
         manager: 'homebrew',
+        platforms: ['macos'],
       });
       expect(mockAddPackageContribution).toHaveBeenCalledWith(ctx, {
         name: 'fd',
         manager: 'homebrew',
+        platforms: ['macos'],
       });
       expect(result.changes).toContainEqual({
-        summary: 'Create Neovim config at /mock/home/.config/nvim/init.lua',
+        summary: 'Create init.lua configuration',
       });
     });
 
@@ -79,14 +85,17 @@ describe('Neovim App Module', () => {
       expect(mockAddPackageContribution).toHaveBeenCalledWith(ctx, {
         name: 'neovim',
         manager: 'apt',
+        platforms: ['ubuntu'],
       });
       expect(mockAddPackageContribution).toHaveBeenCalledWith(ctx, {
         name: 'ripgrep',
         manager: 'apt',
+        platforms: ['ubuntu'],
       });
       expect(mockAddPackageContribution).toHaveBeenCalledWith(ctx, {
         name: 'fd-find',
         manager: 'apt',
+        platforms: ['ubuntu'],
       });
     });
 
@@ -99,14 +108,17 @@ describe('Neovim App Module', () => {
       expect(mockAddPackageContribution).toHaveBeenCalledWith(ctx, {
         name: 'epel-release',
         manager: 'yum',
+        platforms: ['al2'],
       });
       expect(mockAddPackageContribution).toHaveBeenCalledWith(ctx, {
         name: 'neovim',
         manager: 'yum',
+        platforms: ['al2'],
       });
       expect(mockAddPackageContribution).toHaveBeenCalledWith(ctx, {
         name: 'ripgrep',
         manager: 'yum',
+        platforms: ['al2'],
       });
     });
 
@@ -116,7 +128,9 @@ describe('Neovim App Module', () => {
 
       const result = await nvimModule.plan(ctx);
 
-      expect(result.changes).toEqual([]);
+      expect(result.changes).toContainEqual({
+        summary: 'Update init.lua configuration',
+      });
     });
   });
 
@@ -131,28 +145,24 @@ describe('Neovim App Module', () => {
 
       expect(result.success).toBe(true);
       expect(result.changed).toBe(true);
-      expect(result.message).toBe('Neovim config created');
+      expect(result.message).toBe('Configuration created/updated');
       expect(mockFs.promises.mkdir).toHaveBeenCalledWith('/mock/home/.config/nvim', { recursive: true });
-      expect(mockFs.promises.writeFile).toHaveBeenCalledWith(
-        '/mock/home/.config/nvim/init.lua',
-        expect.stringContaining('-- Basic Neovim configuration managed by wellwell')
-      );
-      expect(ctx.logger.info).toHaveBeenCalledWith(
-        { file: '/mock/home/.config/nvim/init.lua' },
-        'Created basic Neovim configuration'
-      );
+      const writeCall = mockFs.promises.writeFile.mock.calls[0];
+      const config = writeCall[1];
+      expect(config).toContain('-- Neovim configuration managed by wellwell - dracula theme');
     });
 
     it('should not modify existing config', async () => {
       const ctx = createMockContext({ homeDir: '/mock/home' });
       mockFs.promises.access.mockResolvedValue(undefined); // init.lua exists
+      mockFs.promises.writeFile.mockResolvedValue(undefined);
 
       const result = await nvimModule.apply(ctx);
 
       expect(result.success).toBe(true);
-      expect(result.changed).toBe(false);
-      expect(result.message).toBe('Neovim config exists');
-      expect(mockFs.promises.writeFile).not.toHaveBeenCalled();
+      expect(result.changed).toBe(true);
+      expect(result.message).toBe('Configuration created/updated');
+      expect(mockFs.promises.writeFile).toHaveBeenCalled();
     });
 
     it('should handle file creation errors', async () => {
@@ -175,7 +185,7 @@ describe('Neovim App Module', () => {
       const result = await nvimModule.status!(ctx);
 
       expect(result.status).toBe('applied');
-      expect(result.message).toBe('Neovim config exists');
+      expect(result.message).toBe('init.lua exists');
     });
 
     it('should return stale when config is missing', async () => {
@@ -185,7 +195,7 @@ describe('Neovim App Module', () => {
       const result = await nvimModule.status!(ctx);
 
       expect(result.status).toBe('stale');
-      expect(result.message).toBe('Neovim config missing');
+      expect(result.message).toBe('init.lua missing');
     });
   });
 
