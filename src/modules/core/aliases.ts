@@ -16,12 +16,12 @@ import {
 
 export const commonAliases = (ctx: ConfigurationContext): AliasContribution[] => [
   // Use eza if available, fallback to ls
-  { name: 'ls', value: 'eza --color=auto --icons' },
-  { name: 'll', value: 'eza -la --icons --git' },
-  { name: 'la', value: 'eza -a --icons' },
-  { name: 'l', value: 'eza --icons' },
-  { name: 'lt', value: 'eza --tree --icons' },
-  { name: 'lg', value: 'eza -la --icons --git --git-ignore' },
+  { name: 'ls', value: 'eza --color=auto' },
+  { name: 'll', value: 'eza -la --git' },
+  { name: 'la', value: 'eza -a' },
+  { name: 'l', value: 'eza' },
+  { name: 'lt', value: 'eza --tree' },
+  { name: 'lg', value: 'eza -la --git --git-ignore' },
   // platform variants
   { name: 'pbcopy', value: 'tee >/dev/null | pbcopy', platforms: ['macos'] },
   { name: 'pbpaste', value: 'pbpaste', platforms: ['macos'] },
