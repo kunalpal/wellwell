@@ -10,8 +10,6 @@ import { useTheme } from './theme-context.js';
 import { getThemeColors } from './theme-utils.js';
 
 
-type SortKey = 'id' | 'status';
-
 interface ModuleRow {
   id: string;
   status: ConfigurationStatus;
@@ -55,11 +53,65 @@ async function getModulePlan(module: ConfigurationModule, ctx: any): Promise<str
   }
 }
 
+function topologicalSort(modules: ModuleRow[]): ModuleRow[] {
+  // Separate theme modules and other modules
+  const themeModules = modules.filter(m => m.id.startsWith('themes:'));
+  const otherModules = modules.filter(m => !m.id.startsWith('themes:'));
+  
+  // Sort theme modules by ID
+  const sortedThemes = themeModules.sort((a, b) => a.id.localeCompare(b.id));
+  
+  // Topological sort for other modules
+  const sortedOthers = topologicalSortModules(otherModules);
+  
+  // Return themes first, then other modules
+  return [...sortedThemes, ...sortedOthers];
+}
+
+function topologicalSortModules(modules: ModuleRow[]): ModuleRow[] {
+  const result: ModuleRow[] = [];
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+  
+  function visit(module: ModuleRow) {
+    if (visiting.has(module.id)) {
+      // Circular dependency detected
+      return;
+    }
+    
+    if (visited.has(module.id)) {
+      return;
+    }
+    
+    visiting.add(module.id);
+    
+    // Visit all dependencies first
+    for (const depId of module.dependsOn) {
+      const dep = modules.find(m => m.id === depId);
+      if (dep) {
+        visit(dep);
+      }
+    }
+    
+    visiting.delete(module.id);
+    visited.add(module.id);
+    result.push(module);
+  }
+  
+  // Visit all modules
+  for (const module of modules) {
+    if (!visited.has(module.id)) {
+      visit(module);
+    }
+  }
+  
+  return result;
+}
+
 export default function Dashboard({ verbose }: DashboardProps) {
   const { exit } = useApp();
   const { currentTheme, themeColors, switchTheme, getAvailableThemes } = useTheme();
   const [rows, setRows] = useState<Record<string, ModuleRow>>({});
-  const [sortKey, setSortKey] = useState<SortKey>('id');
   const [isApplying, setIsApplying] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [moduleDetails, setModuleDetails] = useState<string[]>([]);
@@ -200,16 +252,13 @@ export default function Dashboard({ verbose }: DashboardProps) {
         // Clear plan cache when status is refreshed
         planCache.current = {};
       })();
-    } else if (input === '1') setSortKey('id');
-    else if (input === '2') setSortKey('status');
+    }
   });
 
   const sorted = useMemo(() => {
     const arr = Object.values(rows);
-    if (sortKey === 'id') return arr.sort((a, b) => a.id.localeCompare(b.id));
-    if (sortKey === 'status') return arr.sort((a, b) => a.status.localeCompare(b.status));
-    return arr;
-  }, [rows, sortKey]);
+    return topologicalSort(arr);
+  }, [rows]);
 
   const selectedModule = sorted[selectedIndex];
   const downstreamDeps = useMemo(() => {
@@ -307,12 +356,12 @@ export default function Dashboard({ verbose }: DashboardProps) {
       <Box>
         <Text>
           {chalk.bold('wellwell')} {chalk.gray('– ')}
-          {chalk.gray('↑/↓/j/k: navigate  a: apply  A: apply all  p: plan  s: refresh  1/2/3: sort  tab: switch theme  q: quit')}
+          {chalk.gray('↑/↓/j/k: navigate  a: apply  A: apply all  p: plan  s: refresh  tab: switch theme  q: quit')}
         </Text>
       </Box>
       <Box>
         <Text>
-          Sort: {sortKey} {selectedModule && (<Text>{formatSelectedModuleInfo(selectedModule.id, themeColors)}</Text>)}
+          {selectedModule && (<Text>{formatSelectedModuleInfo(selectedModule.id, themeColors)}</Text>)}
           {isApplying && (
             <Text>
               {getThemeColors(themeColors).semantic.warning(' ')}
