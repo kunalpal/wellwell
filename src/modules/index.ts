@@ -3,6 +3,7 @@ import { homeBinModule } from './common/homebin.js';
 import { zshrcModules } from './shell/zshrc/index.js';
 import { pathsModule } from './core/paths.js';
 import { aliasesModule } from './core/aliases.js';
+import { envVarsModule } from './core/env-vars.js';
 import { shellInitModule } from './core/shell-init.js';
 import { homebrewModule } from './packages/homebrew.js';
 import { aptModule } from './packages/apt.js';
@@ -21,6 +22,7 @@ export const allModules: ConfigurationModule[] = [
   homeBinModule,
   pathsModule,
   aliasesModule,
+  envVarsModule,
   shellInitModule,
   themesModule,
   homebrewModule,

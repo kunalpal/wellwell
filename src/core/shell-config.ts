@@ -7,7 +7,7 @@ import type {
   PlanResult,
   StatusResult,
 } from './types.js';
-import { readResolvedAliases, readResolvedPaths, readResolvedShellInit } from './contrib.js';
+import { readResolvedAliases, readResolvedPaths, readResolvedShellInit, readResolvedEnvVars } from './contrib.js';
 import { templateManager } from './template-manager.js';
 
 export interface ShellConfigOptions extends BaseModuleOptions {
@@ -239,11 +239,13 @@ export class ZshConfig extends ShellConfig {
     const resolvedPaths = readResolvedPaths(ctx) ?? [];
     const resolvedAliases = readResolvedAliases(ctx) ?? [];
     const resolvedShellInit = readResolvedShellInit(ctx) ?? [];
+    const resolvedEnvVars = readResolvedEnvVars(ctx) ?? [];
     
     // Generate context for template
     const context = {
       paths: resolvedPaths.length > 0 ? resolvedPaths.join(':') : '',
       aliases: resolvedAliases,
+      envVars: resolvedEnvVars,
       shellInit: resolvedShellInit,
       isMacos: ctx.platform === 'macos',
     };

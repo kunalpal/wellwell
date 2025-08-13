@@ -7,7 +7,7 @@ class ZshrcBaseConfig extends ZshConfig {
     super({
       id: 'shell:zshrc:base',
       description: 'Base zshrc block managed by wellwell',
-      dependsOn: ['common:homebin', 'core:paths', 'core:aliases', 'shell:init'],
+      dependsOn: ['common:homebin', 'core:paths', 'core:aliases', 'core:env-vars', 'shell:init'],
       priority: 50,
       shellFile: '.zshrc',
       markerStart: '# === wellwell:begin ===',

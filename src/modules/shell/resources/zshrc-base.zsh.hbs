@@ -5,10 +5,12 @@ export PATH="{{paths}}:$PATH"
 export PATH="$HOME/bin:$PATH"
 {{/if}}
 
-export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#555"
-
 {{#each aliases}}
 alias {{name}}="{{value}}"
+{{/each}}
+
+{{#each envVars}}
+export {{name}}="{{value}}"
 {{/each}}
 
 {{#each shellInit}}

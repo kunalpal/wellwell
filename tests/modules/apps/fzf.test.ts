@@ -6,10 +6,12 @@
 // Mock contrib functions first
 const mockAddPackageContribution = jest.fn();
 const mockAddShellInitContribution = jest.fn();
+const mockAddEnvVarContribution = jest.fn();
 
 jest.mock('../../../src/core/contrib.js', () => ({
   addPackageContribution: mockAddPackageContribution,
   addShellInitContribution: mockAddShellInitContribution,
+  addEnvVarContribution: mockAddEnvVarContribution,
 }));
 
 // Mock theme context
@@ -58,6 +60,7 @@ describe('Fzf App Module', () => {
     resetAllMocks();
     mockAddPackageContribution.mockReset();
     mockAddShellInitContribution.mockReset();
+    mockAddEnvVarContribution.mockReset();
     mockExecAsync.mockReset();
     mockFs.promises.writeFile.mockReset();
     mockFs.promises.access.mockReset();
@@ -83,6 +86,12 @@ describe('Fzf App Module', () => {
     mockLoadAndRender
       .mockResolvedValueOnce('# FZF Configuration managed by wellwell\nexport FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS\'...') // fzf config
       .mockResolvedValueOnce('# Initialize fzf if available\nif command -v fzf > /dev/null 2>&1; then\n...'); // shell init
+    
+    // Mock fs for environment variable contributions
+    mockFs.promises.writeFile.mockResolvedValue(undefined);
+    
+    // Mock environment variable contributions
+    mockAddEnvVarContribution.mockReturnValue(true);
   });
 
   describe('isApplicable', () => {
@@ -152,9 +161,15 @@ describe('Fzf App Module', () => {
 
       await fzfModule.apply(ctx);
 
-      expect(mockLoadAndRender).toHaveBeenCalledWith('shell', 'shell-init.zsh.hbs', expect.objectContaining({
-        customInit: expect.stringContaining('FZF_DEFAULT_COMMAND=\'rg --files --hidden --follow --glob "!.git/*"\''),
-      }));
+      expect(mockAddEnvVarContribution).toHaveBeenCalledWith(ctx, {
+        name: 'FZF_DEFAULT_COMMAND',
+        value: 'rg --files --hidden --follow --glob "!.git/*"',
+      });
+      
+      expect(mockAddEnvVarContribution).toHaveBeenCalledWith(ctx, {
+        name: 'FZF_CTRL_T_COMMAND',
+        value: '$FZF_DEFAULT_COMMAND',
+      });
     });
 
     it('should include multiple shell integration paths', async () => {

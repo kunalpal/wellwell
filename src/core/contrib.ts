@@ -29,14 +29,22 @@ export interface ShellInitContribution {
   platforms?: Platform[];
 }
 
+export interface EnvVarContribution {
+  name: string;
+  value: string;
+  platforms?: Platform[];
+}
+
 const CONTRIB_PATHS_KEY = 'contrib.paths';
 const CONTRIB_ALIASES_KEY = 'contrib.aliases';
 const CONTRIB_PACKAGES_KEY = 'contrib.packages';
 const CONTRIB_SHELL_INIT_KEY = 'contrib.shell.init';
+const CONTRIB_ENV_VARS_KEY = 'contrib.env.vars';
 const RESOLVED_PATHS_KEY = 'resolved.paths';
 const RESOLVED_ALIASES_KEY = 'resolved.aliases';
 const RESOLVED_PACKAGES_KEY = 'resolved.packages';
 const RESOLVED_SHELL_INIT_KEY = 'resolved.shell.init';
+const RESOLVED_ENV_VARS_KEY = 'resolved.env.vars';
 
 export function listPathContributions(ctx: ConfigurationContext): PathContribution[] {
   return (ctx.state.get<PathContribution[]>(CONTRIB_PATHS_KEY) ?? []).slice();
@@ -203,6 +211,44 @@ export function writeResolvedShellInit(ctx: ConfigurationContext, shellInit: She
 
 export function readResolvedShellInit(ctx: ConfigurationContext): ShellInitContribution[] | undefined {
   return ctx.state.get<ShellInitContribution[]>(RESOLVED_SHELL_INIT_KEY);
+}
+
+// Environment variable contribution functions
+export function listEnvVarContributions(ctx: ConfigurationContext): EnvVarContribution[] {
+  return (ctx.state.get<EnvVarContribution[]>(CONTRIB_ENV_VARS_KEY) ?? []).slice();
+}
+
+export function addEnvVarContribution(
+  ctx: ConfigurationContext,
+  contribution: EnvVarContribution,
+): boolean {
+  if (contribution.platforms && !contribution.platforms.includes(ctx.platform)) return false;
+  const current = ctx.state.get<EnvVarContribution[]>(CONTRIB_ENV_VARS_KEY) ?? [];
+  const exists = current.some((c) => c.name === contribution.name);
+  if (!exists) {
+    current.push(contribution);
+    ctx.state.set(CONTRIB_ENV_VARS_KEY, current);
+    return true;
+  }
+  return false;
+}
+
+export function resolveEnvVars(ctx: ConfigurationContext): EnvVarContribution[] {
+  const contribs = listEnvVarContributions(ctx);
+  const map = new Map<string, EnvVarContribution>();
+  for (const c of contribs) {
+    // last writer wins
+    map.set(c.name, c);
+  }
+  return Array.from(map.values());
+}
+
+export function writeResolvedEnvVars(ctx: ConfigurationContext, envVars: EnvVarContribution[]): void {
+  ctx.state.set(RESOLVED_ENV_VARS_KEY, envVars);
+}
+
+export function readResolvedEnvVars(ctx: ConfigurationContext): EnvVarContribution[] | undefined {
+  return ctx.state.get<EnvVarContribution[]>(RESOLVED_ENV_VARS_KEY);
 }
 
 

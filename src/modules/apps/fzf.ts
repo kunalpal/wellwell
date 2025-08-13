@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { createAppModule, createCrossPlatformPackages } from '../../core/app-module-factory.js';
-import { addShellInitContribution } from '../../core/contrib.js';
+import { addShellInitContribution, addEnvVarContribution } from '../../core/contrib.js';
 import { themeContextProvider } from '../../core/theme-context.js';
 import { templateManager } from '../../core/template-manager.js';
 
@@ -39,11 +39,7 @@ export const fzfModule = createAppModule({
         name: 'fzf',
         command: 'fzf',
         sourcePath: '~/.fzf.zsh',
-        customInit: `# Set fzf to use ripgrep as default command
-  export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git/*"'
-  export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-  
-  # fzf key bindings and completion
+        customInit: `# fzf key bindings and completion
   if [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]]; then
     source /opt/homebrew/opt/fzf/shell/key-bindings.zsh
     source /opt/homebrew/opt/fzf/shell/completion.zsh
@@ -58,6 +54,17 @@ export const fzfModule = createAppModule({
       addShellInitContribution(ctx, {
         name: 'fzf',
         initCode,
+      });
+      
+      // Add fzf-specific environment variables
+      addEnvVarContribution(ctx, {
+        name: 'FZF_DEFAULT_COMMAND',
+        value: 'rg --files --hidden --follow --glob "!.git/*"',
+      });
+      
+      addEnvVarContribution(ctx, {
+        name: 'FZF_CTRL_T_COMMAND',
+        value: '$FZF_DEFAULT_COMMAND',
       });
       
       return { success: true, changed: true, message: 'Fzf configured with theme-aware colors' };
