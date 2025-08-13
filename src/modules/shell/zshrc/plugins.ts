@@ -186,13 +186,25 @@ export const zshrcPluginsModule: ConfigurationModule = {
         return { status: 'stale', message: 'Zinit not installed' };
       }
       
-      // Check if plugins are configured in zshrc
+      // Check if plugins are configured in zshrc and match expected template
       const zshrcPath = path.join(ctx.homeDir, '.zshrc');
       try {
         const content = await fs.readFile(zshrcPath, 'utf8');
         const hasPluginsBlock = content.includes(ZSHRC_PLUGINS_MARKER_START);
         if (hasPluginsBlock) {
-          return { status: 'applied', message: `Zinit configured with ${DEFAULT_PLUGINS.length} plugins` };
+          // Check if the current block matches what we want (same logic as plan method)
+          const expectedBlock = await generatePluginsConfig();
+          const startIdx = content.indexOf(ZSHRC_PLUGINS_MARKER_START);
+          const endIdx = content.indexOf(ZSHRC_PLUGINS_MARKER_END);
+          if (startIdx !== -1 && endIdx !== -1) {
+            const currentBlock = content.substring(startIdx, endIdx + ZSHRC_PLUGINS_MARKER_END.length);
+            if (currentBlock === expectedBlock.trim()) {
+              return { status: 'applied', message: `Zinit configured with ${DEFAULT_PLUGINS.length} plugins` };
+            } else {
+              return { status: 'stale', message: 'Zsh plugins configuration needs update' };
+            }
+          }
+          return { status: 'stale', message: 'Zsh plugins configuration corrupted' };
         } else {
           return { status: 'stale', message: 'Plugins not configured in zshrc' };
         }

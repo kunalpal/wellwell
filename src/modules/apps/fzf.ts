@@ -81,11 +81,29 @@ export const fzfModule = createAppModule({
       
       await execAsync('which fzf');
       
-      // Check if theme-aware configuration exists
+      // Check if theme-aware configuration exists and matches expected template
       const fzfConfigPath = path.join(process.env.HOME || '', '.fzf.zsh');
-      await fs.access(fzfConfigPath);
-      
-      return { status: 'applied', message: 'Fzf available and configured with theme' };
+      try {
+        const currentConfig = await fs.readFile(fzfConfigPath, 'utf8');
+        
+        // Generate expected configuration (same logic as customApply)
+        await templateManager.loadModulePartials('apps');
+        const currentTheme = ctx.state.get<string>('themes.current') || 'default';
+        const themeColors = await themeContextProvider.getThemeColors(currentTheme);
+        const context = {
+          ...themeColors,
+          themeName: currentTheme,
+        };
+        const expectedConfig = await templateManager.loadAndRender('apps', 'fzf.zsh.hbs', context);
+        
+        if (currentConfig !== expectedConfig) {
+          return { status: 'stale', message: 'Fzf configuration needs update' };
+        }
+        
+        return { status: 'applied', message: 'Fzf available and configured with theme' };
+      } catch {
+        return { status: 'stale', message: 'Fzf configuration missing or corrupted' };
+      }
     } catch {
       return { status: 'stale', message: 'Fzf not found or configuration missing' };
     }

@@ -42,6 +42,7 @@ jest.mock('node:fs', () => ({
   promises: {
     writeFile: jest.fn(),
     access: jest.fn(),
+    readFile: jest.fn(),
   },
 }));
 
@@ -64,6 +65,7 @@ describe('Fzf App Module', () => {
     mockExecAsync.mockReset();
     mockFs.promises.writeFile.mockReset();
     mockFs.promises.access.mockReset();
+    mockFs.promises.readFile.mockReset();
     mockGetThemeColors.mockReset();
     mockLoadAndRender.mockReset();
     
@@ -200,7 +202,9 @@ describe('Fzf App Module', () => {
     it('should return applied when fzf is available and config exists', async () => {
       const ctx = createMockContext();
       mockCommandSuccess('')(mockExecAsync);
-      mockFs.promises.access.mockResolvedValue(undefined);
+      const expectedConfig = '# FZF Configuration managed by wellwell\nexport FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS\'...';
+      mockFs.promises.readFile.mockResolvedValue(expectedConfig);
+      mockLoadAndRender.mockResolvedValue(expectedConfig);
 
       const result = await fzfModule.status!(ctx);
 
@@ -222,12 +226,12 @@ describe('Fzf App Module', () => {
     it('should return stale when config file is missing', async () => {
       const ctx = createMockContext();
       mockCommandSuccess('')(mockExecAsync);
-      mockFs.promises.access.mockRejectedValue(new Error('File not found'));
+      mockFs.promises.readFile.mockRejectedValue(new Error('File not found'));
 
       const result = await fzfModule.status!(ctx);
 
       expect(result.status).toBe('stale');
-      expect(result.message).toBe('Fzf not found or configuration missing');
+      expect(result.message).toBe('Fzf configuration missing or corrupted');
     });
   });
 

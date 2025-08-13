@@ -163,6 +163,18 @@ export const starshipModule: ConfigurationModule = {
     const configFile = path.join(ctx.homeDir, '.config', 'starship.toml');
     try {
       await fs.access(configFile);
+      
+      // Compare current config with expected config (same logic as plan method)
+      try {
+        const currentConfig = await fs.readFile(configFile, 'utf8');
+        const expectedConfig = await getStarshipConfig(ctx);
+        if (currentConfig !== expectedConfig) {
+          return { status: 'stale', message: 'Starship config needs update' };
+        }
+      } catch {
+        return { status: 'stale', message: 'Starship config corrupted' };
+      }
+      
       return { status: 'applied', message: 'Starship configured' };
     } catch {
       return { status: 'stale', message: 'Starship config missing' };
