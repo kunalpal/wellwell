@@ -51,3 +51,18 @@ export const ModuleHelpers = {
     ctx.logger.error({ module: moduleId, error }, message || 'Operation failed');
   },
 };
+
+/**
+ * Get the wellwell project root directory
+ * First checks for WELLWELL_PROJECT_ROOT environment variable,
+ * then falls back to current working directory
+ */
+export function getProjectRoot(): string {
+  // First check if WELLWELL_PROJECT_ROOT environment variable is set
+  if (process.env.WELLWELL_PROJECT_ROOT) {
+    return process.env.WELLWELL_PROJECT_ROOT;
+  }
+  
+  // Fallback to current working directory (for development)
+  return process.cwd();
+}

@@ -11,6 +11,11 @@ const execAsync = promisify(exec);
 
 async function getWellwellProjectRoot(): Promise<string | null> {
   try {
+    // First check if WELLWELL_PROJECT_ROOT environment variable is set
+    if (process.env.WELLWELL_PROJECT_ROOT) {
+      return process.env.WELLWELL_PROJECT_ROOT;
+    }
+    
     // Try to find wellwell project by searching from the executable location
     const executablePath = process.argv[1]; // Path to the wellwell executable
     const possiblePaths = [
@@ -60,9 +65,10 @@ async function createWwScript(projectRoot: string, binDir: string): Promise<void
   const wwScript = path.join(binDir, 'ww');
   const wellwellExecutable = path.join(projectRoot, 'dist', 'src', 'cli', 'index.js');
   
-  // Create a shell script that runs the wellwell executable
+  // Create a shell script that sets the project root environment variable
   const scriptContent = `#!/bin/bash
 # Auto-generated wellwell wrapper script
+export WELLWELL_PROJECT_ROOT="${projectRoot}"
 exec node "${wellwellExecutable}" "$@"
 `;
   

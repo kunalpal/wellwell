@@ -1,6 +1,7 @@
 import type { ConfigurationContext } from './types.js';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { getProjectRoot } from './module-helpers.js';
 
 export interface TerminalColors {
   'terminal.background': string;
@@ -52,7 +53,8 @@ export class ThemeContextProvider {
    * Load terminal colors from JSON file
    */
   private async loadTerminalColors(themeName: string): Promise<TerminalColors> {
-    const themePath = path.join(process.cwd(), 'src', 'modules', 'themes', 'resources', `${themeName}.json`);
+    const projectRoot = getProjectRoot();
+    const themePath = path.join(projectRoot, 'src', 'modules', 'themes', 'resources', `${themeName}.json`);
     try {
       const content = await fs.readFile(themePath, 'utf-8');
       return JSON.parse(content) as TerminalColors;
@@ -139,7 +141,8 @@ export class ThemeContextProvider {
    * Get available themes by scanning the themes directory
    */
   async getAvailableThemes(): Promise<string[]> {
-    const themesDir = path.join(process.cwd(), 'src', 'modules', 'themes', 'resources');
+    const projectRoot = getProjectRoot();
+    const themesDir = path.join(projectRoot, 'src', 'modules', 'themes', 'resources');
     
     try {
       const files = await fs.readdir(themesDir);
@@ -156,7 +159,8 @@ export class ThemeContextProvider {
    * Check if a theme exists
    */
   async hasTheme(themeName: string): Promise<boolean> {
-    const themePath = path.join(process.cwd(), 'src', 'modules', 'themes', 'resources', `${themeName}.json`);
+    const projectRoot = getProjectRoot();
+    const themePath = path.join(projectRoot, 'src', 'modules', 'themes', 'resources', `${themeName}.json`);
     try {
       await fs.access(themePath);
       return true;

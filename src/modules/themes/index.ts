@@ -8,6 +8,7 @@ import type {
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { addShellInitContribution } from '../../core/contrib.js';
+import { getProjectRoot } from '../../core/module-helpers.js';
 
 // Theme interface
 interface Base16Theme {
@@ -38,7 +39,8 @@ let THEME_DESCRIPTIONS: Record<string, string> = {};
 
 // Initialize theme descriptions from available theme files
 async function initializeThemeDescriptions(): Promise<void> {
-  const themesDir = path.join(process.cwd(), 'src', 'modules', 'themes', 'resources');
+  const projectRoot = getProjectRoot();
+  const themesDir = path.join(projectRoot, 'src', 'modules', 'themes', 'resources');
   try {
     const files = await fs.readdir(themesDir);
     const themeFiles = files.filter(file => file.endsWith('.json'));
@@ -73,7 +75,8 @@ async function setCurrentTheme(themeName: string, ctx?: ConfigurationContext): P
 
 async function getThemeByName(name: string): Promise<Base16Theme | null> {
   // Load theme colors from JSON file
-  const themePath = path.join(process.cwd(), 'src', 'modules', 'themes', 'resources', `${name}.json`);
+  const projectRoot = getProjectRoot();
+  const themePath = path.join(projectRoot, 'src', 'modules', 'themes', 'resources', `${name}.json`);
   try {
     const content = await fs.readFile(themePath, 'utf-8');
     const terminalColors = JSON.parse(content);

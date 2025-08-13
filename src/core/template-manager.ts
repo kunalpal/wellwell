@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import Handlebars from 'handlebars';
+import { getProjectRoot } from './module-helpers.js';
 
 export interface TemplateContext {
   [key: string]: string | number | boolean | object;
@@ -20,7 +21,8 @@ export class TemplateManager {
       return this.templateCache.get(cacheKey)!;
     }
 
-    const fullPath = path.join(process.cwd(), 'src', 'modules', modulePath, 'resources', templateName);
+    const projectRoot = getProjectRoot();
+    const fullPath = path.join(projectRoot, 'src', 'modules', modulePath, 'resources', templateName);
     const content = await fs.readFile(fullPath, 'utf8');
     
     const template = Handlebars.compile(content);
@@ -38,7 +40,8 @@ export class TemplateManager {
       return this.partialCache.get(cacheKey)!;
     }
 
-    const fullPath = path.join(process.cwd(), 'src', 'modules', modulePath, 'resources', partialName);
+    const projectRoot = getProjectRoot();
+    const fullPath = path.join(projectRoot, 'src', 'modules', modulePath, 'resources', partialName);
     const content = await fs.readFile(fullPath, 'utf8');
     
     this.partialCache.set(cacheKey, content);
@@ -82,7 +85,8 @@ export class TemplateManager {
    */
   async loadModulePartials(modulePath: string): Promise<void> {
     try {
-      const resourcesPath = path.join(process.cwd(), 'src', 'modules', modulePath, 'resources');
+      const projectRoot = getProjectRoot();
+      const resourcesPath = path.join(projectRoot, 'src', 'modules', modulePath, 'resources');
       const files = await fs.readdir(resourcesPath);
       
       for (const file of files) {
