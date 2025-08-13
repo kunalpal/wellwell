@@ -7,7 +7,6 @@ export const zshrcCompositeModule: ConfigurationModule = {
   id: 'shell:zshrc',
   description: 'Composite zshrc configuration',
   dependsOn: [zshrcBaseModule.id, zshrcPluginsModule.id],
-  priority: 100,
   async isApplicable(ctx) {
     return ctx.platform !== 'unknown';
   },

@@ -3,7 +3,6 @@ import { createAppModule, createCrossPlatformPackages } from '../../core/app-mod
 export const ripgrepModule = createAppModule({
   id: 'apps:ripgrep',
   description: 'Ripgrep - fast text search tool',
-  priority: 60,
   packageName: 'ripgrep',
   packageMappings: createCrossPlatformPackages('ripgrep'),
   checkCommand: 'which rg',

@@ -56,7 +56,6 @@ export const wellwellModule = createAppModule({
   id: 'apps:wellwell',
   description: 'Wellwell self-management - provides "ww" command',
   dependsOn: ['common:homebin'], // Ensure ~/bin exists
-  priority: 70,
   packageName: 'wellwell', // Not a real package, but needed for factory
 
   customPlan: async (ctx) => {

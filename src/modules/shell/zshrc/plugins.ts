@@ -108,7 +108,6 @@ export const zshrcPluginsModule: ConfigurationModule = {
   id: 'shell:zshrc:plugins',
   description: 'Configure zsh plugins with zinit (autosuggestions, syntax-highlighting)',
   dependsOn: ['shell:zshrc:base'],
-  priority: 60,
 
   async isApplicable(ctx) {
     return ctx.platform !== 'unknown';

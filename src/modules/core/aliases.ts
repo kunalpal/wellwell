@@ -37,7 +37,6 @@ export const aliasesModule: ConfigurationModule = {
   id: 'core:aliases',
   description: 'Collect alias contributions and compute final set',
   dependsOn: ['apps:eza'],
-  priority: 25,
 
   async isApplicable(_ctx) {
     return true;

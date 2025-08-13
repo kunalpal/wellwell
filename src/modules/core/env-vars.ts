@@ -29,7 +29,6 @@ export const commonEnvVars = (ctx: ConfigurationContext): EnvVarContribution[] =
 export const envVarsModule: ConfigurationModule = {
   id: 'core:env-vars',
   description: 'Collect environment variable contributions and compute final values',
-  priority: 25,
 
   async isApplicable(_ctx) {
     return true;
