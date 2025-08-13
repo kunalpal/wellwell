@@ -13,7 +13,6 @@ export interface AppModuleConfig {
   id: string;
   description: string;
   platforms?: Platform[];
-  priority?: number;
   dependsOn?: string[];
   
   // Package management
@@ -47,7 +46,6 @@ export function createAppModule(config: AppModuleConfig): Module {
   return {
     id: config.id,
     description: config.description,
-    priority: config.priority ?? 100,
     dependsOn: config.dependsOn,
 
     async isApplicable(ctx: ConfigurationContext): Promise<boolean> {

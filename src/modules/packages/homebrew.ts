@@ -18,7 +18,7 @@ class HomebrewPackageManager extends PackageManager {
     super({
       id: 'packages:homebrew',
       description: 'Homebrew package manager for macOS',
-      priority: 15,
+      dependsOn: ['core:paths'],
     });
   }
 

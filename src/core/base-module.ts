@@ -12,14 +12,12 @@ import { createHash } from 'node:crypto';
 export interface BaseModuleOptions {
   id: string;
   description?: string;
-  priority?: number;
   dependsOn?: string[];
 }
 
 export abstract class BaseModule implements Module {
   public readonly id: string;
   public readonly description?: string;
-  public readonly priority: number;
   public readonly dependsOn?: string[];
   
   public onStatusChange?: (status: ConfigurationStatus) => void;
@@ -28,7 +26,6 @@ export abstract class BaseModule implements Module {
   constructor(options: BaseModuleOptions) {
     this.id = options.id;
     this.description = options.description;
-    this.priority = options.priority ?? 100;
     this.dependsOn = options.dependsOn;
   }
 

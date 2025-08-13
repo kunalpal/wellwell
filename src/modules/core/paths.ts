@@ -32,7 +32,6 @@ export const commonPaths = (ctx: ConfigurationContext): PathContribution[] => {
 export const pathsModule: ConfigurationModule = {
   id: 'core:paths',
   description: 'Collect PATH contributions and compute final order',
-  priority: 20,
 
   async isApplicable(_ctx) {
     return true;
@@ -83,5 +82,3 @@ export const pathsModule: ConfigurationModule = {
     }
   },
 };
-
-

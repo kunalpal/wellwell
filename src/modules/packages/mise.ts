@@ -96,7 +96,6 @@ const defaultVersions = [
 export const miseModule: ConfigurationModule = {
   id: 'packages:mise',
   description: 'Mise version manager for Node.js, Python, etc.',
-  priority: 20,
 
   async isApplicable(_ctx) {
     return true;

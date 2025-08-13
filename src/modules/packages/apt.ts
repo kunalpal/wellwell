@@ -16,7 +16,7 @@ class AptPackageManager extends PackageManager {
     super({
       id: 'packages:apt',
       description: 'APT package manager for Ubuntu/Debian',
-      priority: 15,
+      dependsOn: ['core:paths'],
     });
   }
 }

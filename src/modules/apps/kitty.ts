@@ -13,7 +13,6 @@ class KittyConfig extends AppConfig {
       id: 'apps:kitty',
       description: 'Kitty terminal emulator with custom configuration (macOS only)',
       dependsOn: ['packages:homebrew', 'themes:base16'],
-      priority: 65,
       configDir: '.config/kitty',
       configFile: 'kitty.conf',
       platforms: ['macos'] as Platform[],

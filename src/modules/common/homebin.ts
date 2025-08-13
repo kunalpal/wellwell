@@ -6,7 +6,6 @@ import type { ApplyResult, ConfigurationContext, ConfigurationModule, PlanResult
 export const homeBinModule: ConfigurationModule = {
   id: 'common:homebin',
   description: 'Ensure ~/bin directory exists and on PATH',
-  priority: 10,
 
   async isApplicable(_ctx) {
     return true;
@@ -45,5 +44,3 @@ export const homeBinModule: ConfigurationModule = {
     return { status: 'stale' };
   },
 };
-
-

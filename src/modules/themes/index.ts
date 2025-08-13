@@ -115,7 +115,6 @@ async function getThemeByName(name: string): Promise<Base16Theme | null> {
 export const themesModule: ConfigurationModule = {
   id: 'themes:base16',
   description: 'Base16 color scheme management',
-  priority: 5,
   dependsOn: [],
 
   async isApplicable(ctx) {

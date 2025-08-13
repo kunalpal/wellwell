@@ -134,7 +134,6 @@ describe('Engine', () => {
     it('should resolve dependencies correctly', async () => {
       const moduleA: ConfigurationModule = {
         id: 'module-a',
-        priority: 10,
         isApplicable: jest.fn().mockResolvedValue(true),
         plan: jest.fn().mockResolvedValue({ changes: [] }),
         apply: jest.fn().mockResolvedValue({ success: true }),
@@ -142,7 +141,6 @@ describe('Engine', () => {
 
       const moduleB: ConfigurationModule = {
         id: 'module-b',
-        priority: 20,
         dependsOn: ['module-a'],
         isApplicable: jest.fn().mockResolvedValue(true),
         plan: jest.fn().mockResolvedValue({ changes: [] }),
@@ -303,7 +301,6 @@ describe('Engine', () => {
     it('should skip modules with failed dependencies', async () => {
       const moduleA: ConfigurationModule = {
         id: 'module-a',
-        priority: 10,
         isApplicable: jest.fn().mockResolvedValue(true),
         plan: jest.fn().mockResolvedValue({ changes: [] }),
         apply: jest.fn().mockRejectedValue(new Error('Module A failed')), // Force failure
@@ -311,7 +308,6 @@ describe('Engine', () => {
 
       const moduleB: ConfigurationModule = {
         id: 'module-b',
-        priority: 20,
         dependsOn: ['module-a'],
         isApplicable: jest.fn().mockResolvedValue(true),
         plan: jest.fn().mockResolvedValue({ changes: [] }),

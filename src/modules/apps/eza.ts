@@ -3,7 +3,6 @@ import { createAppModule, createCrossPlatformPackages } from '../../core/app-mod
 export const ezaModule = createAppModule({
   id: 'apps:eza',
   description: 'Eza - modern replacement for ls with colors and git integration',
-  priority: 55,
   packageName: 'eza',
   packageMappings: createCrossPlatformPackages('eza'),
   customStatus: async (ctx) => {

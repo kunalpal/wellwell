@@ -91,7 +91,6 @@ export interface ModuleApplyMetadata {
 export interface Module {
   id: string;
   description?: string;
-  priority?: number;
   dependsOn?: string[];
   
   // Core lifecycle methods

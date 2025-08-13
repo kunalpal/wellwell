@@ -9,7 +9,6 @@ export const fzfModule = createAppModule({
   id: 'apps:fzf',
   description: 'Fzf - command-line fuzzy finder',
   dependsOn: ['apps:ripgrep', 'themes:base16'], // fzf requires ripgrep as backend and theme support
-  priority: 61,
   packageName: 'fzf',
   packageMappings: createCrossPlatformPackages('fzf'),
 

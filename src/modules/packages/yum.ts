@@ -14,8 +14,8 @@ class YumPackageManager extends PackageManager {
   constructor() {
     super({
       id: 'packages:yum',
-      description: 'YUM package manager for Amazon Linux 2',
-      priority: 15,
+      description: 'YUM package manager for RHEL/Amazon Linux',
+      dependsOn: ['core:paths'],
     });
   }
 }

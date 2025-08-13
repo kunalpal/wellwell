@@ -10,12 +10,11 @@ import { useTheme } from './theme-context.js';
 import { getThemeColors } from './theme-utils.js';
 
 
-type SortKey = 'id' | 'status' | 'priority';
+type SortKey = 'id' | 'status';
 
 interface ModuleRow {
   id: string;
   status: ConfigurationStatus;
-  priority: number;
   dependsOn: string[];
 }
 
@@ -60,7 +59,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
   const { exit } = useApp();
   const { currentTheme, themeColors, switchTheme, getAvailableThemes } = useTheme();
   const [rows, setRows] = useState<Record<string, ModuleRow>>({});
-  const [sortKey, setSortKey] = useState<SortKey>('priority');
+  const [sortKey, setSortKey] = useState<SortKey>('id');
   const [isApplying, setIsApplying] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [moduleDetails, setModuleDetails] = useState<string[]>([]);
@@ -98,7 +97,6 @@ export default function Dashboard({ verbose }: DashboardProps) {
           applicableRows[m.id] = {
             id: m.id,
             status: 'stale',
-            priority: m.priority ?? 100,
             dependsOn: m.dependsOn ?? [],
           };
         }
@@ -202,14 +200,12 @@ export default function Dashboard({ verbose }: DashboardProps) {
         // Clear plan cache when status is refreshed
         planCache.current = {};
       })();
-    } else if (input === '1') setSortKey('priority');
-    else if (input === '2') setSortKey('id');
-    else if (input === '3') setSortKey('status');
+    } else if (input === '1') setSortKey('id');
+    else if (input === '2') setSortKey('status');
   });
 
   const sorted = useMemo(() => {
     const arr = Object.values(rows);
-    if (sortKey === 'priority') return arr.sort((a, b) => a.priority - b.priority);
     if (sortKey === 'id') return arr.sort((a, b) => a.id.localeCompare(b.id));
     if (sortKey === 'status') return arr.sort((a, b) => a.status.localeCompare(b.status));
     return arr;
@@ -498,5 +494,3 @@ function formatDependency(depId: string, status?: ConfigurationStatus, isUnsuppo
   
   return formatted;
 }
-
-

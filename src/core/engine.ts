@@ -63,7 +63,7 @@ export class Engine {
     };
   }
 
-  private topoSortModules(): ConfigurationModule[] {
+  private topoSortModules(selectedIds?: string[]): ConfigurationModule[] {
     const modules = Array.from(this.modules.values());
     const idToModule = new Map(modules.map((m) => [m.id, m]));
     const tempMark = new Set<string>();
@@ -87,22 +87,52 @@ export class Engine {
       result.push(module);
     };
 
-    // sort by priority, then id for determinism before DFS to encourage stable order
-    modules
+    // If specific modules are selected, expand to include all dependencies
+    const expandedIds = selectedIds ? this.expandSelectedIds(selectedIds) : undefined;
+    const modulesToProcess = expandedIds 
+      ? modules.filter(m => expandedIds.includes(m.id))
+      : modules;
+
+    // Sort by ID for deterministic order, then perform DFS
+    modulesToProcess
       .slice()
-      .sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100) || a.id.localeCompare(b.id))
+      .sort((a, b) => a.id.localeCompare(b.id))
       .forEach(visit);
 
     return result;
   }
 
+  private expandSelectedIds(selectedIds: string[]): string[] {
+    const expanded = new Set<string>();
+    const idToModule = new Map(Array.from(this.modules.values()).map(m => [m.id, m]));
+    
+    const visit = (moduleId: string): void => {
+      if (expanded.has(moduleId)) return;
+      
+      const module = idToModule.get(moduleId);
+      if (!module) {
+        throw new Error(`Module not found: ${moduleId}`);
+      }
+      
+      expanded.add(moduleId);
+      
+      // Recursively add dependencies
+      const deps = module.dependsOn ?? [];
+      for (const depId of deps) {
+        visit(depId);
+      }
+    };
+    
+    selectedIds.forEach(visit);
+    return Array.from(expanded);
+  }
+
   async plan(selectedIds?: string[]): Promise<Record<string, PlanResult>> {
     const ctx = this.buildContext();
-    const graph = this.topoSortModules();
+    const graph = this.topoSortModules(selectedIds);
     const results: Record<string, PlanResult> = {};
 
     for (const mod of graph) {
-      if (selectedIds && !selectedIds.includes(mod.id)) continue;
       if (!(await mod.isApplicable(ctx))) continue;
       const plan = await mod.plan(ctx);
       results[mod.id] = plan;
@@ -114,12 +144,11 @@ export class Engine {
 
   async apply(selectedIds?: string[]): Promise<Record<string, ApplyResult>> {
     const ctx = this.buildContext();
-    const graph = this.topoSortModules();
+    const graph = this.topoSortModules(selectedIds);
     const results: Record<string, ApplyResult> = {};
     const failedIds = new Set<string>();
 
     for (const mod of graph) {
-      if (selectedIds && !selectedIds.includes(mod.id)) continue;
       // Skip if any dependency failed in this run
       if ((mod.dependsOn ?? []).some((dep) => failedIds.has(dep))) {
         mod.onStatusChange?.('skipped');
@@ -179,11 +208,10 @@ export class Engine {
 
   async statuses(selectedIds?: string[]): Promise<Record<string, ConfigurationStatus>> {
     const ctx = this.buildContext();
-    const graph = this.topoSortModules();
+    const graph = this.topoSortModules(selectedIds);
     const result: Record<string, ConfigurationStatus> = {};
     
     for (const mod of graph) {
-      if (selectedIds && !selectedIds.includes(mod.id)) continue;
       if (!(await mod.isApplicable(ctx))) continue;
       
       try {
@@ -219,11 +247,10 @@ export class Engine {
 
   async detailedStatuses(selectedIds?: string[]): Promise<Record<string, StatusResult>> {
     const ctx = this.buildContext();
-    const graph = this.topoSortModules();
+    const graph = this.topoSortModules(selectedIds);
     const result: Record<string, StatusResult> = {};
     
     for (const mod of graph) {
-      if (selectedIds && !selectedIds.includes(mod.id)) continue;
       if (!(await mod.isApplicable(ctx))) continue;
       
       try {
