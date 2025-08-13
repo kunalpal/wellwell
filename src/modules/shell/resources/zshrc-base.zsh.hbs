@@ -20,4 +20,7 @@ export {{name}}="{{value}}"
 {{#if isMacos}}
 export BROWSER="open"
 {{/if}}
+
+# Source local machine-specific overrides if present
+[ -f "$HOME/.ww-overrides.zsh" ] && source "$HOME/.ww-overrides.zsh"
 # === wellwell:end ===

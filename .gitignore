@@ -26,10 +26,12 @@ coverage/
 .tmp/
 turbo/
 
+# Local overrides (machine-specific)
+.ww-overrides.zsh
+*-overrides.zsh
+
 # Editors/OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
-
-
