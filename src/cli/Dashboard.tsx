@@ -489,7 +489,7 @@ function formatModuleNameWithSelection(moduleId: string, isSelected: boolean, is
   if (isUnsupported) {
     formattedName = colors.semantic.warning(moduleId);
   } else if (isHighlighted) {
-    formattedName = colors.semantic.accent.underline(moduleId);
+    formattedName = colors.semantic.warning.underline(moduleId);
   }
   
   return `  ${formattedName}`;
@@ -510,7 +510,7 @@ function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: 
   }
   
   if (isHighlighted) {
-    return colors.semantic.accent.underline(moduleId);
+    return colors.semantic.warning.underline(moduleId);
   }
   
   return moduleId;
@@ -534,11 +534,11 @@ function formatDependency(depId: string, status?: ConfigurationStatus, isUnsuppo
     formatted = `\u001b[9m\u001b[2m${colors.semantic.muted(depId)}\u001b[0m`;
   } else {
     // All supported dependencies are shown in theme accent color
-    formatted = colors.semantic.accent(depId);
+    formatted = colors.semantic.warning(depId);
   }
   
   if (isHighlighted) {
-    formatted = colors.semantic.accent.underline(formatted);
+    formatted = colors.semantic.warning.underline(formatted);
   }
   
   return formatted;
