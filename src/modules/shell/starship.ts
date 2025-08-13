@@ -142,7 +142,7 @@ export const starshipModule: ConfigurationModule = {
       }
       
       if (configChanged) {
-        ctx.logger.info({ file: configFile }, 'Created/updated starship configuration');
+        // Configuration updated silently
       }
       
       const changed = installChanged || configChanged;
