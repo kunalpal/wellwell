@@ -77,6 +77,90 @@ class KittyConfig extends AppConfig {
     }
   }
 
+  async status(ctx: ConfigurationContext): Promise<any> {
+    try {
+      // Check if Kitty is installed
+      let isInstalled = false;
+      try {
+        await execAsync('brew list --cask kitty');
+        isInstalled = true;
+      } catch {
+        try {
+          await execAsync('which kitty');
+          isInstalled = true;
+        } catch {
+          // Kitty not installed
+        }
+      }
+
+      if (!isInstalled) {
+        return { 
+          status: 'stale', 
+          message: 'Kitty not installed',
+          details: {
+            issues: ['Kitty terminal emulator is not installed'],
+            recommendations: ['Run apply to install Kitty']
+          }
+        };
+      }
+
+      // Check if config exists
+      const exists = await this.configExists(ctx);
+      if (!exists) {
+        return { 
+          status: 'stale', 
+          message: 'kitty.conf missing',
+          details: {
+            issues: ['Kitty configuration file does not exist'],
+            recommendations: ['Run apply to create the configuration']
+          }
+        };
+      }
+
+      // Compare current content with desired content
+      const currentContent = await this.readConfig(ctx);
+      const desiredContent = await this.generateTemplate(ctx);
+      
+
+      
+      if (currentContent === desiredContent) {
+        return { 
+          status: 'applied', 
+          message: 'kitty.conf exists',
+          metadata: {
+            lastChecked: new Date()
+          }
+        };
+      }
+
+      // Generate diff for detailed reporting
+      const diff = this.generateDiff(currentContent || '', desiredContent);
+      
+      return {
+        status: 'stale',
+        message: 'Kitty configuration needs update',
+        details: {
+          current: currentContent,
+          desired: desiredContent,
+          diff: diff,
+          issues: ['Configuration content differs from expected'],
+          recommendations: ['Run apply to update the configuration']
+        }
+      };
+    } catch (error) {
+      return { 
+        status: 'error', 
+        message: 'Error checking Kitty status',
+        details: {
+          issues: [`Error: ${error}`],
+          recommendations: ['Check logs for details']
+        }
+      };
+    }
+  }
+
+
+
 
 
   getDetails(_ctx: ConfigurationContext): string[] {

@@ -273,7 +273,7 @@ export abstract class AppConfig extends BaseModule {
     };
   }
 
-  private generateDiff(current: string, desired: string): string[] {
+  protected generateDiff(current: string, desired: string): string[] {
     // Simple line-by-line diff
     const currentLines = current.split('\n');
     const desiredLines = desired.split('\n');

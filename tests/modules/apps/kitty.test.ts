@@ -42,8 +42,8 @@ const mockTemplateManager = {
   loadModulePartials: jest.fn(),
   loadAndRender: jest.fn().mockResolvedValue(`# Kitty Configuration managed by wellwell
 # Font configuration
-font_family      Cascadia Code PL
-font_size        12.0
+font_family      'Source Code Pro'
+font_size        13.0
 adjust_line_height  0
 adjust_column_width 0
 
@@ -51,7 +51,8 @@ adjust_column_width 0
 remember_window_size  yes
 initial_window_width  1200
 initial_window_height 800
-window_padding_width  4
+window_padding_width  2
+modify_font cell_height 300%
 
 # Tab bar
 tab_bar_edge            top
@@ -124,7 +125,8 @@ map cmd+shift+] next_tab
 map cmd+shift+[ previous_tab
 map cmd+plus change_font_size all +2.0
 map cmd+minus change_font_size all -2.0
-map cmd+0 change_font_size all 0`),
+map cmd+0 change_font_size all 0
+`),
 };
 
 jest.mock('../../../src/core/contrib.js', () => ({
@@ -167,8 +169,8 @@ describe('Kitty App Module', () => {
     mockTemplateManager.loadAndRender.mockReset();
     mockTemplateManager.loadAndRender.mockResolvedValue(`# Kitty Configuration managed by wellwell
 # Font configuration
-font_family      Cascadia Code PL
-font_size        12.0
+font_family      'Source Code Pro'
+font_size        13.0
 adjust_line_height  0
 adjust_column_width 0
 
@@ -176,7 +178,8 @@ adjust_column_width 0
 remember_window_size  yes
 initial_window_width  1200
 initial_window_height 800
-window_padding_width  4
+window_padding_width  2
+modify_font cell_height 300%
 
 # Tab bar
 tab_bar_edge            top
@@ -184,7 +187,7 @@ tab_bar_style           powerline
 tab_powerline_style     slanted
 tab_title_template      {title}{' :{}:'.format(num_windows) if num_windows > 1 else ''}
 
-# Color scheme (theme-aware)
+# Color scheme (based on Tokyo Night)
 foreground            #d5c4a1
 background            #282828
 selection_foreground  #d5c4a1
@@ -249,7 +252,8 @@ map cmd+shift+] next_tab
 map cmd+shift+[ previous_tab
 map cmd+plus change_font_size all +2.0
 map cmd+minus change_font_size all -2.0
-map cmd+0 change_font_size all 0`);
+map cmd+0 change_font_size all 0
+`);
   });
 
   describe('isApplicable', () => {
@@ -434,6 +438,7 @@ map cmd+0 change_font_size all 0`);
     it('should return stale when config is missing', async () => {
       const ctx = createMockContext({ platform: 'macos', homeDir: '/mock/home' });
       mockFs.promises.access.mockRejectedValue(new Error('ENOENT')); // config missing
+      mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' }); // kitty is installed
 
       const result = await kittyModule.status!(ctx);
 
@@ -444,12 +449,13 @@ map cmd+0 change_font_size all 0`);
     it('should return applied when kitty is installed and configured with matching content', async () => {
       const ctx = createMockContext({ platform: 'macos', homeDir: '/mock/home' });
       mockFs.promises.access.mockResolvedValue(undefined); // config exists
+      mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' }); // kitty is installed
       
       // Mock the exact content that the template would generate (with Gruvbox theme colors)
-      const expectedContent = `# Kitty Configuration by wellwell
+      const expectedContent = `# Kitty Configuration managed by wellwell
 # Font configuration
-font_family      Cascadia Code PL
-font_size        12.0
+font_family      'Source Code Pro'
+font_size        13.0
 adjust_line_height  0
 adjust_column_width 0
 
@@ -457,7 +463,8 @@ adjust_column_width 0
 remember_window_size  yes
 initial_window_width  1200
 initial_window_height 800
-window_padding_width  4
+window_padding_width  2
+modify_font cell_height 300%
 
 # Tab bar
 tab_bar_edge            top
@@ -576,7 +583,7 @@ map cmd+0 change_font_size all 0
       expect(config).toContain('# Kitty Configuration managed by wellwell');
       expect(config).toContain('foreground            #d5c4a1');
       expect(config).toContain('background            #282828');
-      expect(config).toContain('font_family      Cascadia Code PL');
+      expect(config).toContain('font_family      \'Source Code Pro\'');
     });
 
     it('should contain macOS-specific settings', async () => {
