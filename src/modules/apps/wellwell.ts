@@ -4,53 +4,12 @@ import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
 import { createAppModule } from '../../core/app-module-factory.js';
-import { ModuleHelpers } from '../../core/module-helpers.js';
+import { ModuleHelpers, getProjectRoot } from '../../core/module-helpers.js';
 import { addPathContribution } from '../../core/contrib.js';
 
 const execAsync = promisify(exec);
 
-async function getWellwellProjectRoot(): Promise<string | null> {
-  try {
-    // First check if WELLWELL_PROJECT_ROOT environment variable is set
-    if (process.env.WELLWELL_PROJECT_ROOT) {
-      return process.env.WELLWELL_PROJECT_ROOT;
-    }
-    
-    // Try to find wellwell project by searching from the executable location
-    const executablePath = process.argv[1]; // Path to the wellwell executable
-    const possiblePaths = [
-      process.cwd(), // Current working directory
-      path.dirname(executablePath), // Directory containing the executable
-      path.resolve(path.dirname(executablePath), '../../'), // Go up from dist/cli to project root
-      path.resolve(process.env.HOME || '', 'Projects/wellwell'),
-      path.resolve(process.env.HOME || '', 'workspace/wellwell'),
-      path.resolve(process.env.HOME || '', 'dev/wellwell'),
-    ];
-    
-    for (const basePath of possiblePaths) {
-      let currentDir = basePath;
-      
-      // Walk up the directory tree looking for wellwell project
-      while (currentDir !== '/' && currentDir.length > 0) {
-        try {
-          const packageJsonPath = path.join(currentDir, 'package.json');
-          const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
-          if (packageJson.name === 'wellwell') {
-            return currentDir;
-          }
-        } catch {
-          // Continue searching
-        }
-        const parentDir = path.dirname(currentDir);
-        if (parentDir === currentDir) break; // Prevent infinite loop
-        currentDir = parentDir;
-      }
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
+
 
 async function isWwCommandAvailable(): Promise<boolean> {
   try {
@@ -109,7 +68,7 @@ export const wellwellModule = createAppModule({
       prepend: true,
     });
     
-    const projectRoot = await getWellwellProjectRoot();
+    const projectRoot = getProjectRoot();
     if (!projectRoot) {
       changes.push({ summary: 'Cannot find wellwell project root - ww command unavailable' });
       return { changes };
@@ -133,7 +92,7 @@ export const wellwellModule = createAppModule({
 
   customApply: async (ctx) => {
     try {
-      const projectRoot = await getWellwellProjectRoot();
+      const projectRoot = getProjectRoot();
       if (!projectRoot) {
         return ModuleHelpers.createErrorResult(
           new Error('Cannot find wellwell project root'), 
@@ -181,7 +140,7 @@ export const wellwellModule = createAppModule({
   },
 
   customStatus: async (_ctx) => {
-    const projectRoot = await getWellwellProjectRoot();
+    const projectRoot = getProjectRoot();
     if (!projectRoot) {
       return { status: 'stale', message: 'Project root not found' };
     }
