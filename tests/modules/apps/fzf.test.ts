@@ -20,6 +20,15 @@ jest.mock('../../../src/core/theme-context.js', () => ({
   },
 }));
 
+// Mock template manager
+const mockLoadAndRender = jest.fn();
+jest.mock('../../../src/core/template-manager.js', () => ({
+  templateManager: {
+    loadModulePartials: jest.fn(),
+    loadAndRender: mockLoadAndRender,
+  },
+}));
+
 import { fzfModule } from '../../../src/modules/apps/fzf.js';
 import { createMockContext, mockCommandSuccess, mockCommandFailure, resetAllMocks } from '../../mocks/index.js';
 
@@ -53,6 +62,7 @@ describe('Fzf App Module', () => {
     mockFs.promises.writeFile.mockReset();
     mockFs.promises.access.mockReset();
     mockGetThemeColors.mockReset();
+    mockLoadAndRender.mockReset();
     
     // Default theme colors
     mockGetThemeColors.mockResolvedValue({
@@ -68,6 +78,11 @@ describe('Fzf App Module', () => {
       base0D: '#bd93f9',
       base0E: '#ff79c6',
     });
+    
+    // Mock template responses
+    mockLoadAndRender
+      .mockResolvedValueOnce('# FZF Configuration managed by wellwell\nexport FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS\'...') // fzf config
+      .mockResolvedValueOnce('# Initialize fzf if available\nif command -v fzf > /dev/null 2>&1; then\n...'); // shell init
   });
 
   describe('isApplicable', () => {
@@ -111,13 +126,21 @@ describe('Fzf App Module', () => {
 
       const result = await fzfModule.apply(ctx);
 
+      expect(mockLoadAndRender).toHaveBeenCalledWith('apps', 'fzf.zsh.hbs', expect.objectContaining({
+        base00: '#282a36',
+        base05: '#f8f8f2',
+      }));
+      expect(mockLoadAndRender).toHaveBeenCalledWith('shell', 'shell-init.zsh.hbs', expect.objectContaining({
+        name: 'fzf',
+        command: 'fzf',
+      }));
       expect(mockFs.promises.writeFile).toHaveBeenCalledWith(
         expect.stringContaining('.fzf.zsh'),
-        expect.stringContaining('FZF_DEFAULT_OPTS')
+        expect.stringContaining('FZF Configuration managed by wellwell')
       );
       expect(mockAddShellInitContribution).toHaveBeenCalledWith(ctx, {
         name: 'fzf',
-        initCode: expect.stringContaining('FZF_DEFAULT_COMMAND'),
+        initCode: expect.stringContaining('Initialize fzf if available'),
       });
       expect(result.success).toBe(true);
       expect(result.changed).toBe(true);
@@ -129,12 +152,9 @@ describe('Fzf App Module', () => {
 
       await fzfModule.apply(ctx);
 
-      const shellInitCall = mockAddShellInitContribution.mock.calls[0];
-      const initCode = shellInitCall[1].initCode;
-      
-      expect(initCode).toContain('FZF_DEFAULT_COMMAND=\'rg --files --hidden --follow --glob "!.git/*"\'');
-      expect(initCode).toContain('FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"');
-      expect(initCode).toContain('command -v fzf > /dev/null 2>&1');
+      expect(mockLoadAndRender).toHaveBeenCalledWith('shell', 'shell-init.zsh.hbs', expect.objectContaining({
+        customInit: expect.stringContaining('FZF_DEFAULT_COMMAND=\'rg --files --hidden --follow --glob "!.git/*"\''),
+      }));
     });
 
     it('should include multiple shell integration paths', async () => {
@@ -142,11 +162,12 @@ describe('Fzf App Module', () => {
 
       await fzfModule.apply(ctx);
 
-      const shellInitCall = mockAddShellInitContribution.mock.calls[0];
-      const initCode = shellInitCall[1].initCode;
-      
-      expect(initCode).toContain('/opt/homebrew/opt/fzf/shell/key-bindings.zsh');
-      expect(initCode).toContain('/usr/share/fzf/key-bindings.zsh');
+      expect(mockLoadAndRender).toHaveBeenCalledWith('shell', 'shell-init.zsh.hbs', expect.objectContaining({
+        customInit: expect.stringContaining('/opt/homebrew/opt/fzf/shell/key-bindings.zsh'),
+      }));
+      expect(mockLoadAndRender).toHaveBeenCalledWith('shell', 'shell-init.zsh.hbs', expect.objectContaining({
+        customInit: expect.stringContaining('/usr/share/fzf/key-bindings.zsh'),
+      }));
     });
 
     it('should handle errors gracefully', async () => {

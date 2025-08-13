@@ -1,0 +1,15 @@
+# Initialize {{name}} if available
+if command -v {{command}} > /dev/null 2>&1; then
+  {{#if activationCommand}}
+  eval "$({{activationCommand}})"
+  {{else}}
+  {{#if sourcePath}}
+  source {{sourcePath}}
+  {{/if}}
+  {{#if customInit}}
+  {{{customInit}}}
+  {{else}}
+  # {{name}} is available
+  {{/if}}
+  {{/if}}
+fi

@@ -16,6 +16,7 @@ import {
   resolvePackages,
   writeResolvedPackages,
 } from '../../core/contrib.js';
+import { templateManager } from '../../core/template-manager.js';
 
 const execAsync = promisify(exec);
 
@@ -142,13 +143,18 @@ export const miseModule: ConfigurationModule = {
 
   async apply(ctx): Promise<ApplyResult> {
     try {
-      // Register shell initialization
+      // Register shell initialization using template
+      const initContext = {
+        name: 'mise',
+        command: 'mise',
+        activationCommand: 'mise activate zsh',
+      };
+      
+      const initCode = await templateManager.loadAndRender('shell', 'shell-init.zsh.hbs', initContext);
+      
       addShellInitContribution(ctx, {
         name: 'mise',
-        initCode: `# Initialize mise if available
-if command -v mise > /dev/null 2>&1; then
-  eval "$(mise activate zsh)"
-fi`,
+        initCode,
       });
       
       const isInstalled = await isMiseInstalled();

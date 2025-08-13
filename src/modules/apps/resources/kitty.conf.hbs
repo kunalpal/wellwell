@@ -1,0 +1,85 @@
+# Kitty Configuration managed by wellwell
+# Font configuration
+font_family      Cascadia Code PL
+font_size        12.0
+adjust_line_height  0
+adjust_column_width 0
+
+# Window layout
+remember_window_size  yes
+initial_window_width  1200
+initial_window_height 800
+window_padding_width  4
+
+# Tab bar
+tab_bar_edge            top
+tab_bar_style           powerline
+tab_powerline_style     slanted
+tab_title_template      {title}{' :{}:'.format(num_windows) if num_windows > 1 else ''}
+
+# Color scheme (theme-aware)
+foreground            {{base05}}
+background            {{base00}}
+selection_foreground  {{base05}}
+selection_background  {{base02}}
+
+# Black
+color0   {{base00}}
+color8   {{base03}}
+
+# Red
+color1   {{base08}}
+color9   {{base08}}
+
+# Green
+color2   {{base0B}}
+color10  {{base0B}}
+
+# Yellow
+color3   {{base0A}}
+color11  {{base0A}}
+
+# Blue
+color4   {{base0D}}
+color12  {{base0D}}
+
+# Magenta
+color5   {{base0E}}
+color13  {{base0E}}
+
+# Cyan
+color6   {{base0C}}
+color14  {{base0C}}
+
+# White
+color7   {{base05}}
+color15  {{base05}}
+
+# Cursor colors
+cursor            {{base05}}
+cursor_text_color {{base00}}
+
+# URL underline color when hovering with mouse
+url_color {{base0D}}
+
+# Performance tuning
+repaint_delay   10
+input_delay     3
+sync_to_monitor yes
+
+# macOS specific
+macos_option_as_alt yes
+macos_quit_when_last_window_closed yes
+macos_window_resizable yes
+macos_traditional_fullscreen no
+
+# Key mappings
+map cmd+c copy_to_clipboard
+map cmd+v paste_from_clipboard
+map cmd+t new_tab
+map cmd+w close_tab
+map cmd+shift+] next_tab
+map cmd+shift+[ previous_tab
+map cmd+plus change_font_size all +2.0
+map cmd+minus change_font_size all -2.0
+map cmd+0 change_font_size all 0

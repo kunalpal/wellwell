@@ -11,6 +11,7 @@ import type {
   StatusResult,
   PlanChange,
 } from '../../../core/types.js';
+import { templateManager } from '../../../core/template-manager.js';
 
 const execAsync = promisify(exec);
 
@@ -56,28 +57,21 @@ async function installZinit(homeDir: string): Promise<void> {
   });
 }
 
-function generatePluginsConfig(): string {
-  const lines = [
-    ZSHRC_PLUGINS_MARKER_START,
-    '',
-    '# Initialize zinit if available',
-    'ZINIT_HOME="${XDG_DATA_HOME:-${HOME}/.local/share}/zinit/zinit.git"',
-    '[ ! -d $ZINIT_HOME ] && mkdir -p "$(dirname $ZINIT_HOME)"',
-    '[ ! -d $ZINIT_HOME/.git ] && git clone https://github.com/zdharma-continuum/zinit.git "$ZINIT_HOME"',
-    'source "${ZINIT_HOME}/zinit.zsh"',
-    '',
-    '# Load plugins',
-    ...DEFAULT_PLUGINS.map(plugin => `zinit light ${plugin.repo} # ${plugin.description}`),
-    '',
-    ZSHRC_PLUGINS_MARKER_END,
-    '',
-  ];
+async function generatePluginsConfig(): Promise<string> {
+  // Load module partials
+  await templateManager.loadModulePartials('shell');
   
-  return lines.join('\n');
+  // Generate context with plugins
+  const context = {
+    plugins: DEFAULT_PLUGINS,
+  };
+  
+  // Load and render the template
+  return templateManager.loadAndRender('shell', 'zshrc-plugins.zsh.hbs', context);
 }
 
 async function updateZshrcPlugins(filePath: string): Promise<{ changed: boolean }> {
-  const newBlock = generatePluginsConfig();
+  const newBlock = await generatePluginsConfig();
   
   // Ensure target file exists
   await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -138,7 +132,7 @@ export const zshrcPluginsModule: ConfigurationModule = {
         });
       } else {
         // Check if the current block matches what we want
-        const newBlock = generatePluginsConfig();
+        const newBlock = await generatePluginsConfig();
         const startIdx = content.indexOf(ZSHRC_PLUGINS_MARKER_START);
         const endIdx = content.indexOf(ZSHRC_PLUGINS_MARKER_END);
         if (startIdx !== -1 && endIdx !== -1) {

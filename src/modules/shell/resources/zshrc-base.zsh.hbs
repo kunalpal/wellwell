@@ -1,0 +1,21 @@
+# === wellwell:begin ===
+{{#if paths}}
+export PATH="{{paths}}:$PATH"
+{{else}}
+export PATH="$HOME/bin:$PATH"
+{{/if}}
+
+export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#555"
+
+{{#each aliases}}
+alias {{name}}="{{value}}"
+{{/each}}
+
+{{#each shellInit}}
+{{{initCode}}}
+{{/each}}
+
+{{#if isMacos}}
+export BROWSER="open"
+{{/if}}
+# === wellwell:end ===

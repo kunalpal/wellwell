@@ -8,6 +8,7 @@ import type {
   StatusResult,
 } from './types.js';
 import { readResolvedAliases, readResolvedPaths, readResolvedShellInit } from './contrib.js';
+import { templateManager } from './template-manager.js';
 
 export interface ShellConfigOptions extends BaseModuleOptions {
   shellFile: string;
@@ -41,7 +42,7 @@ export abstract class ShellConfig extends BaseModule {
     return path.join(ctx.homeDir, this.shellFile);
   }
 
-  protected abstract renderShellBlock(ctx: ConfigurationContext): string;
+  protected abstract renderShellBlock(ctx: ConfigurationContext): Promise<string>;
 
   protected escapeDoubleQuotes(input: string): string {
     return input.replaceAll('"', '\\"');
@@ -79,7 +80,7 @@ export abstract class ShellConfig extends BaseModule {
 
   async plan(ctx: ConfigurationContext): Promise<PlanResult> {
     const target = this.getShellFilePath(ctx);
-    const block = this.renderShellBlock(ctx);
+    const block = await this.renderShellBlock(ctx);
     
     let content = '';
     try {
@@ -94,7 +95,7 @@ export abstract class ShellConfig extends BaseModule {
 
   async apply(ctx: ConfigurationContext): Promise<ApplyResult> {
     const target = this.getShellFilePath(ctx);
-    const block = this.renderShellBlock(ctx);
+    const block = await this.renderShellBlock(ctx);
     
     try {
       // Handle broken symlinks
@@ -126,7 +127,7 @@ export abstract class ShellConfig extends BaseModule {
 
   async status(ctx: ConfigurationContext): Promise<StatusResult> {
     const target = this.getShellFilePath(ctx);
-    const desiredBlock = this.renderShellBlock(ctx);
+    const desiredBlock = await this.renderShellBlock(ctx);
     
     try {
       const content = await fs.readFile(target, 'utf8');
@@ -231,30 +232,24 @@ export class ZshConfig extends ShellConfig {
   protected markerEnd = '# === wellwell:end ===';
   protected platforms = ['macos', 'ubuntu'];
 
-  protected renderShellBlock(ctx: ConfigurationContext): string {
+  protected async renderShellBlock(ctx: ConfigurationContext): Promise<string> {
+    // Load module partials
+    await templateManager.loadModulePartials('shell');
+    
     const resolvedPaths = readResolvedPaths(ctx) ?? [];
     const resolvedAliases = readResolvedAliases(ctx) ?? [];
     const resolvedShellInit = readResolvedShellInit(ctx) ?? [];
     
-    const pathExport = resolvedPaths.length
-      ? `export PATH="${this.escapeDoubleQuotes(resolvedPaths.join(':'))}:$PATH"`
-      : 'export PATH="$HOME/bin:$PATH"';
+    // Generate context for template
+    const context = {
+      paths: resolvedPaths.length > 0 ? resolvedPaths.join(':') : '',
+      aliases: resolvedAliases,
+      shellInit: resolvedShellInit,
+      isMacos: ctx.platform === 'macos',
+    };
     
-    const lines = [
-      this.markerStart,
-      pathExport,
-      'export ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#555"',
-      ...resolvedAliases.map((a) => `alias ${a.name}="${this.escapeDoubleQuotes(a.value)}"`),
-      '',
-      ...resolvedShellInit.map((init) => init.initCode),
-      this.markerEnd,
-    ];
-    
-    if (ctx.platform === 'macos') {
-      lines.splice(lines.length - 2, 0, 'export BROWSER="open"');
-    }
-    
-    return lines.join('\n');
+    // Load and render the template
+    return templateManager.loadAndRender('shell', 'zshrc-base.zsh.hbs', context);
   }
 }
 

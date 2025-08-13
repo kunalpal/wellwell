@@ -3,6 +3,7 @@ import path from 'node:path';
 import { createAppModule, createCrossPlatformPackages } from '../../core/app-module-factory.js';
 import { addShellInitContribution } from '../../core/contrib.js';
 import { themeContextProvider } from '../../core/theme-context.js';
+import { templateManager } from '../../core/template-manager.js';
 
 export const fzfModule = createAppModule({
   id: 'apps:fzf',
@@ -14,35 +15,33 @@ export const fzfModule = createAppModule({
 
   customApply: async (ctx) => {
     try {
-      // Generate theme-aware fzf configuration
+      // Load module partials
+      await templateManager.loadModulePartials('apps');
+      
+      // Get current theme and generate theme-aware fzf configuration
       const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
       const themeColors = await themeContextProvider.getThemeColors(currentTheme);
       
-      const fzfConfig = `export FZF_DEFAULT_OPTS=$FZF_DEFAULT_OPTS'
-  --color=fg:${themeColors.base05},fg+:${themeColors.base07},bg:${themeColors.base00},bg+:${themeColors.base02}
-  --color=hl:${themeColors.base0D},hl+:${themeColors.base0C},info:${themeColors.base0A},marker:${themeColors.base0B}
-  --color=prompt:${themeColors.base08},spinner:${themeColors.base0E},pointer:${themeColors.base0D},header:${themeColors.base0C}
-  --color=border:${themeColors.base02},label:${themeColors.base04},query:${themeColors.base05}
-  --border="rounded" --border-label="" --preview-window="border-rounded" --prompt="❯ "
-  --marker="◆" --pointer="◆" --separator="" --scrollbar="│"
-  --layout="reverse" --info="right"'`;
+      // Generate context with theme colors
+      const context = {
+        ...themeColors,
+        themeName: currentTheme,
+      };
+      
+      // Load and render the template
+      const fzfConfig = await templateManager.loadAndRender('apps', 'fzf.zsh.hbs', context);
       
       const fzfConfigPath = path.join(process.env.HOME || '', '.fzf.zsh');
       await fs.writeFile(fzfConfigPath, fzfConfig);
       
-      // Add shell initialization for fzf
-      addShellInitContribution(ctx, {
+      // Add shell initialization for fzf using template
+      const initContext = {
         name: 'fzf',
-        initCode: `# Initialize fzf if available
-if command -v fzf > /dev/null 2>&1; then
-  # Set fzf to use ripgrep as default command
+        command: 'fzf',
+        sourcePath: '~/.fzf.zsh',
+        customInit: `# Set fzf to use ripgrep as default command
   export FZF_DEFAULT_COMMAND='rg --files --hidden --follow --glob "!.git/*"'
   export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
-  
-  # Source theme-aware fzf configuration
-  if [[ -f ~/.fzf.zsh ]]; then
-    source ~/.fzf.zsh
-  fi
   
   # fzf key bindings and completion
   if [[ -f /opt/homebrew/opt/fzf/shell/key-bindings.zsh ]]; then
@@ -51,8 +50,14 @@ if command -v fzf > /dev/null 2>&1; then
   elif [[ -f /usr/share/fzf/key-bindings.zsh ]]; then
     source /usr/share/fzf/key-bindings.zsh
     source /usr/share/fzf/completion.zsh
-  fi
-fi`,
+  fi`,
+      };
+      
+      const initCode = await templateManager.loadAndRender('shell', 'shell-init.zsh.hbs', initContext);
+      
+      addShellInitContribution(ctx, {
+        name: 'fzf',
+        initCode,
       });
       
       return { success: true, changed: true, message: 'Fzf configured with theme-aware colors' };

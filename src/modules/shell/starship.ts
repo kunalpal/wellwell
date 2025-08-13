@@ -92,13 +92,18 @@ export const starshipModule: ConfigurationModule = {
 
   async apply(ctx): Promise<ApplyResult> {
     try {
-      // Register shell initialization
+      // Register shell initialization using template
+      const initContext = {
+        name: 'starship',
+        command: 'starship',
+        activationCommand: 'starship init zsh',
+      };
+      
+      const initCode = await templateManager.loadAndRender('shell', 'shell-init.zsh.hbs', initContext);
+      
       addShellInitContribution(ctx, {
         name: 'starship',
-        initCode: `# Initialize starship prompt if available
-if command -v starship > /dev/null 2>&1; then
-  eval "$(starship init zsh)"
-fi`,
+        initCode,
       });
       
       const isInstalled = await isStarshipInstalled();
