@@ -61,10 +61,10 @@ const THEME_STATE_KEY = 'themes.current';
 
 async function getCurrentTheme(ctx?: ConfigurationContext): Promise<string> {
   if (ctx) {
-    return ctx.state.get<string>(THEME_STATE_KEY) || 'dracula';
+    return ctx.state.get<string>(THEME_STATE_KEY) || 'default';
   }
   // Fallback for when context is not available
-  return 'dracula';
+  return 'default';
 }
 
 async function setCurrentTheme(themeName: string, ctx?: ConfigurationContext): Promise<void> {

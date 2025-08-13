@@ -26,7 +26,7 @@ interface ThemeProviderProps {
   engineContext: ConfigurationContext;
 }
 
-export function ThemeProvider({ children, initialTheme = 'dracula', engineContext }: ThemeProviderProps) {
+export function ThemeProvider({ children, initialTheme = 'default', engineContext }: ThemeProviderProps) {
   const [currentTheme, setCurrentTheme] = useState(initialTheme);
   const [themeColors, setThemeColors] = useState<ThemeColors | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -122,7 +122,7 @@ export function ThemeProvider({ children, initialTheme = 'dracula', engineContex
       return await themeContextProvider.getAvailableThemes();
     } catch (error) {
       console.error('Failed to get available themes:', error);
-      return ['dracula', 'gruvbox-dark', 'nord', 'solarized-dark'];
+      return ['default', 'gruvbox-dark', 'nord', 'tomorrow-night', 'seti'];
     }
   };
 

@@ -46,7 +46,7 @@ jest.mock('../../src/core/logger.js', () => ({
 // Mock theme context to avoid machine dependencies
 jest.mock('../../src/core/theme-context.js', () => ({
   themeContextProvider: {
-    getThemeColors: jest.fn().mockResolvedValue({ name: 'dracula' }),
+    getThemeColors: jest.fn().mockResolvedValue({ name: 'default' }),
   },
 }));
 
@@ -112,7 +112,7 @@ class TestIntegrationConfig extends AppConfig {
         // Get theme colors if available
         let themeColors: any = undefined;
         try {
-          const currentTheme = (ctx.state.get as any)('themes.current') || 'dracula';
+          const currentTheme = (ctx.state.get as any)('themes.current') || 'default';
           const { themeContextProvider } = await import('../../src/core/theme-context.js');
           themeColors = await themeContextProvider.getThemeColors(currentTheme);
         } catch {
@@ -137,7 +137,7 @@ class TestIntegrationConfig extends AppConfig {
         // Get theme colors if available
         let themeColors: any = undefined;
         try {
-          const currentTheme = (ctx.state.get as any)('themes.current') || 'dracula';
+          const currentTheme = (ctx.state.get as any)('themes.current') || 'default';
           const { themeContextProvider } = await import('../../src/core/theme-context.js');
           themeColors = await themeContextProvider.getThemeColors(currentTheme);
         } catch {
@@ -392,7 +392,7 @@ describe('Plan-Status-Apply Integration', () => {
 
       // Mock file exists with content that includes theme info
       const themeErrorPath = '/mock/home/.config/test/theme-error.conf';
-      mockFileContents[themeErrorPath] = '# Theme Error Test\ntheme: dracula\n';
+      mockFileContents[themeErrorPath] = '# Theme Error Test\ntheme: default\n';
 
       engine.register(themeConfig);
 
@@ -451,7 +451,7 @@ describe('Plan-Status-Apply Integration', () => {
 
       engine.register(themeConfig);
 
-      // Step 1: Apply with initial theme (dracula)
+      // Step 1: Apply with initial theme (default)
       const results = await engine.apply();
       expect(results['test:theme-change'].success).toBe(true);
 

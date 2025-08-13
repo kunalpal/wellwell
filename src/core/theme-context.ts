@@ -102,7 +102,7 @@ export class ThemeContextProvider {
       // Ignore errors, fall back to default
     }
     
-    return 'dracula';
+    return 'default';
   }
 
   /**

@@ -27,7 +27,7 @@ class KittyConfig extends AppConfig {
     await templateManager.loadModulePartials('apps');
     
     // Get current theme and generate theme-aware configuration
-    const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+    const currentTheme = ctx.state.get<string>('themes.current') || 'default';
     const themeColors = await themeContextProvider.getThemeColors(currentTheme);
     
     // Generate context with theme colors

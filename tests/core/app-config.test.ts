@@ -130,7 +130,7 @@ describe('AppConfig', () => {
       // Mock theme colors
       jest.doMock('../../src/core/theme-context.js', () => ({
         themeContextProvider: {
-          getThemeColors: jest.fn().mockResolvedValue({ name: 'dracula' }),
+          getThemeColors: jest.fn().mockResolvedValue({ name: 'default' }),
         },
       }));
 

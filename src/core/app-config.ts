@@ -124,7 +124,7 @@ export abstract class AppConfig extends BaseModule {
         // Get theme colors if available
         let themeColors: any = undefined;
         try {
-          const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+          const currentTheme = ctx.state.get<string>('themes.current') || 'default';
           const { themeContextProvider } = await import('./theme-context.js');
           themeColors = await themeContextProvider.getThemeColors(currentTheme);
         } catch {
@@ -148,7 +148,7 @@ export abstract class AppConfig extends BaseModule {
         // Get theme colors if available
         let themeColors: any = undefined;
         try {
-          const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+          const currentTheme = ctx.state.get<string>('themes.current') || 'default';
           const { themeContextProvider } = await import('./theme-context.js');
           themeColors = await themeContextProvider.getThemeColors(currentTheme);
         } catch {
@@ -201,7 +201,7 @@ export abstract class AppConfig extends BaseModule {
         // Get desired content
         let themeColors: any = undefined;
         try {
-          const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+          const currentTheme = ctx.state.get<string>('themes.current') || 'default';
           const { themeContextProvider } = await import('./theme-context.js');
           themeColors = await themeContextProvider.getThemeColors(currentTheme);
         } catch {
@@ -236,7 +236,7 @@ export abstract class AppConfig extends BaseModule {
     // Get desired content
     let themeColors: any = undefined;
     try {
-      const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+      const currentTheme = ctx.state.get<string>('themes.current') || 'default';
       const { themeContextProvider } = await import('./theme-context.js');
       themeColors = await themeContextProvider.getThemeColors(currentTheme);
     } catch {
@@ -349,7 +349,7 @@ export abstract class AppConfig extends BaseModule {
         // Get theme colors if available
         let themeColors: any = undefined;
         try {
-          const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+          const currentTheme = ctx.state.get<string>('themes.current') || 'default';
           const { themeContextProvider } = await import('./theme-context.js');
           themeColors = await themeContextProvider.getThemeColors(currentTheme);
         } catch {

@@ -220,7 +220,7 @@ interface PlanChange {
   },
   'apps:eza': {
     changes: [
-      { summary: 'Generate ~/.config/eza/config', details: 'Theme: dracula' }
+      { summary: 'Generate ~/.config/eza/config', details: 'Theme: default' }
     ]
   }
 }

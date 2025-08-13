@@ -36,7 +36,7 @@ async function getStarshipConfig(ctx: ConfigurationContext): Promise<string> {
   await templateManager.loadModulePartials('shell');
   
   // Get current theme from context
-  const currentTheme = ctx.state.get<string>('themes.current') || 'dracula';
+  const currentTheme = ctx.state.get<string>('themes.current') || 'default';
   
   // Get theme colors from theme context provider
   const themeColors = await themeContextProvider.getThemeColors(currentTheme);

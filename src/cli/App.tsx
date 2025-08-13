@@ -58,7 +58,7 @@ export default function App({ mode, ids, verbose }: AppProps) {
           try {
             const ctx = engine.buildContext();
             // Try to get the current theme from the state, with better error handling
-            let currentTheme = 'dracula';
+            let currentTheme = 'default';
             try {
               const savedTheme = ctx.state.get<string>('themes.current');
               if (savedTheme) {
@@ -73,10 +73,10 @@ export default function App({ mode, ids, verbose }: AppProps) {
                 const statePath = join(homedir(), '.wellwell', 'state.json');
                 const stateContent = await readFile(statePath, 'utf-8');
                 const state = JSON.parse(stateContent);
-                currentTheme = state.themes?.current || 'dracula';
+                currentTheme = state.themes?.current || 'default';
               } catch (fileError) {
-                // Fallback to dracula if all else fails
-                currentTheme = 'dracula';
+                // Fallback to default if all else fails
+                currentTheme = 'default';
               }
             }
             
