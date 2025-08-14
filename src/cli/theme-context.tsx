@@ -31,10 +31,12 @@ export function ThemeProvider({ children, initialTheme = 'default', engineContex
   const [themeColors, setThemeColors] = useState<ThemeColors | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize theme from engine context
+  // Initialize theme and load colors in a single effect to avoid race conditions
   useEffect(() => {
-    async function initializeTheme() {
+    async function initializeThemeAndColors() {
       try {
+        setIsLoading(true);
+        
         // Try to get the current theme from the engine's state
         let savedTheme = initialTheme;
         try {
@@ -58,25 +60,15 @@ export function ThemeProvider({ children, initialTheme = 'default', engineContex
           }
         }
         
+        // Set the theme first
         setCurrentTheme(savedTheme);
-      } catch (error) {
-        console.error('Failed to initialize theme from state:', error);
-        setCurrentTheme(initialTheme);
-      }
-    }
-
-    void initializeTheme();
-  }, [engineContext, initialTheme]);
-
-  // Load theme colors
-  useEffect(() => {
-    async function loadThemeColors() {
-      try {
-        setIsLoading(true);
-        const colors = await themeContextProvider.getThemeColors(currentTheme);
+        
+        // Then load the colors for the correct theme
+        const colors = await themeContextProvider.getThemeColors(savedTheme);
         setThemeColors(colors);
       } catch (error) {
-        console.error('Failed to load theme colors:', error);
+        console.error('Failed to initialize theme and colors:', error);
+        setCurrentTheme(initialTheme);
         // Fallback to default colors
         setThemeColors({
           base00: '#282828',
@@ -101,19 +93,27 @@ export function ThemeProvider({ children, initialTheme = 'default', engineContex
       }
     }
 
-    void loadThemeColors();
-  }, [currentTheme]);
+    void initializeThemeAndColors();
+  }, [engineContext, initialTheme]);
 
   const switchTheme = async (themeName: string, ctx: ConfigurationContext) => {
     try {
+      setIsLoading(true);
+      
       // Update the theme in the engine's state
       ctx.state.set('themes.current', themeName);
-      setCurrentTheme(themeName);
       
       // Clear the theme cache to force reload
       themeContextProvider.clearCache();
+      
+      // Update the theme and load new colors atomically
+      setCurrentTheme(themeName);
+      const colors = await themeContextProvider.getThemeColors(themeName);
+      setThemeColors(colors);
     } catch (error) {
       console.error('Failed to switch theme:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
