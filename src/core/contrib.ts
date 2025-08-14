@@ -152,6 +152,7 @@ export function addPackageContribution(
   if (contribution.platforms && !contribution.platforms.includes(ctx.platform)) return false;
   const current = ctx.state.get<Contribution<PackageContribution>[]>(CONTRIB_PACKAGES_KEY) ?? [];
   const exists = current.some((c) => 
+    c.data && 
     c.data.name === contribution.name && 
     c.data.manager === contribution.manager &&
     c.data.language === contribution.language &&
@@ -250,5 +251,3 @@ export function writeResolvedEnvVars(ctx: ConfigurationContext, envVars: EnvVarC
 export function readResolvedEnvVars(ctx: ConfigurationContext): EnvVarContribution[] | undefined {
   return ctx.state.get<EnvVarContribution[]>(RESOLVED_ENV_VARS_KEY);
 }
-
-

@@ -238,7 +238,7 @@ describe('Homebrew Package Manager', () => {
       const result = await homebrewModule.status!(ctx);
 
       expect(result.status).toBe('applied');
-      expect(result.message).toBe('All packages installed and up to date');
+      expect(result.message).toBe('All 1 packages installed and up to date');
     });
 
     it('should return stale when packages are missing', async () => {

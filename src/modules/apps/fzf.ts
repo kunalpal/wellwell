@@ -1,7 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { createAppModule, createCrossPlatformPackages } from '../../core/app-module-factory.js';
-import { addShellInitContribution, addEnvVarContribution } from '../../core/contrib.js';
+import { addShellInitContribution, addEnvVarContribution, addPackageContribution } from '../../core/contrib.js';
 import { themeContextProvider } from '../../core/theme-context.js';
 import { templateManager } from '../../core/template-manager.js';
 
@@ -11,6 +11,64 @@ export const fzfModule = createAppModule({
   dependsOn: ['apps:ripgrep', 'themes:base16'], // fzf requires ripgrep as backend and theme support
   packageName: 'fzf',
   packageMappings: createCrossPlatformPackages('fzf'),
+
+  customPlan: async (ctx) => {
+    // Add package contributions (same logic as base plan)
+    const packageMappings = createCrossPlatformPackages('fzf');
+    for (const [platform, packageInfo] of Object.entries(packageMappings)) {
+      if (packageInfo && packageInfo.name && packageInfo.manager) {
+        addPackageContribution(ctx, {
+          name: packageInfo.name,
+          manager: packageInfo.manager,
+          platforms: [platform as any],
+        });
+      }
+    }
+    
+    const changes = [];
+    
+    try {
+      // Check if fzf is available in PATH
+      const { exec } = await import('node:child_process');
+      const { promisify } = await import('node:util');
+      const execAsync = promisify(exec);
+      
+      await execAsync('which fzf');
+      
+      // Check if theme-aware configuration exists and matches expected template
+      const fzfConfigPath = path.join(process.env.HOME || '', '.fzf.zsh');
+      try {
+        const currentConfig = await fs.readFile(fzfConfigPath, 'utf8');
+        
+        // Generate expected configuration (same logic as customApply)
+        await templateManager.loadModulePartials('apps');
+        const currentTheme = ctx.state.get<string>('themes.current') || 'default';
+        const themeColors = await themeContextProvider.getThemeColors(currentTheme);
+        const context = {
+          ...themeColors,
+          themeName: currentTheme,
+        };
+        const expectedConfig = await templateManager.loadAndRender('apps', 'fzf.zsh.hbs', context);
+        
+        if (currentConfig !== expectedConfig) {
+          changes.push({ summary: 'Update fzf configuration with current theme colors' });
+          changes.push({ summary: 'Refresh shell initialization for fzf' });
+          changes.push({ summary: 'Update fzf environment variables' });
+        }
+      } catch {
+        changes.push({ summary: 'Create fzf configuration file with theme colors' });
+        changes.push({ summary: 'Add shell initialization for fzf' });
+        changes.push({ summary: 'Set fzf environment variables' });
+      }
+    } catch {
+      changes.push({ summary: 'Configure fzf after installation' });
+      changes.push({ summary: 'Create fzf configuration file with theme colors' });
+      changes.push({ summary: 'Add shell initialization for fzf' });
+      changes.push({ summary: 'Set fzf environment variables' });
+    }
+    
+    return { changes };
+  },
 
   customApply: async (ctx) => {
     try {

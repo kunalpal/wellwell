@@ -64,16 +64,19 @@ export function createAppModule(config: AppModuleConfig): Module {
       if (config.packageMappings) {
         // Use platform-specific package mappings
         for (const [platform, packageInfo] of Object.entries(config.packageMappings)) {
-          addPackageContribution(ctx, {
-            name: packageInfo.name,
-            manager: packageInfo.manager,
-            platforms: [platform as Platform],
-          });
+          // Add null check to prevent accessing undefined properties
+          if (packageInfo && packageInfo.name && packageInfo.manager) {
+            addPackageContribution(ctx, {
+              name: packageInfo.name,
+              manager: packageInfo.manager,
+              platforms: [platform as Platform],
+            });
+          }
         }
       } else {
         // Use single package with specified or inferred manager
         const manager = config.packageManager || inferPackageManager(ctx.platform);
-        if (manager) {
+        if (manager && config.packageName) {
           addPackageContribution(ctx, {
             name: config.packageName,
             manager,

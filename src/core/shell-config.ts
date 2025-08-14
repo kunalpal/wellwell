@@ -196,7 +196,7 @@ export abstract class ShellConfig extends BaseModule {
     return content.substring(startIdx, endIdx + this.markerEnd.length);
   }
 
-  private generateDiff(current: string, desired: string): string[] {
+  protected generateDiff(current: string, desired: string): string[] {
     // Simple line-by-line diff
     const currentLines = current.split('\n');
     const desiredLines = desired.split('\n');
@@ -254,4 +254,3 @@ export class ZshConfig extends ShellConfig {
     return templateManager.loadAndRender('shell', 'zshrc-base.zsh.hbs', context);
   }
 }
-

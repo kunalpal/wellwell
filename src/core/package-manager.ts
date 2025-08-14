@@ -174,71 +174,107 @@ export abstract class PackageManager extends BaseModule {
   }
 
   async status(ctx: ConfigurationContext): Promise<StatusResult> {
-    const isAvailable = await this.isAvailable();
-    if (!isAvailable) {
-      return { 
-        status: 'stale', 
-        message: `${this.config.name} not available`,
-        details: {
-          issues: [`${this.config.name} package manager is not installed`],
-          recommendations: [`Install ${this.config.name} first`]
-        }
-      };
-    }
-    
-    const resolvedPackages = readResolvedPackages(ctx);
-    // Use the actual command name for package lookup (e.g., 'brew' for homebrew)
-    const packageKey = this.config.command === 'homebrew' ? 'brew' : this.config.command;
-    const packages = resolvedPackages?.[packageKey] ?? [];
-    
-    if (packages.length === 0) {
-      return { 
-        status: 'applied', 
-        message: `${this.config.name} available, no packages configured`,
-        metadata: {
-          lastChecked: new Date()
-        }
-      };
-    }
-    
-    const installed = await this.getInstalledPackages();
-    const missing = packages.filter(p => !installed.has(p.name));
-    const outdated = await this.checkOutdatedPackages(packages, installed);
-    
-    if (missing.length === 0 && outdated.length === 0) {
-      return {
-        status: 'applied',
-        message: 'All packages installed and up to date',
-        metadata: {
-          lastChecked: new Date(),
-          version: await this.getVersion()
-        }
-      };
-    }
-    
-    const issues: string[] = [];
-    const recommendations: string[] = [];
-    
-    if (missing.length > 0) {
-      issues.push(`${missing.length} packages missing: ${missing.map(p => p.name).join(', ')}`);
-      recommendations.push('Run apply to install missing packages');
-    }
-    
-    if (outdated.length > 0) {
-      issues.push(`${outdated.length} packages outdated: ${outdated.map(p => p.name).join(', ')}`);
-      recommendations.push('Run apply to update outdated packages');
-    }
-    
-    return {
-      status: 'stale',
-      message: `${missing.length + outdated.length} packages need attention`,
-      details: {
-        current: { installed: Array.from(installed) },
-        desired: { packages: packages },
-        issues: issues,
-        recommendations: recommendations
+    try {
+      // Check if package manager is available
+      const isAvailable = await this.isAvailable();
+      if (!isAvailable) {
+        return this.createStatusResult('stale', `${this.config.name} not available`, {
+          issues: [
+            `${this.config.name} package manager is not installed`,
+            `Required for platform: ${this.config.platforms.join(', ')}`
+          ],
+          recommendations: [
+            `Install ${this.config.name} package manager`,
+            this.config.requiresSudo ? 'May require sudo privileges' : 'No sudo required'
+          ].filter(Boolean),
+        });
       }
-    };
+
+      // Get package configuration
+      const resolvedPackages = readResolvedPackages(ctx);
+      const packageKey = this.config.command === 'homebrew' ? 'brew' : this.config.command;
+      const packages = resolvedPackages?.[packageKey] ?? [];
+      
+      if (packages.length === 0) {
+        return this.createStatusResult('applied', `${this.config.name} available, no packages configured`, {
+          metadata: {
+            version: await this.getVersion(),
+            available: true,
+            packagesConfigured: 0,
+          },
+        });
+      }
+
+      // Get detailed package status
+      const installed = await this.getInstalledPackages();
+      const missing = packages.filter(p => !installed.has(p.name));
+      const outdated = await this.checkOutdatedPackages(packages, installed);
+      const packageValidation = await this.validatePackages(packages, installed);
+      
+      const issues: string[] = [];
+      const recommendations: string[] = [];
+      
+      // Check for missing packages
+      if (missing.length > 0) {
+        const missingNames = missing.map(p => p.name);
+        issues.push(`${missing.length} packages missing: ${missingNames.slice(0, 5).join(', ')}${missing.length > 5 ? '...' : ''}`);
+        recommendations.push('Run apply to install missing packages');
+      }
+      
+      // Check for outdated packages
+      if (outdated.length > 0) {
+        const outdatedNames = outdated.map(p => p.name);
+        issues.push(`${outdated.length} packages outdated: ${outdatedNames.slice(0, 5).join(', ')}${outdated.length > 5 ? '...' : ''}`);
+        recommendations.push('Run apply to update outdated packages');
+      }
+      
+      // Add validation issues
+      if (!packageValidation.valid) {
+        issues.push(...packageValidation.issues);
+        recommendations.push(...packageValidation.recommendations);
+      }
+      
+      // Determine overall status
+      const status = issues.length === 0 ? 'applied' : 'stale';
+      const totalProblems = missing.length + outdated.length;
+      
+      return this.createStatusResult(
+        status, 
+        totalProblems === 0 ? 
+          `All ${packages.length} packages installed and up to date` : 
+          `${totalProblems} packages need attention`,
+        {
+          issues: issues.length > 0 ? issues : undefined,
+          recommendations: recommendations.length > 0 ? recommendations : undefined,
+          current: {
+            installed: Array.from(installed),
+            installedCount: installed.size,
+            configuredCount: packages.length,
+            missing: missing.map(p => p.name),
+            outdated: outdated.map(p => p.name),
+          },
+          desired: {
+            packages: packages.map(p => ({ name: p.name, version: p.version })),
+            allInstalled: true,
+            upToDate: true,
+          },
+          metadata: {
+            packageManager: this.config.name,
+            version: await this.getVersion(),
+            command: this.config.command,
+            requiresSudo: this.config.requiresSudo,
+            platforms: this.config.platforms,
+            validation: packageValidation,
+          },
+        }
+      );
+    } catch (error) {
+      return this.handleError(ctx, error, 'package status check').message ?
+        this.createStatusResult('failed', 'Error checking package status', {
+          issues: [`Status check failed: ${error instanceof Error ? error.message : String(error)}`],
+          recommendations: ['Check logs for details', 'Verify package manager is accessible'],
+        }) : this.createStatusResult('failed', 'Unknown error', {});
+    }
   }
 
   private async checkOutdatedPackages(packages: any[], installed: Set<string>): Promise<any[]> {
@@ -246,6 +282,46 @@ export abstract class PackageManager extends BaseModule {
     // This would be specific to each package manager
     // For now, return empty array - can be overridden by subclasses
     return [];
+  }
+
+  private async validatePackages(packages: any[], installed: Set<string>): Promise<{
+    valid: boolean;
+    issues: string[];
+    recommendations: string[];
+  }> {
+    const issues: string[] = [];
+    const recommendations: string[] = [];
+    
+    // Check for duplicate package names
+    const packageNames = packages.map(p => p.name);
+    const duplicates = packageNames.filter((name, index) => packageNames.indexOf(name) !== index);
+    if (duplicates.length > 0) {
+      issues.push(`Duplicate packages configured: ${[...new Set(duplicates)].join(', ')}`);
+      recommendations.push('Remove duplicate package entries from configuration');
+    }
+    
+    // Check for packages with missing names
+    const packagesWithoutNames = packages.filter(p => !p.name || typeof p.name !== 'string');
+    if (packagesWithoutNames.length > 0) {
+      issues.push(`${packagesWithoutNames.length} packages have invalid names`);
+      recommendations.push('Ensure all packages have valid name properties');
+    }
+    
+    // Check for platform compatibility
+    const incompatiblePackages = packages.filter(p => 
+      p.platforms && Array.isArray(p.platforms) && 
+      !p.platforms.some((platform: Platform) => this.config.platforms.includes(platform))
+    );
+    if (incompatiblePackages.length > 0) {
+      issues.push(`${incompatiblePackages.length} packages not compatible with current platforms`);
+      recommendations.push('Review package platform requirements');
+    }
+    
+    return {
+      valid: issues.length === 0,
+      issues,
+      recommendations,
+    };
   }
 
   private async getVersion(): Promise<string | undefined> {
