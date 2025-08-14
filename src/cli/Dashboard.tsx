@@ -148,7 +148,7 @@ export default function Dashboard({ verbose }: DashboardProps) {
         if (isApplicable) {
           applicableRows[m.id] = {
             id: m.id,
-            status: 'stale',
+            status: 'pending',
             dependsOn: m.dependsOn ?? [],
           };
         }
@@ -243,6 +243,16 @@ export default function Dashboard({ verbose }: DashboardProps) {
     } else if (input === 's') {
       // refresh status
       void (async () => {
+        // Set all modules to pending while refreshing
+        setRows((prev) => {
+          const next = { ...prev };
+          Object.keys(next).forEach(moduleId => {
+            next[moduleId] = { ...next[moduleId], status: 'pending' };
+          });
+          return next;
+        });
+        
+        // Get actual statuses
         const statuses = await engineRef.current!.statuses();
         setRows((prev) => {
           const next = { ...prev };
