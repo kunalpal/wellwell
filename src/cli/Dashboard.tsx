@@ -371,7 +371,6 @@ export default function Dashboard({ verbose }: DashboardProps) {
       </Box>
       <Box>
         <Text>
-          {selectedModule && (<Text>{formatSelectedModuleInfo(selectedModule.id, themeColors)}</Text>)}
           {isApplying && (
             <Text>
               {getThemeColors(themeColors).semantic.warning(' ')}
@@ -504,13 +503,6 @@ function formatModuleNameWithSelection(moduleId: string, isSelected: boolean, is
   
   return `  ${formattedName}`;
 }
-
-function formatSelectedModuleInfo(moduleId: string, themeColors: any): string {
-  const colors = getThemeColors(themeColors);
-  return ` ${colors.semantic.info('| Selected: ')}${colors.semantic.info(moduleId)}`;
-}
-
-
 
 function formatModuleName(moduleId: string, isSelected: boolean, isHighlighted: boolean, isUnsupported: boolean, themeColors: any): string {
   const colors = getThemeColors(themeColors);

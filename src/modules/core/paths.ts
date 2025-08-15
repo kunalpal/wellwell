@@ -24,9 +24,6 @@ export const commonPaths = (ctx: ConfigurationContext): PathContribution[] => {
   const contribs: PathContribution[] = [
     { path: `${ctx.homeDir}/bin`, prepend: true },
     { path: `${ctx.homeDir}/.local/bin`, prepend: true },
-    { path: `${ctx.homeDir}/.cargo/bin`, prepend: false },
-    { path: `${ctx.homeDir}/go/bin`, prepend: false },
-    { path: `${ctx.homeDir}/.bun/bin`, prepend: false },
     { path: '/usr/local/bin', prepend: true, platforms: ['macos', 'ubuntu', 'al2'] },
     { path: '/opt/homebrew/bin', prepend: true, platforms: ['macos'] },
     { path: '/opt/homebrew/sbin', prepend: false, platforms: ['macos'] },
@@ -155,11 +152,11 @@ class PathsModule extends BaseModule {
         recommendations.push('Check directory permissions');
       }
       
-      // Check if system PATH diverges from our resolved paths
+      // Check if any resolved path is missing from system PATH
       const systemPathDiff = this.compareSystemPath(resolved, currentPaths);
       if (systemPathDiff.diverged) {
-        issues.push('System PATH differs from resolved configuration');
-        recommendations.push('Shell configuration may need to be reloaded');
+        issues.push('Some resolved PATH entries are missing from your system PATH: ' + systemPathDiff.missingInSystem.join(', '));
+        recommendations.push('Reload your shell or update your PATH to include all managed entries');
       }
       
       const status = issues.length === 0 ? 'applied' : 'stale';
@@ -256,28 +253,14 @@ class PathsModule extends BaseModule {
 
   private compareSystemPath(resolved: string[], systemPaths: string[]): {
     diverged: boolean;
-    onlyInResolved: string[];
-    onlyInSystem: string[];
-    orderDiffers: boolean;
+    missingInSystem: string[];
   } {
-    const resolvedSet = new Set(resolved);
-    const systemSet = new Set(systemPaths);
-    
-    const onlyInResolved = resolved.filter(p => !systemSet.has(p));
-    const onlyInSystem = systemPaths.filter(p => !resolvedSet.has(p));
-    
-    // Check if order differs for common paths
-    const commonPaths = resolved.filter(p => systemSet.has(p));
-    const systemCommonPaths = systemPaths.filter(p => resolvedSet.has(p));
-    const orderDiffers = JSON.stringify(commonPaths) !== JSON.stringify(systemCommonPaths);
-    
-    const diverged = onlyInResolved.length > 0 || onlyInSystem.length > 0 || orderDiffers;
-    
+    // Only check that all resolved paths are present in systemPaths
+    const missingInSystem = resolved.filter(p => !systemPaths.includes(p));
+    const diverged = missingInSystem.length > 0;
     return {
       diverged,
-      onlyInResolved,
-      onlyInSystem,
-      orderDiffers,
+      missingInSystem,
     };
   }
 }
