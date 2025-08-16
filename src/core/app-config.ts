@@ -11,6 +11,9 @@ import type {
 } from "./types.js";
 import { addPackageContribution } from "./contrib.js";
 
+/**
+ * Options for configuring an AppConfig module, including config file location, supported platforms, dependencies, and template function.
+ */
 export interface AppConfigOptions extends BaseModuleOptions {
   configDir: string;
   configFile: string;
@@ -23,6 +26,10 @@ export interface AppConfigOptions extends BaseModuleOptions {
   template?: (ctx: ConfigurationContext, themeColors?: any) => string;
 }
 
+/**
+ * Abstract base class for application configuration modules.
+ * Handles config file management, platform support, package dependencies, and template-based content generation.
+ */
 export abstract class AppConfig extends BaseModule {
   protected configDir: string;
   protected configFile: string;
@@ -43,6 +50,11 @@ export abstract class AppConfig extends BaseModule {
     this.template = options.template;
   }
 
+  /**
+   * Checks if the module is applicable for the current platform.
+   * @param ctx The configuration context.
+   * @returns True if applicable, false otherwise.
+   */
   async isApplicable(ctx: ConfigurationContext): Promise<boolean> {
     if (this.platforms && !this.platforms.includes(ctx.platform)) {
       return false;
@@ -50,10 +62,19 @@ export abstract class AppConfig extends BaseModule {
     return true;
   }
 
+  /**
+   * Gets the absolute path to the configuration file for the current context.
+   * @param ctx The configuration context.
+   * @returns The absolute config file path.
+   */
   protected getConfigPath(ctx: ConfigurationContext): string {
     return path.join(ctx.homeDir, this.configDir, this.configFile);
   }
 
+  /**
+   * Ensures the configuration file and its directory exist, handling broken symlinks.
+   * @param ctx The configuration context.
+   */
   protected async ensureConfigExists(ctx: ConfigurationContext): Promise<void> {
     const configPath = this.getConfigPath(ctx);
     const configDir = path.dirname(configPath);
@@ -75,6 +96,11 @@ export abstract class AppConfig extends BaseModule {
     }
   }
 
+  /**
+   * Writes the provided content to the configuration file.
+   * @param ctx The configuration context.
+   * @param content The content to write.
+   */
   protected async writeConfig(
     ctx: ConfigurationContext,
     content: string,
@@ -84,6 +110,11 @@ export abstract class AppConfig extends BaseModule {
     await fs.writeFile(configPath, content, "utf8");
   }
 
+  /**
+   * Reads the configuration file content if it exists.
+   * @param ctx The configuration context.
+   * @returns The file content as a string, or null if not found.
+   */
   protected async readConfig(
     ctx: ConfigurationContext,
   ): Promise<string | null> {
@@ -95,6 +126,11 @@ export abstract class AppConfig extends BaseModule {
     }
   }
 
+  /**
+   * Checks if the configuration file exists.
+   * @param ctx The configuration context.
+   * @returns True if the file exists, false otherwise.
+   */
   protected async configExists(ctx: ConfigurationContext): Promise<boolean> {
     try {
       const configPath = this.getConfigPath(ctx);
@@ -105,6 +141,11 @@ export abstract class AppConfig extends BaseModule {
     }
   }
 
+  /**
+   * Plans configuration changes for the module, including package dependencies and config file updates.
+   * @param ctx The configuration context.
+   * @returns The plan result with a list of changes.
+   */
   async plan(ctx: ConfigurationContext): Promise<PlanResult> {
     const changes = [];
 
@@ -148,6 +189,11 @@ export abstract class AppConfig extends BaseModule {
     return this.createPlanResult(changes);
   }
 
+  /**
+   * Applies configuration changes, writing the config file if needed.
+   * @param ctx The configuration context.
+   * @returns The apply result indicating success or error.
+   */
   async apply(ctx: ConfigurationContext): Promise<ApplyResult> {
     try {
       if (this.template) {
@@ -174,6 +220,11 @@ export abstract class AppConfig extends BaseModule {
     }
   }
 
+  /**
+   * Gets the status of the configuration file, including content comparison and recommendations.
+   * @param ctx The configuration context.
+   * @returns The status result with issues, recommendations, and metadata.
+   */
   async status(ctx: ConfigurationContext): Promise<StatusResult> {
     const exists = await this.configExists(ctx);
     if (!exists) {
@@ -284,6 +335,12 @@ export abstract class AppConfig extends BaseModule {
     };
   }
 
+  /**
+   * Generates a simple line-by-line diff between current and desired config content.
+   * @param current The current file content.
+   * @param desired The desired file content.
+   * @returns An array of diff lines.
+   */
   protected generateDiff(current: string, desired: string): string[] {
     // Simple line-by-line diff
     const currentLines = current.split("\n");
@@ -306,12 +363,22 @@ export abstract class AppConfig extends BaseModule {
     return diff;
   }
 
+  /**
+   * Generates a checksum for the given content using MD5.
+   * @param content The content to hash.
+   * @returns The checksum string.
+   */
   private async generateChecksum(content: string): Promise<string> {
     // Simple hash for content validation
     const crypto = await import("crypto");
     return crypto.createHash("md5").update(content).digest("hex");
   }
 
+  /**
+   * Returns details about the app configuration for display in the UI.
+   * @param _ctx The configuration context.
+   * @returns An array of detail strings.
+   */
   getDetails(_ctx: ConfigurationContext): string[] {
     return [
       `App configuration:`,
@@ -323,7 +390,11 @@ export abstract class AppConfig extends BaseModule {
     ];
   }
 
-  // State comparison implementation for robust status checks
+  /**
+   * Captures the current state of the configuration file for robust status checks.
+   * @param ctx The configuration context.
+   * @returns The module state snapshot.
+   */
   async captureState(ctx: ConfigurationContext): Promise<ModuleStateSnapshot> {
     const configPath = this.getConfigPath(ctx);
     const exists = await this.configExists(ctx);
@@ -353,6 +424,11 @@ export abstract class AppConfig extends BaseModule {
     return this.createStateSnapshot(state);
   }
 
+  /**
+   * Gets the expected state of the configuration file for robust status checks.
+   * @param ctx The configuration context.
+   * @returns The expected module state snapshot.
+   */
   async getExpectedState(
     ctx: ConfigurationContext,
   ): Promise<ModuleStateSnapshot> {
@@ -391,6 +467,12 @@ export abstract class AppConfig extends BaseModule {
     return this.createStateSnapshot(expectedState);
   }
 
+  /**
+   * Compares two module state snapshots to determine if they differ.
+   * @param beforeState The state before applying changes.
+   * @param afterState The state after applying changes.
+   * @returns True if the states differ, false otherwise.
+   */
   compareState(
     beforeState: ModuleStateSnapshot,
     afterState: ModuleStateSnapshot,

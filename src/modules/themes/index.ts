@@ -11,7 +11,9 @@ import { addShellInitContribution } from "../../core/contrib.js";
 import { getProjectRoot } from "../../core/module-helpers.js";
 import { BaseModule } from "../../core/base-module.js";
 
-// Theme interface
+/**
+ * Represents a Base16 theme with a name, description, and color palette.
+ */
 interface Base16Theme {
   name: string;
   description: string;
@@ -35,10 +37,15 @@ interface Base16Theme {
   };
 }
 
-// Theme descriptions - will be populated dynamically
+/**
+ * Holds descriptions for each available theme. Populated dynamically from theme files.
+ */
 let THEME_DESCRIPTIONS: Record<string, string> = {};
 
-// Initialize theme descriptions from available theme files
+/**
+ * Initializes THEME_DESCRIPTIONS from available theme JSON files in the resources directory.
+ * @returns Promise that resolves when theme descriptions are loaded.
+ */
 async function initializeThemeDescriptions(): Promise<void> {
   const projectRoot = getProjectRoot();
   const themesDir = path.join(
@@ -63,9 +70,16 @@ async function initializeThemeDescriptions(): Promise<void> {
   }
 }
 
-// Theme state management
+/**
+ * Key used to store the current theme in the configuration state.
+ */
 const THEME_STATE_KEY = "themes.current";
 
+/**
+ * Gets the current theme name from the configuration context or returns the default.
+ * @param ctx Optional configuration context.
+ * @returns The current theme name.
+ */
 async function getCurrentTheme(ctx?: ConfigurationContext): Promise<string> {
   if (ctx) {
     return ctx.state.get<string>(THEME_STATE_KEY) || "default";
@@ -74,6 +88,11 @@ async function getCurrentTheme(ctx?: ConfigurationContext): Promise<string> {
   return "default";
 }
 
+/**
+ * Sets the current theme in the configuration context state.
+ * @param themeName The name of the theme to set.
+ * @param ctx Optional configuration context.
+ */
 async function setCurrentTheme(
   themeName: string,
   ctx?: ConfigurationContext,
@@ -83,6 +102,11 @@ async function setCurrentTheme(
   }
 }
 
+/**
+ * Loads a theme by name from the resources directory.
+ * @param name The name of the theme.
+ * @returns The Base16Theme object or null if not found or invalid.
+ */
 async function getThemeByName(name: string): Promise<Base16Theme | null> {
   // Load theme colors from JSON file
   const projectRoot = getProjectRoot();
@@ -128,6 +152,10 @@ async function getThemeByName(name: string): Promise<Base16Theme | null> {
   }
 }
 
+/**
+ * Module for managing Base16 color schemes, including planning, applying, and validating themes.
+ * Provides methods for theme switching, validation, and resource management.
+ */
 class ThemesModule extends BaseModule {
   constructor() {
     super({
@@ -538,4 +566,7 @@ class ThemesModule extends BaseModule {
   }
 }
 
+/**
+ * The singleton instance of the ThemesModule for use in the configuration engine.
+ */
 export const themesModule = new ThemesModule();

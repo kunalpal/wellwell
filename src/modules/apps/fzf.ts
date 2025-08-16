@@ -12,6 +12,10 @@ import {
 import { themeContextProvider } from "../../core/theme-context.js";
 import { templateManager } from "../../core/template-manager.js";
 
+/**
+ * Configuration module for Fzf, a command-line fuzzy finder.
+ * Handles planning, applying, and status checking for the fzf package and its theme-aware configuration.
+ */
 export const fzfModule = createAppModule({
   id: "apps:fzf",
   description: "Fzf - command-line fuzzy finder",

@@ -3,6 +3,10 @@ import {
   createCrossPlatformPackages,
 } from "../../core/app-module-factory.js";
 
+/**
+ * Configuration module for Eza, a modern replacement for ls with colors and git integration.
+ * Handles planning, applying, and status checking for the eza package.
+ */
 export const ezaModule = createAppModule({
   id: "apps:eza",
   description:

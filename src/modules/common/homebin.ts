@@ -9,6 +9,10 @@ import type {
 } from "../../core/types.js";
 import { addPathContribution } from "../../core/contrib.js";
 
+/**
+ * Configuration module to ensure ~/bin directory exists and is included in the user's PATH.
+ * Handles planning, applying, and status checking for the home bin directory.
+ */
 export const homeBinModule: ConfigurationModule = {
   id: "common:homebin",
   description: "Ensure ~/bin directory exists and on PATH",

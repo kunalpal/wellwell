@@ -7,6 +7,10 @@ import { themeContextProvider } from "../../core/theme-context.js";
 
 const execAsync = promisify(exec);
 
+/**
+ * Configuration module for Kitty terminal emulator with custom configuration (macOS only).
+ * Handles planning, applying, and status checking for the Kitty package and its configuration.
+ */
 class KittyConfig extends AppConfig {
   constructor() {
     super({
@@ -175,4 +179,7 @@ class KittyConfig extends AppConfig {
   }
 }
 
+/**
+ * The singleton instance of the KittyConfig module for use in the configuration engine.
+ */
 export const kittyModule = new KittyConfig();

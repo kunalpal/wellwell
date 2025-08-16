@@ -16,6 +16,10 @@ import { themeContextProvider } from "../../core/theme-context.js";
 
 const execAsync = promisify(exec);
 
+/**
+ * Checks if the Starship prompt is installed on the system.
+ * @returns Promise resolving to true if Starship is installed, false otherwise.
+ */
 async function isStarshipInstalled(): Promise<boolean> {
   try {
     await execAsync("which starship");
@@ -25,12 +29,20 @@ async function isStarshipInstalled(): Promise<boolean> {
   }
 }
 
+/**
+ * Installs the Starship prompt using the official installer script.
+ */
 async function installStarship(): Promise<void> {
   // Use the official starship installer script
   const script = "curl -sS https://starship.rs/install.sh | sh -s -- --yes";
   await execAsync(script);
 }
 
+/**
+ * Generates the Starship configuration using the current theme and Handlebars templates.
+ * @param ctx The configuration context.
+ * @returns Promise resolving to the rendered Starship configuration string.
+ */
 async function getStarshipConfig(ctx: ConfigurationContext): Promise<string> {
   // Load module partials
   await templateManager.loadModulePartials("shell");
@@ -51,6 +63,10 @@ async function getStarshipConfig(ctx: ConfigurationContext): Promise<string> {
   return templateManager.loadAndRender("shell", "starship.toml.hbs", context);
 }
 
+/**
+ * Configuration module for managing the Starship cross-shell prompt.
+ * Handles planning, applying, and status checking for Starship installation and configuration.
+ */
 export const starshipModule: ConfigurationModule = {
   id: "shell:starship",
   description: "Starship cross-shell prompt",

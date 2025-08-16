@@ -18,12 +18,18 @@ const execAsync = promisify(exec);
 const ZSHRC_PLUGINS_MARKER_START = "# === wellwell:plugins:begin ===";
 const ZSHRC_PLUGINS_MARKER_END = "# === wellwell:plugins:end ===";
 
+/**
+ * Represents a Zsh plugin with its name, repository, and description.
+ */
 interface ZshPlugin {
   name: string;
   repo: string;
   description: string;
 }
 
+/**
+ * Default set of Zsh plugins managed by this module.
+ */
 const DEFAULT_PLUGINS: ZshPlugin[] = [
   {
     name: "zsh-autosuggestions",
@@ -37,6 +43,11 @@ const DEFAULT_PLUGINS: ZshPlugin[] = [
   },
 ];
 
+/**
+ * Checks if Zinit (Zsh plugin manager) is installed in the user's home directory.
+ * @param homeDir The user's home directory.
+ * @returns Promise resolving to true if Zinit is installed, false otherwise.
+ */
 async function isZinitInstalled(homeDir: string): Promise<boolean> {
   try {
     const zinitDir = path.join(
@@ -53,6 +64,10 @@ async function isZinitInstalled(homeDir: string): Promise<boolean> {
   }
 }
 
+/**
+ * Installs Zinit (Zsh plugin manager) in the user's home directory.
+ * @param homeDir The user's home directory.
+ */
 async function installZinit(homeDir: string): Promise<void> {
   const zinitDir = path.join(homeDir, ".local", "share", "zinit");
   await fs.mkdir(zinitDir, { recursive: true });
@@ -63,6 +78,10 @@ async function installZinit(homeDir: string): Promise<void> {
   });
 }
 
+/**
+ * Generates the Zsh plugins configuration block using Handlebars templates.
+ * @returns Promise resolving to the rendered plugins configuration string.
+ */
 async function generatePluginsConfig(): Promise<string> {
   // Load module partials
   await templateManager.loadModulePartials("shell");
@@ -80,6 +99,11 @@ async function generatePluginsConfig(): Promise<string> {
   );
 }
 
+/**
+ * Updates the plugins block in the specified zshrc file.
+ * @param filePath Path to the zshrc file.
+ * @returns Promise resolving to an object indicating if the file was changed.
+ */
 async function updateZshrcPlugins(
   filePath: string,
 ): Promise<{ changed: boolean }> {
@@ -116,6 +140,10 @@ async function updateZshrcPlugins(
   return { changed };
 }
 
+/**
+ * Configuration module for managing Zsh plugins using Zinit.
+ * Handles planning, applying, and status checking for Zsh plugin configuration.
+ */
 export const zshrcPluginsModule: ConfigurationModule = {
   id: "shell:zshrc:plugins",
   description:

@@ -20,6 +20,10 @@ import { templateManager } from "../../core/template-manager.js";
 
 const execAsync = promisify(exec);
 
+/**
+ * Checks if Mise (version manager) is installed on the system.
+ * @returns Promise resolving to true if Mise is installed, false otherwise.
+ */
 async function isMiseInstalled(): Promise<boolean> {
   try {
     await execAsync("which mise");
@@ -29,11 +33,18 @@ async function isMiseInstalled(): Promise<boolean> {
   }
 }
 
+/**
+ * Installs Mise (version manager) using the official installer script.
+ */
 async function installMise(): Promise<void> {
   const script = "curl https://mise.run | sh";
   await execAsync(script);
 }
 
+/**
+ * Gets a record of installed languages and their versions using Mise.
+ * @returns Promise resolving to a record of language names to arrays of installed versions.
+ */
 async function getInstalledLanguages(): Promise<Record<string, string[]>> {
   try {
     const { stdout } = await execAsync("mise list");
@@ -55,6 +66,12 @@ async function getInstalledLanguages(): Promise<Record<string, string[]>> {
   }
 }
 
+/**
+ * Checks if a requested version is satisfied by the installed versions.
+ * @param requestedVersion The version requested (e.g., 'lts', '3.11').
+ * @param installedVersions Array of installed version strings.
+ * @returns True if the requested version is satisfied, false otherwise.
+ */
 function isVersionSatisfied(
   requestedVersion: string,
   installedVersions: string[],
@@ -75,6 +92,12 @@ function isVersionSatisfied(
   );
 }
 
+/**
+ * Installs a specific language version using Mise.
+ * @param language The language to install (e.g., 'node', 'python').
+ * @param version The version to install.
+ * @returns Promise resolving to true if installation succeeded, false otherwise.
+ */
 async function installLanguageVersion(
   language: string,
   version: string,
@@ -87,6 +110,12 @@ async function installLanguageVersion(
   }
 }
 
+/**
+ * Sets the global version for a language using Mise.
+ * @param language The language to set.
+ * @param version The version to set as global.
+ * @returns Promise resolving to true if successful, false otherwise.
+ */
 async function setGlobalVersion(
   language: string,
   version: string,
@@ -99,6 +128,9 @@ async function setGlobalVersion(
   }
 }
 
+/**
+ * Default language versions to be managed by Mise for supported platforms.
+ */
 const defaultVersions = [
   { language: "node", version: "lts", platforms: ["macos", "ubuntu", "al2"] },
   {
@@ -108,6 +140,10 @@ const defaultVersions = [
   },
 ] as const;
 
+/**
+ * Configuration module for managing Mise version manager and language versions.
+ * Handles planning, applying, and status checking for Mise and language installations.
+ */
 export const miseModule: ConfigurationModule = {
   id: "packages:mise",
   description: "Mise version manager for Node.js, Python, etc.",

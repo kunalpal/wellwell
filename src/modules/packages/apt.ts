@@ -3,6 +3,10 @@ import {
   type PackageManagerConfig,
 } from "../../core/package-manager.js";
 
+/**
+ * APT package manager implementation for Ubuntu/Debian.
+ * Extends the generic PackageManager with APT-specific commands and configuration.
+ */
 class AptPackageManager extends PackageManager {
   protected config: PackageManagerConfig = {
     name: "APT",
@@ -24,4 +28,7 @@ class AptPackageManager extends PackageManager {
   }
 }
 
+/**
+ * The singleton instance of the AptPackageManager module for use in the configuration engine.
+ */
 export const aptModule = new AptPackageManager();

@@ -14,6 +14,12 @@ import {
   type EnvVarContribution,
 } from "../../core/contrib.js";
 
+/**
+ * Returns the common environment variable contributions for the given configuration context.
+ * Used to ensure standard environment variables are set for the user.
+ * @param ctx The configuration context.
+ * @returns Array of environment variable contributions.
+ */
 export const commonEnvVars = (
   ctx: ConfigurationContext,
 ): EnvVarContribution[] => {
@@ -36,6 +42,10 @@ export const commonEnvVars = (
   return contribs;
 };
 
+/**
+ * Configuration module for collecting and managing environment variable contributions.
+ * Computes the final set of environment variables for the user's shell.
+ */
 export const envVarsModule: ConfigurationModule = {
   id: "core:env-vars",
   description:

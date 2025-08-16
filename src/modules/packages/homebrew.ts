@@ -7,6 +7,10 @@ import {
 
 const execAsync = promisify(exec);
 
+/**
+ * Homebrew package manager implementation for macOS.
+ * Extends the generic PackageManager with Homebrew-specific commands and logic for formulas and casks.
+ */
 class HomebrewPackageManager extends PackageManager {
   protected config: PackageManagerConfig = {
     name: "Homebrew",
@@ -25,6 +29,10 @@ class HomebrewPackageManager extends PackageManager {
     });
   }
 
+  /**
+   * Checks if Homebrew is available on the system.
+   * @returns Promise resolving to true if Homebrew is installed, false otherwise.
+   */
   protected async isAvailable(): Promise<boolean> {
     try {
       await execAsync("which brew");
@@ -34,6 +42,11 @@ class HomebrewPackageManager extends PackageManager {
     }
   }
 
+  /**
+   * Installs the specified packages using Homebrew, trying both formula and cask.
+   * @param packages Array of package names to install.
+   * @returns Object with arrays of installed and failed package names.
+   */
   protected async installPackages(
     packages: string[],
   ): Promise<{ installed: string[]; failed: string[] }> {
@@ -59,6 +72,10 @@ class HomebrewPackageManager extends PackageManager {
     return { installed, failed };
   }
 
+  /**
+   * Gets the set of installed Homebrew formulas and casks.
+   * @returns Set of installed package names.
+   */
   protected async getInstalledPackages(): Promise<Set<string>> {
     try {
       // Get both formulas and casks
@@ -76,6 +93,11 @@ class HomebrewPackageManager extends PackageManager {
     }
   }
 
+  /**
+   * Applies the Homebrew package manager configuration, installing Homebrew if necessary.
+   * @param ctx The configuration context.
+   * @returns The result of the apply operation.
+   */
   async apply(ctx: any): Promise<any> {
     try {
       const isInstalled = await this.isAvailable();
@@ -94,4 +116,7 @@ class HomebrewPackageManager extends PackageManager {
   }
 }
 
+/**
+ * The singleton instance of the HomebrewPackageManager module for use in the configuration engine.
+ */
 export const homebrewModule = new HomebrewPackageManager();

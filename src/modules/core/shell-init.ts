@@ -11,6 +11,10 @@ import {
   writeResolvedShellInit,
 } from "../../core/contrib.js";
 
+/**
+ * Configuration module for collecting and managing shell initialization contributions.
+ * Computes the final order of shell init scripts from all contributing modules.
+ */
 export const shellInitModule: ConfigurationModule = {
   id: "shell:init",
   description:

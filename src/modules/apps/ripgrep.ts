@@ -3,6 +3,10 @@ import {
   createCrossPlatformPackages,
 } from "../../core/app-module-factory.js";
 
+/**
+ * Configuration module for Ripgrep (rg), a fast text search tool.
+ * Handles planning, applying, and status checking for the ripgrep package.
+ */
 export const ripgrepModule = createAppModule({
   id: "apps:ripgrep",
   description: "Ripgrep - fast text search tool",

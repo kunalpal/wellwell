@@ -14,6 +14,12 @@ import {
   type AliasContribution,
 } from "../../core/contrib.js";
 
+/**
+ * Returns the common alias contributions for the given configuration context.
+ * Used to ensure standard aliases are set for the user.
+ * @param ctx The configuration context.
+ * @returns Array of alias contributions.
+ */
 export const commonAliases = (
   ctx: ConfigurationContext,
 ): AliasContribution[] => [
@@ -43,6 +49,10 @@ export const commonAliases = (
   { name: "yumup", value: "sudo yum update -y", platforms: ["al2"] },
 ];
 
+/**
+ * Configuration module for collecting and managing alias contributions.
+ * Computes the final set of aliases for the user's shell.
+ */
 export const aliasesModule: ConfigurationModule = {
   id: "core:aliases",
   description: "Collect alias contributions and compute final set",

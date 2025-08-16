@@ -14,6 +14,9 @@ import type {
   StatusResult,
 } from "./types.js";
 
+/**
+ * Options for configuring the Engine.
+ */
 export interface EngineOptions {
   verbose?: boolean;
   prettyLogs?: boolean;
@@ -21,6 +24,9 @@ export interface EngineOptions {
   hooks?: EngineHooks;
 }
 
+/**
+ * Hooks for Engine lifecycle events, such as module status changes and messages.
+ */
 export interface EngineHooks {
   onModuleStatusChange?: (payload: {
     id: string;
@@ -29,6 +35,10 @@ export interface EngineHooks {
   onModuleMessage?: (payload: { id: string; message: string }) => void;
 }
 
+/**
+ * The main configuration engine responsible for managing modules, planning, applying, and status checking.
+ * Handles dependency resolution, state management, and execution of configuration modules.
+ */
 export class Engine {
   private readonly modules: Map<string, ConfigurationModule> = new Map();
   private readonly options: Required<Omit<EngineOptions, "hooks">> &
@@ -49,6 +59,11 @@ export class Engine {
     this.sharedState = new JsonFileStateStore(this.options.stateFilePath);
   }
 
+  /**
+   * Registers a configuration module with the engine.
+   * @param module The configuration module to register.
+   * @throws Error if a module with the same ID is already registered.
+   */
   register(module: ConfigurationModule): void {
     if (this.modules.has(module.id)) {
       throw new Error(`Module with id ${module.id} already registered`);
@@ -56,6 +71,10 @@ export class Engine {
     this.modules.set(module.id, module);
   }
 
+  /**
+   * Builds a configuration context for use by modules, including platform, home directory, logger, and state store.
+   * @returns The configuration context object.
+   */
   public buildContext(): ConfigurationContext {
     const logger = createLogger({
       pretty: this.options.prettyLogs,
@@ -71,6 +90,12 @@ export class Engine {
     };
   }
 
+  /**
+   * Performs a topological sort of registered modules, resolving dependencies.
+   * @param selectedIds Optional list of module IDs to include (and their dependencies).
+   * @returns Array of modules in dependency order.
+   * @throws Error if circular or missing dependencies are detected.
+   */
   private topoSortModules(selectedIds?: string[]): ConfigurationModule[] {
     const modules = Array.from(this.modules.values());
     const idToModule = new Map(modules.map((m) => [m.id, m]));
@@ -113,6 +138,12 @@ export class Engine {
     return result;
   }
 
+  /**
+   * Expands a list of selected module IDs to include all dependencies recursively.
+   * @param selectedIds List of module IDs to expand.
+   * @returns Array of expanded module IDs including dependencies.
+   * @throws Error if a module is not found.
+   */
   private expandSelectedIds(selectedIds: string[]): string[] {
     const expanded = new Set<string>();
     const idToModule = new Map(
@@ -140,6 +171,11 @@ export class Engine {
     return Array.from(expanded);
   }
 
+  /**
+   * Plans configuration changes for all or selected modules.
+   * @param selectedIds Optional list of module IDs to plan for.
+   * @returns A record mapping module IDs to their plan results.
+   */
   async plan(selectedIds?: string[]): Promise<Record<string, PlanResult>> {
     const ctx = this.buildContext();
     const graph = this.topoSortModules(selectedIds);
@@ -155,6 +191,11 @@ export class Engine {
     return results;
   }
 
+  /**
+   * Applies configuration changes for all or selected modules.
+   * @param selectedIds Optional list of module IDs to apply.
+   * @returns A record mapping module IDs to their apply results.
+   */
   async apply(selectedIds?: string[]): Promise<Record<string, ApplyResult>> {
     const ctx = this.buildContext();
     const graph = this.topoSortModules(selectedIds);
@@ -223,6 +264,11 @@ export class Engine {
     return results;
   }
 
+  /**
+   * Gets the status of all or selected modules.
+   * @param selectedIds Optional list of module IDs to check status for.
+   * @returns A record mapping module IDs to their configuration status.
+   */
   async statuses(
     selectedIds?: string[],
   ): Promise<Record<string, ConfigurationStatus>> {
@@ -267,6 +313,11 @@ export class Engine {
     return result;
   }
 
+  /**
+   * Gets detailed status results for all or selected modules, including issues and metadata.
+   * @param selectedIds Optional list of module IDs to check status for.
+   * @returns A record mapping module IDs to their detailed status results.
+   */
   async detailedStatuses(
     selectedIds?: string[],
   ): Promise<Record<string, StatusResult>> {

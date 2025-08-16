@@ -18,6 +18,10 @@ import { wellwellModule } from "./apps/wellwell.js";
 import { starshipModule } from "./shell/starship.js";
 import { themesModule } from "./themes/index.js";
 
+/**
+ * Exports all configuration modules available in the project for registration with the engine.
+ * This index centralizes module imports and provides a single array for engine consumption.
+ */
 export const allModules: ConfigurationModule[] = [
   homeBinModule,
   pathsModule,

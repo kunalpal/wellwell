@@ -1,5 +1,11 @@
+/**
+ * Supported platforms for configuration modules.
+ */
 export type Platform = "macos" | "ubuntu" | "al2" | "unknown";
 
+/**
+ * Possible status values for configuration modules.
+ */
 export type ConfigurationStatus =
   | "stale"
   | "pending"
@@ -7,6 +13,9 @@ export type ConfigurationStatus =
   | "skipped"
   | "failed";
 
+/**
+ * Context object passed to configuration modules, containing environment, logger, and state store.
+ */
 export interface ConfigurationContext {
   platform: Platform;
   homeDir: string;
@@ -16,6 +25,9 @@ export interface ConfigurationContext {
   state: StateStore;
 }
 
+/**
+ * Interface for a persistent state store used by configuration modules.
+ */
 export interface StateStore {
   get<T = unknown>(key: string): T | undefined;
   set<T = unknown>(key: string, value: T): void;
@@ -24,7 +36,9 @@ export interface StateStore {
   flush(): Promise<void>;
 }
 
-// Simplified result types
+/**
+ * Result of applying a configuration module.
+ */
 export interface ModuleResult {
   success: boolean;
   changed?: boolean;
@@ -32,18 +46,29 @@ export interface ModuleResult {
   error?: unknown;
 }
 
-// Legacy alias - deprecated, use ModuleResult instead
+/**
+ * Legacy alias for ModuleResult (deprecated, use ModuleResult instead).
+ */
 export type ApplyResult = ModuleResult;
 
+/**
+ * Describes a single change in a plan result.
+ */
 export interface PlanChange {
   summary: string;
   details?: string;
 }
 
+/**
+ * Result of planning configuration changes for a module.
+ */
 export interface PlanResult {
   changes: PlanChange[];
 }
 
+/**
+ * Result of checking the status of a configuration module, including issues and recommendations.
+ */
 export interface StatusResult {
   status: ConfigurationStatus;
   message?: string;
@@ -71,6 +96,9 @@ export interface StatusResult {
   };
 }
 
+/**
+ * Snapshot of a module's state for robust status and change detection.
+ */
 export interface ModuleStateSnapshot {
   moduleId: string;
   timestamp: Date;
@@ -78,6 +106,9 @@ export interface ModuleStateSnapshot {
   state: any;
 }
 
+/**
+ * Metadata about a module apply operation, including before/after state and checksums.
+ */
 export interface ModuleApplyMetadata {
   moduleId: string;
   appliedAt: Date;
@@ -87,7 +118,9 @@ export interface ModuleApplyMetadata {
   planChecksum?: string;
 }
 
-// Core module interface - simplified and focused
+/**
+ * Core interface for a configuration module, including lifecycle methods and optional hooks.
+ */
 export interface Module {
   id: string;
   description?: string;
@@ -123,5 +156,7 @@ export interface Module {
   getAvailableThemes?(): any[] | Promise<any[]>;
 }
 
-// Simplified type alias
+/**
+ * Type alias for a configuration module.
+ */
 export type ConfigurationModule = Module;

@@ -3,6 +3,10 @@ import path from "node:path";
 import { ZshConfig } from "../../../core/shell-config.js";
 import type { ApplyResult, ConfigurationContext } from "../../../core/types.js";
 
+/**
+ * Configuration module for managing the base zshrc block using wellwell.
+ * Ensures the base configuration and local overrides file are present.
+ */
 class ZshrcBaseConfig extends ZshConfig {
   protected platforms: string[] = ["macos", "ubuntu", "al2"]; // All platforms
 
@@ -67,4 +71,7 @@ class ZshrcBaseConfig extends ZshConfig {
   }
 }
 
+/**
+ * The singleton instance of the ZshrcBaseConfig module for use in the configuration engine.
+ */
 export const zshrcBaseModule = new ZshrcBaseConfig();

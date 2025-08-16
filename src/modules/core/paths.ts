@@ -20,6 +20,12 @@ import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
 
+/**
+ * Returns the common PATH contributions for the given configuration context.
+ * Used to ensure standard directories are included in the user's PATH.
+ * @param ctx The configuration context.
+ * @returns Array of path contributions.
+ */
 export const commonPaths = (ctx: ConfigurationContext): PathContribution[] => {
   const contribs: PathContribution[] = [
     { path: `${ctx.homeDir}/bin`, prepend: true },
@@ -36,6 +42,10 @@ export const commonPaths = (ctx: ConfigurationContext): PathContribution[] => {
   return contribs;
 };
 
+/**
+ * Module for collecting and managing PATH contributions, computing the final order, and validating paths.
+ * Handles planning, applying, and status checking for PATH configuration.
+ */
 class PathsModule extends BaseModule {
   constructor() {
     super({
@@ -304,4 +314,7 @@ class PathsModule extends BaseModule {
   }
 }
 
+/**
+ * The singleton instance of the PathsModule for use in the configuration engine.
+ */
 export const pathsModule = new PathsModule();
