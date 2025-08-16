@@ -1,6 +1,5 @@
-import chalk from 'chalk';
-import type { ThemeColors } from '../core/theme-context.js';
-
+import chalk from "chalk";
+import type { ThemeColors } from "../core/theme-context.js";
 
 /**
  * Get chalk color functions from theme colors
@@ -23,22 +22,22 @@ export function getThemeChalkColors(themeColors: ThemeColors) {
     },
     // Semantic colors
     semantic: {
-      error: chalk.hex(themeColors.base08),    // Variables, XML Tags (red)
-      warning: chalk.hex(themeColors.base09),  // Integers, Boolean (orange)
-      success: chalk.hex(themeColors.base0B),  // Strings, Inherited Class (green)
-      info: chalk.hex(themeColors.base0D),     // Functions, Methods (blue)
+      error: chalk.hex(themeColors.base08), // Variables, XML Tags (red)
+      warning: chalk.hex(themeColors.base09), // Integers, Boolean (orange)
+      success: chalk.hex(themeColors.base0B), // Strings, Inherited Class (green)
+      info: chalk.hex(themeColors.base0D), // Functions, Methods (blue)
       highlight: chalk.hex(themeColors.base0A), // Classes, Markup Bold (yellow)
-      accent: chalk.hex(themeColors.base0E),   // Keywords, Storage (magenta)
-      muted: chalk.hex(themeColors.base03),    // Comments, Invisibles (gray)
+      accent: chalk.hex(themeColors.base0E), // Keywords, Storage (magenta)
+      muted: chalk.hex(themeColors.base03), // Comments, Invisibles (gray)
     },
     // Status colors
     status: {
-      stale: chalk.bgHex(themeColors.base0D).black,    // Blue for stale
-      applied: chalk.bgHex(themeColors.base0B).black,  // Green for applied
-      pending: chalk.bgHex(themeColors.base0A).black,  // Yellow for pending
-      failed: chalk.bgHex(themeColors.base08).black,   // Red for failed
-      skipped: chalk.bgHex(themeColors.base0C).black,  // Cyan for skipped
-    }
+      stale: chalk.bgHex(themeColors.base0D).black, // Blue for stale
+      applied: chalk.bgHex(themeColors.base0B).black, // Green for applied
+      pending: chalk.bgHex(themeColors.base0A).black, // Yellow for pending
+      failed: chalk.bgHex(themeColors.base08).black, // Red for failed
+      skipped: chalk.bgHex(themeColors.base0C).black, // Cyan for skipped
+    },
   };
 }
 
@@ -76,7 +75,7 @@ export function getThemeColors(themeColors: ThemeColors | null) {
         pending: chalk.bgYellow.black,
         failed: chalk.bgRed.black,
         skipped: chalk.bgCyan.black,
-      }
+      },
     };
   }
 

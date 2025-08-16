@@ -4,7 +4,7 @@ import type {
   ConfigurationModule,
   PlanResult,
   StatusResult,
-} from '../../core/types.js';
+} from "../../core/types.js";
 import {
   addEnvVarContribution,
   listEnvVarContributions,
@@ -12,23 +12,34 @@ import {
   resolveEnvVars,
   writeResolvedEnvVars,
   type EnvVarContribution,
-} from '../../core/contrib.js';
+} from "../../core/contrib.js";
 
-export const commonEnvVars = (ctx: ConfigurationContext): EnvVarContribution[] => {
+export const commonEnvVars = (
+  ctx: ConfigurationContext,
+): EnvVarContribution[] => {
   const contribs: EnvVarContribution[] = [
     // Common environment variables that most users want
-    { name: 'EDITOR', value: 'nvim', platforms: ['macos', 'ubuntu', 'al2'] },
-    { name: 'VISUAL', value: 'nvim', platforms: ['macos', 'ubuntu', 'al2'] },
-    { name: 'PAGER', value: 'less', platforms: ['macos', 'ubuntu', 'al2'] },
-    { name: 'LANG', value: 'en_US.UTF-8', platforms: ['macos', 'ubuntu', 'al2'] },
-    { name: 'LC_ALL', value: 'en_US.UTF-8', platforms: ['macos', 'ubuntu', 'al2'] },
+    { name: "EDITOR", value: "nvim", platforms: ["macos", "ubuntu", "al2"] },
+    { name: "VISUAL", value: "nvim", platforms: ["macos", "ubuntu", "al2"] },
+    { name: "PAGER", value: "less", platforms: ["macos", "ubuntu", "al2"] },
+    {
+      name: "LANG",
+      value: "en_US.UTF-8",
+      platforms: ["macos", "ubuntu", "al2"],
+    },
+    {
+      name: "LC_ALL",
+      value: "en_US.UTF-8",
+      platforms: ["macos", "ubuntu", "al2"],
+    },
   ];
   return contribs;
 };
 
 export const envVarsModule: ConfigurationModule = {
-  id: 'core:env-vars',
-  description: 'Collect environment variable contributions and compute final values',
+  id: "core:env-vars",
+  description:
+    "Collect environment variable contributions and compute final values",
 
   async isApplicable(_ctx) {
     return true;
@@ -46,8 +57,11 @@ export const envVarsModule: ConfigurationModule = {
     const prev = readResolvedEnvVars(ctx) ?? [];
     const changed = JSON.stringify(prev) !== JSON.stringify(resolved);
     const changes = [] as { summary: string }[];
-    if (added > 0) changes.push({ summary: `Register ${added} common environment variables` });
-    if (changed) changes.push({ summary: 'Recompute environment variables' });
+    if (added > 0)
+      changes.push({
+        summary: `Register ${added} common environment variables`,
+      });
+    if (changed) changes.push({ summary: "Recompute environment variables" });
     return { changes };
   },
 
@@ -55,7 +69,11 @@ export const envVarsModule: ConfigurationModule = {
     try {
       const resolved = resolveEnvVars(ctx);
       writeResolvedEnvVars(ctx, resolved);
-      return { success: true, changed: true, message: 'Environment variables resolved' };
+      return {
+        success: true,
+        changed: true,
+        message: "Environment variables resolved",
+      };
     } catch (error) {
       return { success: false, error };
     }
@@ -63,19 +81,21 @@ export const envVarsModule: ConfigurationModule = {
 
   async status(ctx): Promise<StatusResult> {
     const resolved = readResolvedEnvVars(ctx) ?? [];
-    return { status: resolved.length > 0 ? 'applied' : 'stale' };
+    return { status: resolved.length > 0 ? "applied" : "stale" };
   },
 
   getDetails(ctx): string[] {
     const resolvedEnvVars = readResolvedEnvVars(ctx);
     if (resolvedEnvVars && resolvedEnvVars.length > 0) {
-      const details = [`Managing ${resolvedEnvVars.length} environment variables:`];
-      resolvedEnvVars.forEach(envVar => {
+      const details = [
+        `Managing ${resolvedEnvVars.length} environment variables:`,
+      ];
+      resolvedEnvVars.forEach((envVar) => {
         details.push(`  • ${envVar.name}=${envVar.value}`);
       });
       return details;
     } else {
-      return ['No environment variables configured'];
+      return ["No environment variables configured"];
     }
   },
 };

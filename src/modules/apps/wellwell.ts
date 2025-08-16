@@ -1,51 +1,57 @@
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
-import path from 'node:path';
-import { promises as fs } from 'node:fs';
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+import path from "node:path";
+import { promises as fs } from "node:fs";
 
-import { createAppModule } from '../../core/app-module-factory.js';
-import { ModuleHelpers, getProjectRoot } from '../../core/module-helpers.js';
-import { addPathContribution } from '../../core/contrib.js';
+import { createAppModule } from "../../core/app-module-factory.js";
+import { ModuleHelpers, getProjectRoot } from "../../core/module-helpers.js";
 
 const execAsync = promisify(exec);
 
-
-
 async function isWwCommandAvailable(): Promise<boolean> {
   try {
-    await execAsync('which ww');
+    await execAsync("which ww");
     return true;
   } catch {
     return false;
   }
 }
 
-async function createWwScript(projectRoot: string, binDir: string): Promise<void> {
-  const wwScript = path.join(binDir, 'ww');
-  const wellwellExecutable = path.join(projectRoot, 'dist', 'src', 'cli', 'index.js');
-  
+async function createWwScript(
+  projectRoot: string,
+  binDir: string,
+): Promise<void> {
+  const wwScript = path.join(binDir, "ww");
+  const wellwellExecutable = path.join(
+    projectRoot,
+    "dist",
+    "src",
+    "cli",
+    "index.js",
+  );
+
   // Create a shell script that sets the project root environment variable
   const scriptContent = `#!/bin/bash
 # Auto-generated wellwell wrapper script
 export WELLWELL_PROJECT_ROOT="${projectRoot}"
 exec node "${wellwellExecutable}" "$@"
 `;
-  
+
   await fs.writeFile(wwScript, scriptContent, { mode: 0o755 });
 }
 
 async function rebuildProject(projectRoot: string): Promise<boolean> {
   try {
     // Check if package.json exists and has build script
-    const packageJsonPath = path.join(projectRoot, 'package.json');
-    const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
-    
+    const packageJsonPath = path.join(projectRoot, "package.json");
+    const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf8"));
+
     if (!packageJson.scripts || !packageJson.scripts.build) {
       return false;
     }
-    
+
     // Run the build command
-    await execAsync('npm run build', { cwd: projectRoot });
+    await execAsync("npm run build", { cwd: projectRoot });
     return true;
   } catch (error) {
     return false;
@@ -53,33 +59,43 @@ async function rebuildProject(projectRoot: string): Promise<boolean> {
 }
 
 export const wellwellModule = createAppModule({
-  id: 'apps:wellwell',
+  id: "apps:wellwell",
   description: 'Wellwell self-management - provides "ww" command',
-  dependsOn: ['common:homebin'], // Ensure ~/bin exists
-  packageName: 'wellwell', // Not a real package, but needed for factory
+  dependsOn: ["common:homebin"], // Ensure ~/bin exists
+  packageName: "wellwell", // Not a real package, but needed for factory
 
   customPlan: async (ctx) => {
     const changes = [];
-    
+
     const projectRoot = getProjectRoot();
     if (!projectRoot) {
-      changes.push({ summary: 'Cannot find wellwell project root - ww command unavailable' });
+      changes.push({
+        summary: "Cannot find wellwell project root - ww command unavailable",
+      });
       return { changes };
     }
-    
+
     const isWwAvailable = await isWwCommandAvailable();
     if (!isWwAvailable) {
       changes.push({ summary: 'Create "ww" command script in ~/bin' });
     }
-    
+
     // Check if the built executable exists
-    const builtExecutable = path.join(projectRoot, 'dist', 'src', 'cli', 'index.js');
+    const builtExecutable = path.join(
+      projectRoot,
+      "dist",
+      "src",
+      "cli",
+      "index.js",
+    );
     try {
       await fs.access(builtExecutable);
     } catch {
-      changes.push({ summary: 'Rebuild wellwell project to create executable' });
+      changes.push({
+        summary: "Rebuild wellwell project to create executable",
+      });
     }
-    
+
     return { changes };
   },
 
@@ -88,44 +104,50 @@ export const wellwellModule = createAppModule({
       const projectRoot = getProjectRoot();
       if (!projectRoot) {
         return ModuleHelpers.createErrorResult(
-          new Error('Cannot find wellwell project root'), 
-          'Project root not found'
+          new Error("Cannot find wellwell project root"),
+          "Project root not found",
         );
       }
-      
+
       // Check if the built executable exists and rebuild if needed
-      const builtExecutable = path.join(projectRoot, 'dist', 'src', 'cli', 'index.js');
+      const builtExecutable = path.join(
+        projectRoot,
+        "dist",
+        "src",
+        "cli",
+        "index.js",
+      );
       let needsRebuild = false;
       try {
         await fs.access(builtExecutable);
       } catch {
         needsRebuild = true;
       }
-      
+
       if (needsRebuild) {
-        ctx.logger.info('Rebuilding wellwell project...');
+        ctx.logger.info("Rebuilding wellwell project...");
         const rebuildSuccess = await rebuildProject(projectRoot);
         if (!rebuildSuccess) {
           return ModuleHelpers.createErrorResult(
-            new Error('Failed to rebuild wellwell project'), 
-            'Build failed'
+            new Error("Failed to rebuild wellwell project"),
+            "Build failed",
           );
         }
       }
-      
-      const binDir = path.join(ctx.homeDir, 'bin');
+
+      const binDir = path.join(ctx.homeDir, "bin");
       const isWwAvailable = await isWwCommandAvailable();
-      
+
       // Always ensure ~/bin directory exists and ww script is up to date
       await fs.mkdir(binDir, { recursive: true });
       await createWwScript(projectRoot, binDir);
-      
-      const message = needsRebuild 
+
+      const message = needsRebuild
         ? 'Rebuilt project and updated "ww" command script'
-        : isWwAvailable 
+        : isWwAvailable
           ? '"ww" command script updated'
           : 'Created "ww" command script';
-      
+
       return ModuleHelpers.createSuccessResult(true, message);
     } catch (error) {
       return ModuleHelpers.createErrorResult(error);
@@ -135,29 +157,35 @@ export const wellwellModule = createAppModule({
   customStatus: async (_ctx) => {
     const projectRoot = getProjectRoot();
     if (!projectRoot) {
-      return { status: 'stale', message: 'Project root not found' };
+      return { status: "stale", message: "Project root not found" };
     }
-    
+
     // Check if the built executable exists
-    const builtExecutable = path.join(projectRoot, 'dist', 'src', 'cli', 'index.js');
+    const builtExecutable = path.join(
+      projectRoot,
+      "dist",
+      "src",
+      "cli",
+      "index.js",
+    );
     try {
       await fs.access(builtExecutable);
     } catch {
-      return { status: 'stale', message: 'Wellwell not built' };
+      return { status: "stale", message: "Wellwell not built" };
     }
-    
+
     const isWwAvailable = await isWwCommandAvailable();
     if (isWwAvailable) {
-      return { status: 'applied', message: '"ww" command available' };
+      return { status: "applied", message: '"ww" command available' };
     } else {
-      return { status: 'stale', message: '"ww" command not found' };
+      return { status: "stale", message: '"ww" command not found' };
     }
   },
 
   getDetails: (_ctx) => [
-    'Self-management:',
+    "Self-management:",
     '  • Creates "ww" command in ~/bin',
-    '  • Adds ~/bin to PATH',
-    '  • Enables global wellwell access',
+    "  • Adds ~/bin to PATH",
+    "  • Enables global wellwell access",
   ],
 });

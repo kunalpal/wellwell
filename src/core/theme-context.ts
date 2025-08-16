@@ -1,29 +1,29 @@
-import type { ConfigurationContext } from './types.js';
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
-import { getProjectRoot } from './module-helpers.js';
+import type { ConfigurationContext } from "./types.js";
+import { promises as fs } from "node:fs";
+import path from "node:path";
+import { getProjectRoot } from "./module-helpers.js";
 
 export interface TerminalColors {
-  'terminal.background': string;
-  'terminal.foreground': string;
-  'terminalCursor.background': string;
-  'terminalCursor.foreground': string;
-  'terminal.ansiBlack': string;
-  'terminal.ansiBlue': string;
-  'terminal.ansiBrightBlack': string;
-  'terminal.ansiBrightBlue': string;
-  'terminal.ansiBrightCyan': string;
-  'terminal.ansiBrightGreen': string;
-  'terminal.ansiBrightMagenta': string;
-  'terminal.ansiBrightRed': string;
-  'terminal.ansiBrightWhite': string;
-  'terminal.ansiBrightYellow': string;
-  'terminal.ansiCyan': string;
-  'terminal.ansiGreen': string;
-  'terminal.ansiMagenta': string;
-  'terminal.ansiRed': string;
-  'terminal.ansiWhite': string;
-  'terminal.ansiYellow': string;
+  "terminal.background": string;
+  "terminal.foreground": string;
+  "terminalCursor.background": string;
+  "terminalCursor.foreground": string;
+  "terminal.ansiBlack": string;
+  "terminal.ansiBlue": string;
+  "terminal.ansiBrightBlack": string;
+  "terminal.ansiBrightBlue": string;
+  "terminal.ansiBrightCyan": string;
+  "terminal.ansiBrightGreen": string;
+  "terminal.ansiBrightMagenta": string;
+  "terminal.ansiBrightRed": string;
+  "terminal.ansiBrightWhite": string;
+  "terminal.ansiBrightYellow": string;
+  "terminal.ansiCyan": string;
+  "terminal.ansiGreen": string;
+  "terminal.ansiMagenta": string;
+  "terminal.ansiRed": string;
+  "terminal.ansiWhite": string;
+  "terminal.ansiYellow": string;
 }
 
 export interface ThemeColors {
@@ -54,9 +54,16 @@ export class ThemeContextProvider {
    */
   private async loadTerminalColors(themeName: string): Promise<TerminalColors> {
     const projectRoot = getProjectRoot();
-    const themePath = path.join(projectRoot, 'src', 'modules', 'themes', 'resources', `${themeName}.json`);
+    const themePath = path.join(
+      projectRoot,
+      "src",
+      "modules",
+      "themes",
+      "resources",
+      `${themeName}.json`,
+    );
     try {
-      const content = await fs.readFile(themePath, 'utf-8');
+      const content = await fs.readFile(themePath, "utf-8");
       return JSON.parse(content) as TerminalColors;
     } catch (error) {
       throw new Error(`Failed to load theme ${themeName}: ${error}`);
@@ -69,22 +76,22 @@ export class ThemeContextProvider {
   private deriveBase16Colors(terminalColors: TerminalColors): ThemeColors {
     return {
       // Base16 colors derived from terminal colors
-      base00: terminalColors['terminal.background'],           // Default Background
-      base01: terminalColors['terminal.ansiBrightBlack'],      // Lighter Background
-      base02: terminalColors['terminal.ansiBlack'],            // Selection Background
-      base03: terminalColors['terminal.ansiBrightBlack'],      // Comments, Invisibles
-      base04: terminalColors['terminal.ansiWhite'],            // Dark Foreground
-      base05: terminalColors['terminal.foreground'],           // Default Foreground
-      base06: terminalColors['terminal.ansiBrightWhite'],      // Light Foreground
-      base07: terminalColors['terminal.ansiBrightWhite'],      // Light Background
-      base08: terminalColors['terminal.ansiRed'],              // Variables, XML Tags
-      base09: terminalColors['terminal.ansiYellow'],           // Integers, Boolean
-      base0A: terminalColors['terminal.ansiBrightYellow'],     // Classes, Markup Bold
-      base0B: terminalColors['terminal.ansiGreen'],            // Strings, Inherited Class
-      base0C: terminalColors['terminal.ansiCyan'],             // Support, Regular Expressions
-      base0D: terminalColors['terminal.ansiBlue'],             // Functions, Methods
-      base0E: terminalColors['terminal.ansiMagenta'],          // Keywords, Storage
-      base0F: terminalColors['terminal.ansiBrightRed'],        // Deprecated
+      base00: terminalColors["terminal.background"], // Default Background
+      base01: terminalColors["terminal.ansiBrightBlack"], // Lighter Background
+      base02: terminalColors["terminal.ansiBlack"], // Selection Background
+      base03: terminalColors["terminal.ansiBrightBlack"], // Comments, Invisibles
+      base04: terminalColors["terminal.ansiWhite"], // Dark Foreground
+      base05: terminalColors["terminal.foreground"], // Default Foreground
+      base06: terminalColors["terminal.ansiBrightWhite"], // Light Foreground
+      base07: terminalColors["terminal.ansiBrightWhite"], // Light Background
+      base08: terminalColors["terminal.ansiRed"], // Variables, XML Tags
+      base09: terminalColors["terminal.ansiYellow"], // Integers, Boolean
+      base0A: terminalColors["terminal.ansiBrightYellow"], // Classes, Markup Bold
+      base0B: terminalColors["terminal.ansiGreen"], // Strings, Inherited Class
+      base0C: terminalColors["terminal.ansiCyan"], // Support, Regular Expressions
+      base0D: terminalColors["terminal.ansiBlue"], // Functions, Methods
+      base0E: terminalColors["terminal.ansiMagenta"], // Keywords, Storage
+      base0F: terminalColors["terminal.ansiBrightRed"], // Deprecated
     };
   }
 
@@ -94,24 +101,26 @@ export class ThemeContextProvider {
   private async getCurrentTheme(ctx: ConfigurationContext): Promise<string> {
     try {
       // Try to get the current theme from the state
-      const currentTheme = ctx.state.get<string>('themes.current');
+      const currentTheme = ctx.state.get<string>("themes.current");
       if (currentTheme) {
         return currentTheme;
       }
     } catch {
       // Ignore errors, fall back to default
     }
-    
-    return 'default';
+
+    return "default";
   }
 
   /**
    * Generate template context based on the current theme
    */
-  async generateContext(ctx: ConfigurationContext): Promise<Record<string, string>> {
+  async generateContext(
+    ctx: ConfigurationContext,
+  ): Promise<Record<string, string>> {
     const theme = await this.getCurrentTheme(ctx);
     const colors = await this.getThemeColors(theme);
-    
+
     return {
       ...colors,
       themeName: theme,
@@ -130,10 +139,10 @@ export class ThemeContextProvider {
     // Load from JSON file and derive colors
     const terminalColors = await this.loadTerminalColors(themeName);
     const themeColors = this.deriveBase16Colors(terminalColors);
-    
+
     // Cache the result
     this.themeCache.set(themeName, themeColors);
-    
+
     return themeColors;
   }
 
@@ -142,13 +151,19 @@ export class ThemeContextProvider {
    */
   async getAvailableThemes(): Promise<string[]> {
     const projectRoot = getProjectRoot();
-    const themesDir = path.join(projectRoot, 'src', 'modules', 'themes', 'resources');
-    
+    const themesDir = path.join(
+      projectRoot,
+      "src",
+      "modules",
+      "themes",
+      "resources",
+    );
+
     try {
       const files = await fs.readdir(themesDir);
       return files
-        .filter(file => file.endsWith('.json'))
-        .map(file => file.replace('.json', ''))
+        .filter((file) => file.endsWith(".json"))
+        .map((file) => file.replace(".json", ""))
         .sort(); // Sort alphabetically for consistent order
     } catch {
       return [];
@@ -160,7 +175,14 @@ export class ThemeContextProvider {
    */
   async hasTheme(themeName: string): Promise<boolean> {
     const projectRoot = getProjectRoot();
-    const themePath = path.join(projectRoot, 'src', 'modules', 'themes', 'resources', `${themeName}.json`);
+    const themePath = path.join(
+      projectRoot,
+      "src",
+      "modules",
+      "themes",
+      "resources",
+      `${themeName}.json`,
+    );
     try {
       await fs.access(themePath);
       return true;

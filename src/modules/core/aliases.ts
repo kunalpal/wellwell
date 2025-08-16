@@ -4,7 +4,7 @@ import type {
   ConfigurationModule,
   PlanResult,
   StatusResult,
-} from '../../core/types.js';
+} from "../../core/types.js";
 import {
   addAliasContribution,
   listAliasContributions,
@@ -12,31 +12,41 @@ import {
   resolveAliases,
   writeResolvedAliases,
   type AliasContribution,
-} from '../../core/contrib.js';
+} from "../../core/contrib.js";
 
-export const commonAliases = (ctx: ConfigurationContext): AliasContribution[] => [
+export const commonAliases = (
+  ctx: ConfigurationContext,
+): AliasContribution[] => [
   // Use eza if available, fallback to ls
-  { name: 'ls', value: 'eza' },
-  { name: 'll', value: 'eza -la --git' },
-  { name: 'la', value: 'eza -a' },
-  { name: 'l', value: 'eza' },
-  { name: 'lt', value: 'eza --tree' },
-  { name: 'lg', value: 'eza -la --git --git-ignore' },
+  { name: "ls", value: "eza" },
+  { name: "ll", value: "eza -la --git" },
+  { name: "la", value: "eza -a" },
+  { name: "l", value: "eza" },
+  { name: "lt", value: "eza --tree" },
+  { name: "lg", value: "eza -la --git --git-ignore" },
   // platform variants
-  { name: 'pbcopy', value: 'tee >/dev/null | pbcopy', platforms: ['macos'] },
-  { name: 'pbpaste', value: 'pbpaste', platforms: ['macos'] },
-  { name: 'xclip', value: 'xclip -selection clipboard', platforms: ['ubuntu'] },
-  { name: 'xsel', value: 'xsel --clipboard --input', platforms: ['ubuntu'] },
+  { name: "pbcopy", value: "tee >/dev/null | pbcopy", platforms: ["macos"] },
+  { name: "pbpaste", value: "pbpaste", platforms: ["macos"] },
+  { name: "xclip", value: "xclip -selection clipboard", platforms: ["ubuntu"] },
+  { name: "xsel", value: "xsel --clipboard --input", platforms: ["ubuntu"] },
   // package managers
-  { name: 'brewup', value: 'brew update && brew upgrade && brew cleanup', platforms: ['macos'] },
-  { name: 'aptup', value: 'sudo apt update && sudo apt upgrade -y', platforms: ['ubuntu'] },
-  { name: 'yumup', value: 'sudo yum update -y', platforms: ['al2'] },
+  {
+    name: "brewup",
+    value: "brew update && brew upgrade && brew cleanup",
+    platforms: ["macos"],
+  },
+  {
+    name: "aptup",
+    value: "sudo apt update && sudo apt upgrade -y",
+    platforms: ["ubuntu"],
+  },
+  { name: "yumup", value: "sudo yum update -y", platforms: ["al2"] },
 ];
 
 export const aliasesModule: ConfigurationModule = {
-  id: 'core:aliases',
-  description: 'Collect alias contributions and compute final set',
-  dependsOn: ['apps:eza'],
+  id: "core:aliases",
+  description: "Collect alias contributions and compute final set",
+  dependsOn: ["apps:eza"],
 
   async isApplicable(_ctx) {
     return true;
@@ -53,8 +63,9 @@ export const aliasesModule: ConfigurationModule = {
     const prev = readResolvedAliases(ctx) ?? [];
     const changed = JSON.stringify(prev) !== JSON.stringify(resolved);
     const changes = [] as { summary: string }[];
-    if (added > 0) changes.push({ summary: `Register ${added} common aliases` });
-    if (changed) changes.push({ summary: 'Recompute aliases' });
+    if (added > 0)
+      changes.push({ summary: `Register ${added} common aliases` });
+    if (changed) changes.push({ summary: "Recompute aliases" });
     return { changes };
   },
 
@@ -62,7 +73,7 @@ export const aliasesModule: ConfigurationModule = {
     try {
       const resolved = resolveAliases(ctx);
       writeResolvedAliases(ctx, resolved);
-      return { success: true, changed: true, message: 'Aliases resolved' };
+      return { success: true, changed: true, message: "Aliases resolved" };
     } catch (error) {
       return { success: false, error };
     }
@@ -72,55 +83,57 @@ export const aliasesModule: ConfigurationModule = {
     try {
       // Get current resolved aliases
       const currentResolved = readResolvedAliases(ctx) ?? [];
-      
+
       // If no aliases are resolved, we need to apply
       if (currentResolved.length === 0) {
-        return { 
-          status: 'stale', 
-          message: 'No aliases configured',
+        return {
+          status: "stale",
+          message: "No aliases configured",
           details: {
-            issues: ['No aliases have been resolved'],
-            recommendations: ['Run apply to configure aliases']
-          }
+            issues: ["No aliases have been resolved"],
+            recommendations: ["Run apply to configure aliases"],
+          },
         };
       }
 
       // Compute expected aliases from current contributions
       const expectedResolved = resolveAliases(ctx);
-      
+
       // Compare current vs expected
-      if (JSON.stringify(currentResolved) === JSON.stringify(expectedResolved)) {
-        return { 
-          status: 'applied', 
+      if (
+        JSON.stringify(currentResolved) === JSON.stringify(expectedResolved)
+      ) {
+        return {
+          status: "applied",
           message: `${currentResolved.length} aliases configured`,
           metadata: {
-            lastChecked: new Date()
-          }
+            lastChecked: new Date(),
+          },
         };
       }
 
       // Generate diff for detailed reporting
       const diff = generateAliasDiff(currentResolved, expectedResolved);
-      
+
       return {
-        status: 'stale',
-        message: 'Alias configuration needs update',
+        status: "stale",
+        message: "Alias configuration needs update",
         details: {
           current: currentResolved,
           desired: expectedResolved,
           diff: diff,
-          issues: ['Current aliases differ from expected aliases'],
-          recommendations: ['Run apply to update alias configuration']
-        }
+          issues: ["Current aliases differ from expected aliases"],
+          recommendations: ["Run apply to update alias configuration"],
+        },
       };
     } catch (error) {
-      return { 
-        status: 'failed', 
-        message: 'Error checking alias status',
+      return {
+        status: "failed",
+        message: "Error checking alias status",
         details: {
           issues: [`Error: ${error}`],
-          recommendations: ['Check logs for details']
-        }
+          recommendations: ["Check logs for details"],
+        },
       };
     }
   },
@@ -132,25 +145,28 @@ export const aliasesModule: ConfigurationModule = {
       // If no resolved aliases, compute them from contributions
       aliases = resolveAliases(ctx);
     }
-    
+
     if (aliases && aliases.length > 0) {
       const details = [`Managing ${aliases.length} aliases:`];
-      aliases.forEach(alias => {
+      aliases.forEach((alias) => {
         details.push(`  - ${alias.name} → "${alias.value}"`);
       });
       return details;
     } else {
-      return ['No aliases configured'];
+      return ["No aliases configured"];
     }
   },
 };
 
 // Helper function to generate alias diff
-function generateAliasDiff(current: AliasContribution[], expected: AliasContribution[]): string[] {
-  const currentMap = new Map(current.map(a => [a.name, a.value]));
-  const expectedMap = new Map(expected.map(a => [a.name, a.value]));
+function generateAliasDiff(
+  current: AliasContribution[],
+  expected: AliasContribution[],
+): string[] {
+  const currentMap = new Map(current.map((a) => [a.name, a.value]));
+  const expectedMap = new Map(expected.map((a) => [a.name, a.value]));
   const diff: string[] = [];
-  
+
   // Check for changes and additions
   for (const [name, expectedValue] of expectedMap) {
     const currentValue = currentMap.get(name);
@@ -160,7 +176,7 @@ function generateAliasDiff(current: AliasContribution[], expected: AliasContribu
       diff.push(`+ "${expectedValue}"`);
     }
   }
-  
+
   // Check for removals
   for (const [name, currentValue] of currentMap) {
     if (!expectedMap.has(name)) {
@@ -169,8 +185,6 @@ function generateAliasDiff(current: AliasContribution[], expected: AliasContribu
       diff.push(`+ (removed)`);
     }
   }
-  
+
   return diff;
 }
-
-

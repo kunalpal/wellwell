@@ -1,19 +1,24 @@
-import { promises as fs } from 'node:fs';
-import path from 'node:path';
+import { promises as fs } from "node:fs";
+import path from "node:path";
 
-import type { ApplyResult, ConfigurationModule, PlanResult, StatusResult } from '../../core/types.js';
-import { addPathContribution } from '../../core/contrib.js';
+import type {
+  ApplyResult,
+  ConfigurationModule,
+  PlanResult,
+  StatusResult,
+} from "../../core/types.js";
+import { addPathContribution } from "../../core/contrib.js";
 
 export const homeBinModule: ConfigurationModule = {
-  id: 'common:homebin',
-  description: 'Ensure ~/bin directory exists and on PATH',
+  id: "common:homebin",
+  description: "Ensure ~/bin directory exists and on PATH",
 
   async isApplicable(_ctx) {
     return true;
   },
 
   async plan(ctx): Promise<PlanResult> {
-    const target = path.join(ctx.homeDir, 'bin');
+    const target = path.join(ctx.homeDir, "bin");
     addPathContribution(ctx, { path: target, prepend: true });
     let exists = false;
     try {
@@ -28,7 +33,7 @@ export const homeBinModule: ConfigurationModule = {
   },
 
   async apply(ctx): Promise<ApplyResult> {
-    const target = path.join(ctx.homeDir, 'bin');
+    const target = path.join(ctx.homeDir, "bin");
     try {
       await fs.mkdir(target, { recursive: true });
       return { success: true, changed: true, message: `Ensured ${target}` };
@@ -38,11 +43,11 @@ export const homeBinModule: ConfigurationModule = {
   },
 
   async status(ctx): Promise<StatusResult> {
-    const target = path.join(ctx.homeDir, 'bin');
+    const target = path.join(ctx.homeDir, "bin");
     try {
       const st = await fs.stat(target);
-      if (st.isDirectory()) return { status: 'applied' };
+      if (st.isDirectory()) return { status: "applied" };
     } catch {}
-    return { status: 'stale' };
+    return { status: "stale" };
   },
 };

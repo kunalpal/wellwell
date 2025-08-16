@@ -4,5 +4,5 @@
  */
 
 // Mock environment variables
-process.env.NODE_ENV = 'test';
-process.env.CI = 'false';
+process.env.NODE_ENV = "test";
+process.env.CI = "false";

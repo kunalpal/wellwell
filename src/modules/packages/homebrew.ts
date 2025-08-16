@@ -1,40 +1,45 @@
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
-import { PackageManager, type PackageManagerConfig } from '../../core/package-manager.js';
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+import {
+  PackageManager,
+  type PackageManagerConfig,
+} from "../../core/package-manager.js";
 
 const execAsync = promisify(exec);
 
 class HomebrewPackageManager extends PackageManager {
   protected config: PackageManagerConfig = {
-    name: 'Homebrew',
-    command: 'homebrew',
-    installCommand: 'brew install',
-    listCommand: 'brew list --formula -1 && brew list --cask -1',
-    platforms: ['macos'],
+    name: "Homebrew",
+    command: "homebrew",
+    installCommand: "brew install",
+    listCommand: "brew list --formula -1 && brew list --cask -1",
+    platforms: ["macos"],
     requiresSudo: false,
   };
 
   constructor() {
     super({
-      id: 'packages:homebrew',
-      description: 'Homebrew package manager for macOS',
-      dependsOn: ['core:paths'],
+      id: "packages:homebrew",
+      description: "Homebrew package manager for macOS",
+      dependsOn: ["core:paths"],
     });
   }
 
   protected async isAvailable(): Promise<boolean> {
     try {
-      await execAsync('which brew');
+      await execAsync("which brew");
       return true;
     } catch {
       return false;
     }
   }
 
-  protected async installPackages(packages: string[]): Promise<{ installed: string[]; failed: string[] }> {
+  protected async installPackages(
+    packages: string[],
+  ): Promise<{ installed: string[]; failed: string[] }> {
     const installed: string[] = [];
     const failed: string[] = [];
-    
+
     for (const pkg of packages) {
       try {
         // Try formula first, then cask if formula fails
@@ -50,7 +55,7 @@ class HomebrewPackageManager extends PackageManager {
         failed.push(pkg);
       }
     }
-    
+
     return { installed, failed };
   }
 
@@ -58,13 +63,13 @@ class HomebrewPackageManager extends PackageManager {
     try {
       // Get both formulas and casks
       const [formulaResult, caskResult] = await Promise.all([
-        execAsync('brew list --formula -1').catch(() => ({ stdout: '' })),
-        execAsync('brew list --cask -1').catch(() => ({ stdout: '' }))
+        execAsync("brew list --formula -1").catch(() => ({ stdout: "" })),
+        execAsync("brew list --cask -1").catch(() => ({ stdout: "" })),
       ]);
-      
-      const formulas = formulaResult.stdout.trim().split('\n').filter(Boolean);
-      const casks = caskResult.stdout.trim().split('\n').filter(Boolean);
-      
+
+      const formulas = formulaResult.stdout.trim().split("\n").filter(Boolean);
+      const casks = caskResult.stdout.trim().split("\n").filter(Boolean);
+
       return new Set([...formulas, ...casks]);
     } catch {
       return new Set();
@@ -74,13 +79,14 @@ class HomebrewPackageManager extends PackageManager {
   async apply(ctx: any): Promise<any> {
     try {
       const isInstalled = await this.isAvailable();
-      
+
       if (!isInstalled) {
-        this.logProgress(ctx, 'Installing Homebrew...');
-        const script = '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"';
+        this.logProgress(ctx, "Installing Homebrew...");
+        const script =
+          '/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"';
         await execAsync(script);
       }
-      
+
       return super.apply(ctx);
     } catch (error) {
       return this.createErrorResult(error);

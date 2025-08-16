@@ -5,11 +5,11 @@
 
 // Mock pino first
 const mockPino = jest.fn();
-jest.mock('pino', () => mockPino);
+jest.mock("pino", () => mockPino);
 
-import { createLogger } from '../../src/core/logger.js';
+import { createLogger } from "../../src/core/logger.js";
 
-describe('Logger Creation', () => {
+describe("Logger Creation", () => {
   beforeEach(() => {
     mockPino.mockReset();
     mockPino.mockReturnValue({
@@ -20,115 +20,115 @@ describe('Logger Creation', () => {
     });
   });
 
-  describe('createLogger', () => {
-    it('should create logger with default options', () => {
+  describe("createLogger", () => {
+    it("should create logger with default options", () => {
       createLogger();
-      
+
       expect(mockPino).toHaveBeenCalledWith({
-        level: 'info',
+        level: "info",
         transport: {
-          target: 'pino-pretty',
+          target: "pino-pretty",
           options: {
             colorize: true,
-            translateTime: 'SYS:standard',
+            translateTime: "SYS:standard",
             singleLine: true,
           },
         },
       });
     });
 
-    it('should create logger with verbose logging enabled', () => {
+    it("should create logger with verbose logging enabled", () => {
       createLogger({ verbose: true });
-      
+
       expect(mockPino).toHaveBeenCalledWith({
-        level: 'debug',
+        level: "debug",
         transport: {
-          target: 'pino-pretty',
+          target: "pino-pretty",
           options: {
             colorize: true,
-            translateTime: 'SYS:standard',
+            translateTime: "SYS:standard",
             singleLine: true,
           },
         },
       });
     });
 
-    it('should create logger without pretty formatting', () => {
+    it("should create logger without pretty formatting", () => {
       createLogger({ pretty: false });
-      
+
       expect(mockPino).toHaveBeenCalledWith({
-        level: 'info',
+        level: "info",
         transport: undefined,
       });
     });
 
-    it('should create logger with custom pino options', () => {
+    it("should create logger with custom pino options", () => {
       const customOptions = {
-        name: 'test-logger',
-        redact: ['password'],
+        name: "test-logger",
+        redact: ["password"],
         verbose: true,
         pretty: false,
       };
-      
+
       createLogger(customOptions);
-      
+
       expect(mockPino).toHaveBeenCalledWith({
-        level: 'debug',
+        level: "debug",
         transport: undefined,
-        name: 'test-logger',
-        redact: ['password'],
+        name: "test-logger",
+        redact: ["password"],
       });
     });
 
-    it('should handle empty options object', () => {
+    it("should handle empty options object", () => {
       createLogger({});
-      
+
       expect(mockPino).toHaveBeenCalledWith({
-        level: 'info',
+        level: "info",
         transport: {
-          target: 'pino-pretty',
+          target: "pino-pretty",
           options: {
             colorize: true,
-            translateTime: 'SYS:standard',
+            translateTime: "SYS:standard",
             singleLine: true,
           },
         },
       });
     });
 
-    it('should override verbose when explicitly set to false', () => {
+    it("should override verbose when explicitly set to false", () => {
       createLogger({ verbose: false });
-      
+
       expect(mockPino).toHaveBeenCalledWith({
-        level: 'info',
+        level: "info",
         transport: {
-          target: 'pino-pretty',
+          target: "pino-pretty",
           options: {
             colorize: true,
-            translateTime: 'SYS:standard',
+            translateTime: "SYS:standard",
             singleLine: true,
           },
         },
       });
     });
 
-    it('should combine custom options with computed level and transport', () => {
+    it("should combine custom options with computed level and transport", () => {
       const customOptions = {
         serializers: { req: jest.fn() },
         base: { pid: false },
         verbose: true,
         pretty: true,
       };
-      
+
       createLogger(customOptions);
-      
+
       expect(mockPino).toHaveBeenCalledWith({
-        level: 'debug',
+        level: "debug",
         transport: {
-          target: 'pino-pretty',
+          target: "pino-pretty",
           options: {
             colorize: true,
-            translateTime: 'SYS:standard',
+            translateTime: "SYS:standard",
             singleLine: true,
           },
         },

@@ -1,18 +1,18 @@
-export type Platform = 'macos' | 'ubuntu' | 'al2' | 'unknown';
+export type Platform = "macos" | "ubuntu" | "al2" | "unknown";
 
 export type ConfigurationStatus =
-  | 'stale'
-  | 'pending'
-  | 'applied'
-  | 'skipped'
-  | 'failed';
+  | "stale"
+  | "pending"
+  | "applied"
+  | "skipped"
+  | "failed";
 
 export interface ConfigurationContext {
   platform: Platform;
   homeDir: string;
   cwd: string;
   isCI: boolean;
-  logger: import('pino').Logger;
+  logger: import("pino").Logger;
   state: StateStore;
 }
 
@@ -92,25 +92,32 @@ export interface Module {
   id: string;
   description?: string;
   dependsOn?: string[];
-  
+
   // Core lifecycle methods
   isApplicable(ctx: ConfigurationContext): Promise<boolean> | boolean;
   plan(ctx: ConfigurationContext): Promise<PlanResult> | PlanResult;
   apply(ctx: ConfigurationContext): Promise<ModuleResult> | ModuleResult;
-  
+
   // Optional methods
   status?(ctx: ConfigurationContext): Promise<StatusResult> | StatusResult;
   getDetails?(ctx: ConfigurationContext): Promise<string[]> | string[];
-  
+
   // State comparison methods for robust status checks
-  captureState?(ctx: ConfigurationContext): Promise<ModuleStateSnapshot> | ModuleStateSnapshot;
-  compareState?(beforeState: ModuleStateSnapshot, afterState: ModuleStateSnapshot): boolean;
-  getExpectedState?(ctx: ConfigurationContext): Promise<ModuleStateSnapshot> | ModuleStateSnapshot;
-  
+  captureState?(
+    ctx: ConfigurationContext,
+  ): Promise<ModuleStateSnapshot> | ModuleStateSnapshot;
+  compareState?(
+    beforeState: ModuleStateSnapshot,
+    afterState: ModuleStateSnapshot,
+  ): boolean;
+  getExpectedState?(
+    ctx: ConfigurationContext,
+  ): Promise<ModuleStateSnapshot> | ModuleStateSnapshot;
+
   // Event hooks
   onStatusChange?(status: ConfigurationStatus): void;
   onProgress?(message: string): void;
-  
+
   // Theme-specific methods (optional)
   switchTheme?(themeName: string, ctx?: ConfigurationContext): Promise<boolean>;
   getAvailableThemes?(): any[] | Promise<any[]>;

@@ -12,7 +12,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "test:ci": "jest --ci --coverage --watchAll=false"
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "format": "prettier --write \"**/*.{ts,tsx,js}\""
   },
   "repository": {
     "type": "git",
@@ -41,6 +42,7 @@
     "@types/react": "^19.1.9",
     "@types/yargs": "^17.0.33",
     "jest": "^30.0.5",
+    "prettier": "^3.6.2",
     "ts-jest": "^29.4.1",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2"

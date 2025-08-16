@@ -1,7 +1,7 @@
-import { promises as fs, readFileSync } from 'node:fs';
-import path from 'node:path';
+import { promises as fs, readFileSync } from "node:fs";
+import path from "node:path";
 
-import type { StateStore } from './types.js';
+import type { StateStore } from "./types.js";
 
 export class JsonFileStateStore implements StateStore {
   private readonly stateFilePath: string;
@@ -10,7 +10,7 @@ export class JsonFileStateStore implements StateStore {
   constructor(stateFilePath: string) {
     this.stateFilePath = stateFilePath;
     try {
-      const data = readFileSync(this.stateFilePath, 'utf8');
+      const data = readFileSync(this.stateFilePath, "utf8");
       this.cache = JSON.parse(data) as Record<string, unknown>;
     } catch {
       this.cache = {};
@@ -38,5 +38,3 @@ export class JsonFileStateStore implements StateStore {
     await fs.writeFile(this.stateFilePath, JSON.stringify(this.cache, null, 2));
   }
 }
-
-

@@ -5,35 +5,38 @@ import type {
   ModuleResult,
   StatusResult,
   Platform,
-} from './types.js';
-import { ModuleHelpers } from './module-helpers.js';
-import { addPackageContribution } from './contrib.js';
+} from "./types.js";
+import { ModuleHelpers } from "./module-helpers.js";
+import { addPackageContribution } from "./contrib.js";
 
 export interface AppModuleConfig {
   id: string;
   description: string;
   platforms?: Platform[];
   dependsOn?: string[];
-  
+
   // Package management
   packageName: string;
-  packageManager?: 'homebrew' | 'apt' | 'yum' | 'mise';
-  packageMappings?: Record<Platform, { name: string; manager: 'homebrew' | 'apt' | 'yum' | 'mise' }>;
-  
+  packageManager?: "homebrew" | "apt" | "yum" | "mise";
+  packageMappings?: Record<
+    Platform,
+    { name: string; manager: "homebrew" | "apt" | "yum" | "mise" }
+  >;
+
   // Configuration
   configPath?: string;
   template?: (ctx: ConfigurationContext, themeColors?: any) => string;
-  
+
   // Custom commands
   installCommand?: string;
   checkCommand?: string;
   isInstalledCheck?: (ctx: ConfigurationContext) => Promise<boolean>;
-  
+
   // Custom behavior
   customPlan?: (ctx: ConfigurationContext) => Promise<PlanResult>;
   customApply?: (ctx: ConfigurationContext) => Promise<ModuleResult>;
   customStatus?: (ctx: ConfigurationContext) => Promise<StatusResult>;
-  
+
   // Details
   getDetails?: (ctx: ConfigurationContext) => string[];
 }
@@ -63,7 +66,9 @@ export function createAppModule(config: AppModuleConfig): Module {
       // Default behavior: add package contributions
       if (config.packageMappings) {
         // Use platform-specific package mappings
-        for (const [platform, packageInfo] of Object.entries(config.packageMappings)) {
+        for (const [platform, packageInfo] of Object.entries(
+          config.packageMappings,
+        )) {
           // Add null check to prevent accessing undefined properties
           if (packageInfo && packageInfo.name && packageInfo.manager) {
             addPackageContribution(ctx, {
@@ -75,7 +80,8 @@ export function createAppModule(config: AppModuleConfig): Module {
         }
       } else {
         // Use single package with specified or inferred manager
-        const manager = config.packageManager || inferPackageManager(ctx.platform);
+        const manager =
+          config.packageManager || inferPackageManager(ctx.platform);
         if (manager && config.packageName) {
           addPackageContribution(ctx, {
             name: config.packageName,
@@ -94,7 +100,10 @@ export function createAppModule(config: AppModuleConfig): Module {
       }
 
       // Default behavior: basic success (packages handled by package managers)
-      return ModuleHelpers.createSuccessResult(false, 'Package requirements contributed');
+      return ModuleHelpers.createSuccessResult(
+        false,
+        "Package requirements contributed",
+      );
     },
 
     async status(ctx: ConfigurationContext): Promise<StatusResult> {
@@ -107,24 +116,33 @@ export function createAppModule(config: AppModuleConfig): Module {
         if (config.isInstalledCheck) {
           const isInstalled = await config.isInstalledCheck(ctx);
           if (!isInstalled) {
-            return { status: 'stale', message: `${config.packageName} not installed` };
+            return {
+              status: "stale",
+              message: `${config.packageName} not installed`,
+            };
           }
         } else if (config.checkCommand) {
-          const { exec } = await import('node:child_process');
-          const { promisify } = await import('node:util');
+          const { exec } = await import("node:child_process");
+          const { promisify } = await import("node:util");
           const execAsync = promisify(exec);
           await execAsync(config.checkCommand);
         } else {
           // Default: check if command exists in PATH
-          const { exec } = await import('node:child_process');
-          const { promisify } = await import('node:util');
+          const { exec } = await import("node:child_process");
+          const { promisify } = await import("node:util");
           const execAsync = promisify(exec);
           await execAsync(`which ${config.packageName}`);
         }
 
-        return { status: 'applied', message: `${config.packageName.charAt(0).toUpperCase() + config.packageName.slice(1)} available` };
+        return {
+          status: "applied",
+          message: `${config.packageName.charAt(0).toUpperCase() + config.packageName.slice(1)} available`,
+        };
       } catch {
-        return { status: 'stale', message: `${config.packageName.charAt(0).toUpperCase() + config.packageName.slice(1)} not found in PATH` };
+        return {
+          status: "stale",
+          message: `${config.packageName.charAt(0).toUpperCase() + config.packageName.slice(1)} not found in PATH`,
+        };
       }
     },
 
@@ -132,11 +150,11 @@ export function createAppModule(config: AppModuleConfig): Module {
       if (config.getDetails) {
         return config.getDetails(ctx);
       }
-      
+
       return [
         `${config.description}:`,
         `  • Package: ${config.packageName}`,
-        `  • Platforms: ${config.platforms?.join(', ') || 'all'}`,
+        `  • Platforms: ${config.platforms?.join(", ") || "all"}`,
       ];
     },
   };
@@ -145,14 +163,16 @@ export function createAppModule(config: AppModuleConfig): Module {
 /**
  * Infer the appropriate package manager for a platform
  */
-function inferPackageManager(platform: Platform): 'homebrew' | 'apt' | 'yum' | 'mise' | null {
+function inferPackageManager(
+  platform: Platform,
+): "homebrew" | "apt" | "yum" | "mise" | null {
   switch (platform) {
-    case 'macos':
-      return 'homebrew';
-    case 'ubuntu':
-      return 'apt';
-    case 'al2':
-      return 'yum';
+    case "macos":
+      return "homebrew";
+    case "ubuntu":
+      return "apt";
+    case "al2":
+      return "yum";
     default:
       return null;
   }
@@ -163,13 +183,21 @@ function inferPackageManager(platform: Platform): 'homebrew' | 'apt' | 'yum' | '
  */
 export function createCrossPlatformPackages(
   packageName: string,
-  overrides?: Partial<Record<Platform, { name: string; manager: 'homebrew' | 'apt' | 'yum' | 'mise' }>>
-): Record<Platform, { name: string; manager: 'homebrew' | 'apt' | 'yum' | 'mise' }> {
+  overrides?: Partial<
+    Record<
+      Platform,
+      { name: string; manager: "homebrew" | "apt" | "yum" | "mise" }
+    >
+  >,
+): Record<
+  Platform,
+  { name: string; manager: "homebrew" | "apt" | "yum" | "mise" }
+> {
   const defaults = {
-    macos: { name: packageName, manager: 'homebrew' as const },
-    ubuntu: { name: packageName, manager: 'apt' as const },
-    al2: { name: packageName, manager: 'yum' as const },
-    unknown: { name: packageName, manager: 'homebrew' as const }, // fallback
+    macos: { name: packageName, manager: "homebrew" as const },
+    ubuntu: { name: packageName, manager: "apt" as const },
+    al2: { name: packageName, manager: "yum" as const },
+    unknown: { name: packageName, manager: "homebrew" as const }, // fallback
   };
 
   return { ...defaults, ...overrides };

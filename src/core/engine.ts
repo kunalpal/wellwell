@@ -1,10 +1,10 @@
-import path from 'node:path';
-import os from 'node:os';
+import path from "node:path";
+import os from "node:os";
 
-import { detectPlatform } from './platform.js';
-import { createLogger } from './logger.js';
-import { JsonFileStateStore } from './state.js';
-import { StateComparison } from './state-comparison.js';
+import { detectPlatform } from "./platform.js";
+import { createLogger } from "./logger.js";
+import { JsonFileStateStore } from "./state.js";
+import { StateComparison } from "./state-comparison.js";
 import type {
   ApplyResult,
   ConfigurationContext,
@@ -12,7 +12,7 @@ import type {
   ConfigurationStatus,
   PlanResult,
   StatusResult,
-} from './types.js';
+} from "./types.js";
 
 export interface EngineOptions {
   verbose?: boolean;
@@ -22,13 +22,17 @@ export interface EngineOptions {
 }
 
 export interface EngineHooks {
-  onModuleStatusChange?: (payload: { id: string; status: ConfigurationStatus }) => void;
+  onModuleStatusChange?: (payload: {
+    id: string;
+    status: ConfigurationStatus;
+  }) => void;
   onModuleMessage?: (payload: { id: string; message: string }) => void;
 }
 
 export class Engine {
   private readonly modules: Map<string, ConfigurationModule> = new Map();
-  private readonly options: Required<Omit<EngineOptions, 'hooks'>> & Pick<EngineOptions, 'hooks'>;
+  private readonly options: Required<Omit<EngineOptions, "hooks">> &
+    Pick<EngineOptions, "hooks">;
   private readonly hooks?: EngineHooks;
   private readonly sharedState: JsonFileStateStore;
 
@@ -37,7 +41,8 @@ export class Engine {
       verbose: options?.verbose ?? false,
       prettyLogs: options?.prettyLogs ?? true,
       stateFilePath:
-        options?.stateFilePath ?? path.join(os.homedir(), '.wellwell', 'state.json'),
+        options?.stateFilePath ??
+        path.join(os.homedir(), ".wellwell", "state.json"),
       hooks: options?.hooks,
     };
     this.hooks = this.options.hooks;
@@ -52,7 +57,10 @@ export class Engine {
   }
 
   public buildContext(): ConfigurationContext {
-    const logger = createLogger({ pretty: this.options.prettyLogs, verbose: this.options.verbose });
+    const logger = createLogger({
+      pretty: this.options.prettyLogs,
+      verbose: this.options.verbose,
+    });
     return {
       platform: detectPlatform(),
       homeDir: os.homedir(),
@@ -79,7 +87,8 @@ export class Engine {
       const deps = module.dependsOn ?? [];
       for (const depId of deps) {
         const dep = idToModule.get(depId);
-        if (!dep) throw new Error(`Missing dependency ${depId} for ${module.id}`);
+        if (!dep)
+          throw new Error(`Missing dependency ${depId} for ${module.id}`);
         visit(dep);
       }
       permMark.add(module.id);
@@ -88,9 +97,11 @@ export class Engine {
     };
 
     // If specific modules are selected, expand to include all dependencies
-    const expandedIds = selectedIds ? this.expandSelectedIds(selectedIds) : undefined;
-    const modulesToProcess = expandedIds 
-      ? modules.filter(m => expandedIds.includes(m.id))
+    const expandedIds = selectedIds
+      ? this.expandSelectedIds(selectedIds)
+      : undefined;
+    const modulesToProcess = expandedIds
+      ? modules.filter((m) => expandedIds.includes(m.id))
       : modules;
 
     // Sort by ID for deterministic order, then perform DFS
@@ -104,25 +115,27 @@ export class Engine {
 
   private expandSelectedIds(selectedIds: string[]): string[] {
     const expanded = new Set<string>();
-    const idToModule = new Map(Array.from(this.modules.values()).map(m => [m.id, m]));
-    
+    const idToModule = new Map(
+      Array.from(this.modules.values()).map((m) => [m.id, m]),
+    );
+
     const visit = (moduleId: string): void => {
       if (expanded.has(moduleId)) return;
-      
+
       const module = idToModule.get(moduleId);
       if (!module) {
         throw new Error(`Module not found: ${moduleId}`);
       }
-      
+
       expanded.add(moduleId);
-      
+
       // Recursively add dependencies
       const deps = module.dependsOn ?? [];
       for (const depId of deps) {
         visit(depId);
       }
     };
-    
+
     selectedIds.forEach(visit);
     return Array.from(expanded);
   }
@@ -151,16 +164,16 @@ export class Engine {
     for (const mod of graph) {
       // Skip if any dependency failed in this run
       if ((mod.dependsOn ?? []).some((dep) => failedIds.has(dep))) {
-        mod.onStatusChange?.('skipped');
-        ctx.logger.warn({ module: mod.id }, 'Skipped due to failed dependency');
-        results[mod.id] = { success: true, changed: false, message: 'skipped' };
+        mod.onStatusChange?.("skipped");
+        ctx.logger.warn({ module: mod.id }, "Skipped due to failed dependency");
+        results[mod.id] = { success: true, changed: false, message: "skipped" };
         continue;
       }
       if (!(await mod.isApplicable(ctx))) {
-        ctx.logger.debug({ module: mod.id }, 'Skipping: not applicable');
+        ctx.logger.debug({ module: mod.id }, "Skipping: not applicable");
         continue;
       }
-      this.hooks?.onModuleStatusChange?.({ id: mod.id, status: 'pending' });
+      this.hooks?.onModuleStatusChange?.({ id: mod.id, status: "pending" });
       const prevOnStatus = mod.onStatusChange;
       mod.onStatusChange = (status) => {
         this.hooks?.onModuleStatusChange?.({ id: mod.id, status });
@@ -172,13 +185,17 @@ export class Engine {
         const expectedState = await mod.getExpectedState?.(ctx);
 
         // Use state comparison to record apply execution
-        const res = await StateComparison.recordApplyExecution(ctx, mod, async () => {
-          return await mod.apply(ctx);
-        });
+        const res = await StateComparison.recordApplyExecution(
+          ctx,
+          mod,
+          async () => {
+            return await mod.apply(ctx);
+          },
+        );
 
         // Capture final state and store metadata
         const afterState = await mod.captureState?.(ctx);
-        
+
         if (beforeState && afterState && expectedState) {
           const metadata = {
             moduleId: mod.id,
@@ -192,12 +209,12 @@ export class Engine {
         }
 
         results[mod.id] = res;
-        mod.onStatusChange?.(res.success ? 'applied' : 'failed');
+        mod.onStatusChange?.(res.success ? "applied" : "failed");
       } catch (error) {
-        results[mod.id] = { success: false, error, message: 'exception' };
+        results[mod.id] = { success: false, error, message: "exception" };
         failedIds.add(mod.id);
-        mod.onStatusChange?.('failed');
-        ctx.logger.error({ module: mod.id, error }, 'Apply failed');
+        mod.onStatusChange?.("failed");
+        ctx.logger.error({ module: mod.id, error }, "Apply failed");
         // continue to allow non-dependent modules to proceed
       }
     }
@@ -206,14 +223,16 @@ export class Engine {
     return results;
   }
 
-  async statuses(selectedIds?: string[]): Promise<Record<string, ConfigurationStatus>> {
+  async statuses(
+    selectedIds?: string[],
+  ): Promise<Record<string, ConfigurationStatus>> {
     const ctx = this.buildContext();
     const graph = this.topoSortModules(selectedIds);
     const result: Record<string, ConfigurationStatus> = {};
-    
+
     for (const mod of graph) {
       if (!(await mod.isApplicable(ctx))) continue;
-      
+
       try {
         // Try module status method first if available
         if (mod.status) {
@@ -224,43 +243,51 @@ export class Engine {
             // Fall back to plan-based checking when status fails
             try {
               const plan = await mod.plan(ctx);
-              result[mod.id] = plan.changes.length > 0 ? 'stale' : 'applied';
+              result[mod.id] = plan.changes.length > 0 ? "stale" : "applied";
             } catch (planError) {
-              ctx.logger.error({ module: mod.id, error: planError }, 'Both status and plan failed');
-              result[mod.id] = 'stale'; // Default to stale on error
+              ctx.logger.error(
+                { module: mod.id, error: planError },
+                "Both status and plan failed",
+              );
+              result[mod.id] = "stale"; // Default to stale on error
             }
           }
         } else {
           // Fall back to plan-based checking when no status method
           const plan = await mod.plan(ctx);
-          result[mod.id] = plan.changes.length > 0 ? 'stale' : 'applied';
+          result[mod.id] = plan.changes.length > 0 ? "stale" : "applied";
         }
       } catch (error) {
-        ctx.logger.error({ module: mod.id, error }, 'Status check failed');
-        result[mod.id] = 'stale'; // Default to stale on error
+        ctx.logger.error({ module: mod.id, error }, "Status check failed");
+        result[mod.id] = "stale"; // Default to stale on error
       }
     }
-    
+
     await ctx.state.flush();
     return result;
   }
 
-  async detailedStatuses(selectedIds?: string[]): Promise<Record<string, StatusResult>> {
+  async detailedStatuses(
+    selectedIds?: string[],
+  ): Promise<Record<string, StatusResult>> {
     const ctx = this.buildContext();
     const graph = this.topoSortModules(selectedIds);
     const result: Record<string, StatusResult> = {};
-    
+
     for (const mod of graph) {
       if (!(await mod.isApplicable(ctx))) continue;
-      
+
       try {
         // Use robust status checking with state comparison
         result[mod.id] = await StateComparison.getRobustStatus(ctx, mod);
       } catch (error) {
-        ctx.logger.error({ module: mod.id, error }, 'Detailed status check failed');
+        ctx.logger.error(
+          { module: mod.id, error },
+          "Detailed status check failed",
+        );
         result[mod.id] = {
-          status: 'stale',
-          message: 'Status check failed',
+          status: "stale",
+          message: "Status check failed",
           details: {
             issues: [error instanceof Error ? error.message : String(error)],
           },
@@ -270,7 +297,7 @@ export class Engine {
         };
       }
     }
-    
+
     await ctx.state.flush();
     return result;
   }

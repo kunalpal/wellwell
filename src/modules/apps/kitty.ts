@@ -1,62 +1,67 @@
-import { exec } from 'node:child_process';
-import { promisify } from 'node:util';
-import { AppConfig, type AppConfigOptions } from '../../core/app-config.js';
-import type { ConfigurationContext, Platform } from '../../core/types.js';
-import { templateManager } from '../../core/template-manager.js';
-import { themeContextProvider } from '../../core/theme-context.js';
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
+import { AppConfig, type AppConfigOptions } from "../../core/app-config.js";
+import type { ConfigurationContext, Platform } from "../../core/types.js";
+import { templateManager } from "../../core/template-manager.js";
+import { themeContextProvider } from "../../core/theme-context.js";
 
 const execAsync = promisify(exec);
 
 class KittyConfig extends AppConfig {
   constructor() {
     super({
-      id: 'apps:kitty',
-      description: 'Kitty terminal emulator with custom configuration (macOS only)',
-      dependsOn: ['packages:homebrew', 'themes:base16'],
-      configDir: '.config/kitty',
-      configFile: 'kitty.conf',
-      platforms: ['macos'] as Platform[],
+      id: "apps:kitty",
+      description:
+        "Kitty terminal emulator with custom configuration (macOS only)",
+      dependsOn: ["packages:homebrew", "themes:base16"],
+      configDir: ".config/kitty",
+      configFile: "kitty.conf",
+      platforms: ["macos"] as Platform[],
       packageDependencies: [
-        { name: 'kitty', manager: 'homebrew' as const, platforms: ['macos'] as Platform[] },
+        {
+          name: "kitty",
+          manager: "homebrew" as const,
+          platforms: ["macos"] as Platform[],
+        },
       ],
     });
   }
 
-    protected async generateTemplate(ctx: ConfigurationContext): Promise<string> {
+  protected async generateTemplate(ctx: ConfigurationContext): Promise<string> {
     // Load module partials
-    await templateManager.loadModulePartials('apps');
-    
+    await templateManager.loadModulePartials("apps");
+
     // Get current theme and generate theme-aware configuration
-    const currentTheme = ctx.state.get<string>('themes.current') || 'default';
+    const currentTheme = ctx.state.get<string>("themes.current") || "default";
     const themeColors = await themeContextProvider.getThemeColors(currentTheme);
-    
+
     // Generate context with theme colors
     const context = {
       ...themeColors,
       themeName: currentTheme,
     };
-    
+
     // Load and render the template
-    return templateManager.loadAndRender('apps', 'kitty.conf.hbs', context);
+    return templateManager.loadAndRender("apps", "kitty.conf.hbs", context);
   }
 
   async apply(ctx: ConfigurationContext): Promise<any> {
     try {
       // Check if Kitty is installed via Homebrew
-      let installMessage = '';
+      let installMessage = "";
       try {
-        await execAsync('brew list --cask kitty');
-        installMessage = 'Kitty already installed';
+        await execAsync("brew list --cask kitty");
+        installMessage = "Kitty already installed";
       } catch {
         // Try to install Kitty
         try {
-          await execAsync('brew install --cask kitty');
-          installMessage = 'Kitty installed';
+          await execAsync("brew install --cask kitty");
+          installMessage = "Kitty installed";
         } catch (error) {
           // Check if it's now available (might have been installed by other means)
           try {
-            await execAsync('which kitty');
-            installMessage = 'Kitty detected (already installed)';
+            await execAsync("which kitty");
+            installMessage = "Kitty detected (already installed)";
           } catch {
             throw error; // Re-throw if it's actually not installed
           }
@@ -66,7 +71,7 @@ class KittyConfig extends AppConfig {
       // Generate and write configuration using template
       const content = await this.generateTemplate(ctx);
       await this.writeConfig(ctx, content);
-      
+
       return {
         success: true,
         changed: true,
@@ -82,11 +87,11 @@ class KittyConfig extends AppConfig {
       // Check if Kitty is installed
       let isInstalled = false;
       try {
-        await execAsync('brew list --cask kitty');
+        await execAsync("brew list --cask kitty");
         isInstalled = true;
       } catch {
         try {
-          await execAsync('which kitty');
+          await execAsync("which kitty");
           isInstalled = true;
         } catch {
           // Kitty not installed
@@ -94,84 +99,78 @@ class KittyConfig extends AppConfig {
       }
 
       if (!isInstalled) {
-        return { 
-          status: 'stale', 
-          message: 'Kitty not installed',
+        return {
+          status: "stale",
+          message: "Kitty not installed",
           details: {
-            issues: ['Kitty terminal emulator is not installed'],
-            recommendations: ['Run apply to install Kitty']
-          }
+            issues: ["Kitty terminal emulator is not installed"],
+            recommendations: ["Run apply to install Kitty"],
+          },
         };
       }
 
       // Check if config exists
       const exists = await this.configExists(ctx);
       if (!exists) {
-        return { 
-          status: 'stale', 
-          message: 'kitty.conf missing',
+        return {
+          status: "stale",
+          message: "kitty.conf missing",
           details: {
-            issues: ['Kitty configuration file does not exist'],
-            recommendations: ['Run apply to create the configuration']
-          }
+            issues: ["Kitty configuration file does not exist"],
+            recommendations: ["Run apply to create the configuration"],
+          },
         };
       }
 
       // Compare current content with desired content
       const currentContent = await this.readConfig(ctx);
       const desiredContent = await this.generateTemplate(ctx);
-      
 
-      
       if (currentContent === desiredContent) {
-        return { 
-          status: 'applied', 
-          message: 'kitty.conf exists',
+        return {
+          status: "applied",
+          message: "kitty.conf exists",
           metadata: {
-            lastChecked: new Date()
-          }
+            lastChecked: new Date(),
+          },
         };
       }
 
       // Generate diff for detailed reporting
-      const diff = this.generateDiff(currentContent || '', desiredContent);
-      
+      const diff = this.generateDiff(currentContent || "", desiredContent);
+
       return {
-        status: 'stale',
-        message: 'Kitty configuration needs update',
+        status: "stale",
+        message: "Kitty configuration needs update",
         details: {
           current: currentContent,
           desired: desiredContent,
           diff: diff,
-          issues: ['Configuration content differs from expected'],
-          recommendations: ['Run apply to update the configuration']
-        }
+          issues: ["Configuration content differs from expected"],
+          recommendations: ["Run apply to update the configuration"],
+        },
       };
     } catch (error) {
-      return { 
-        status: 'error', 
-        message: 'Error checking Kitty status',
+      return {
+        status: "error",
+        message: "Error checking Kitty status",
         details: {
           issues: [`Error: ${error}`],
-          recommendations: ['Check logs for details']
-        }
+          recommendations: ["Check logs for details"],
+        },
       };
     }
   }
 
-
-
-
-
   getDetails(_ctx: ConfigurationContext): string[] {
     return [
-      'Modern GPU-accelerated terminal:',
-      '  • Tokyo Night color scheme',
-      '  • SF Mono font with optimized settings',
-      '  • Powerline tab bar with slanted style',
-      '  • macOS-specific optimizations',
-      '  • Custom key mappings (cmd+c/v, tab navigation)',
-      '  • Performance-tuned rendering',
+      "Modern GPU-accelerated terminal:",
+      "  • Tokyo Night color scheme",
+      "  • SF Mono font with optimized settings",
+      "  • Powerline tab bar with slanted style",
+      "  • macOS-specific optimizations",
+      "  • Custom key mappings (cmd+c/v, tab navigation)",
+      "  • Performance-tuned rendering",
     ];
   }
 }

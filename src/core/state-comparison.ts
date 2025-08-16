@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
 import type {
   ConfigurationContext,
   Module,
@@ -6,22 +6,23 @@ import type {
   ModuleApplyMetadata,
   StatusResult,
   ConfigurationStatus,
-} from './types.js';
+} from "./types.js";
 
 /**
  * Utility class for handling module state comparison and tracking
  * Provides robust status checking by comparing actual state before/after applying
  */
 export class StateComparison {
-  private static readonly STATE_KEY_PREFIX = 'state_comparison:';
-  private static readonly METADATA_KEY_PREFIX = 'apply_metadata:';
+  private static readonly STATE_KEY_PREFIX = "state_comparison:";
+  private static readonly METADATA_KEY_PREFIX = "apply_metadata:";
 
   /**
    * Creates a checksum for the given state object
    */
   static createChecksum(state: any): string {
-    const stateStr = typeof state === 'string' ? state : JSON.stringify(state, null, 2);
-    return createHash('sha256').update(stateStr).digest('hex').substring(0, 16);
+    const stateStr =
+      typeof state === "string" ? state : JSON.stringify(state, null, 2);
+    return createHash("sha256").update(stateStr).digest("hex").substring(0, 16);
   }
 
   /**
@@ -30,10 +31,10 @@ export class StateComparison {
   static async createSnapshot(
     moduleId: string,
     ctx: ConfigurationContext,
-    module: Module
+    module: Module,
   ): Promise<ModuleStateSnapshot> {
     let state: any = null;
-    
+
     try {
       if (module.captureState) {
         const snapshot = await module.captureState(ctx);
@@ -57,7 +58,10 @@ export class StateComparison {
         }
       }
     } catch (error) {
-      ctx.logger.warn({ module: moduleId, error }, 'Failed to capture state, using fallback');
+      ctx.logger.warn(
+        { module: moduleId, error },
+        "Failed to capture state, using fallback",
+      );
       state = {
         moduleId,
         error: error instanceof Error ? error.message : String(error),
@@ -80,7 +84,7 @@ export class StateComparison {
   static async getExpectedStateSnapshot(
     moduleId: string,
     ctx: ConfigurationContext,
-    module: Module
+    module: Module,
   ): Promise<ModuleStateSnapshot> {
     try {
       // First try to use the module's own getExpectedState method
@@ -90,17 +94,20 @@ export class StateComparison {
 
       // Create compatible expected state that matches the current snapshot structure
       const plan = await module.plan(ctx);
-      
-      // If we're using the status-based fallback for current state, 
+
+      // If we're using the status-based fallback for current state,
       // make the expected state compatible
       if (!module.captureState && module.status) {
         // Create an expected status based on the plan
-        const expectedStatus = plan.changes.length > 0 ? 'stale' : 'applied';
+        const expectedStatus = plan.changes.length > 0 ? "stale" : "applied";
         const expectedState = {
           status: expectedStatus,
-          details: plan.changes.length > 0 ? {
-            issues: plan.changes.map(c => c.summary),
-          } : undefined,
+          details:
+            plan.changes.length > 0
+              ? {
+                  issues: plan.changes.map((c) => c.summary),
+                }
+              : undefined,
           metadata: {
             planBased: true,
             changesCount: plan.changes.length,
@@ -114,13 +121,13 @@ export class StateComparison {
           state: expectedState,
         };
       }
-      
+
       // Default: create expected state based on plan
       const expectedState = {
         moduleId,
         planChanges: plan.changes.length,
         hasChanges: plan.changes.length > 0,
-        changes: plan.changes.map(c => c.summary),
+        changes: plan.changes.map((c) => c.summary),
         // Don't include timestamp as it causes unnecessary differences
       };
 
@@ -131,12 +138,17 @@ export class StateComparison {
         state: expectedState,
       };
     } catch (error) {
-      ctx.logger.warn({ module: moduleId, error }, 'Failed to get expected state');
+      ctx.logger.warn(
+        { module: moduleId, error },
+        "Failed to get expected state",
+      );
       return {
         moduleId,
         timestamp: new Date(),
-        checksum: 'error',
-        state: { error: error instanceof Error ? error.message : String(error) },
+        checksum: "error",
+        state: {
+          error: error instanceof Error ? error.message : String(error),
+        },
       };
     }
   }
@@ -147,7 +159,7 @@ export class StateComparison {
   static compareSnapshots(
     module: Module,
     beforeState: ModuleStateSnapshot,
-    afterState: ModuleStateSnapshot
+    afterState: ModuleStateSnapshot,
   ): boolean {
     try {
       if (module.compareState) {
@@ -167,24 +179,30 @@ export class StateComparison {
    */
   static storeApplyMetadata(
     ctx: ConfigurationContext,
-    metadata: ModuleApplyMetadata
+    metadata: ModuleApplyMetadata,
   ): void {
     const key = `${this.METADATA_KEY_PREFIX}${metadata.moduleId}`;
     ctx.state.set(key, {
       ...metadata,
       appliedAt: metadata.appliedAt.toISOString(),
-      beforeState: metadata.beforeState ? {
-        ...metadata.beforeState,
-        timestamp: metadata.beforeState.timestamp.toISOString(),
-      } : undefined,
-      afterState: metadata.afterState ? {
-        ...metadata.afterState,
-        timestamp: metadata.afterState.timestamp.toISOString(),
-      } : undefined,
-      expectedState: metadata.expectedState ? {
-        ...metadata.expectedState,
-        timestamp: metadata.expectedState.timestamp.toISOString(),
-      } : undefined,
+      beforeState: metadata.beforeState
+        ? {
+            ...metadata.beforeState,
+            timestamp: metadata.beforeState.timestamp.toISOString(),
+          }
+        : undefined,
+      afterState: metadata.afterState
+        ? {
+            ...metadata.afterState,
+            timestamp: metadata.afterState.timestamp.toISOString(),
+          }
+        : undefined,
+      expectedState: metadata.expectedState
+        ? {
+            ...metadata.expectedState,
+            timestamp: metadata.expectedState.timestamp.toISOString(),
+          }
+        : undefined,
     });
   }
 
@@ -193,28 +211,34 @@ export class StateComparison {
    */
   static getApplyMetadata(
     ctx: ConfigurationContext,
-    moduleId: string
+    moduleId: string,
   ): ModuleApplyMetadata | undefined {
     const key = `${this.METADATA_KEY_PREFIX}${moduleId}`;
     const stored = ctx.state.get<any>(key);
-    
+
     if (!stored) return undefined;
 
     return {
       ...stored,
       appliedAt: new Date(stored.appliedAt),
-      beforeState: stored.beforeState ? {
-        ...stored.beforeState,
-        timestamp: new Date(stored.beforeState.timestamp),
-      } : undefined,
-      afterState: stored.afterState ? {
-        ...stored.afterState,
-        timestamp: new Date(stored.afterState.timestamp),
-      } : undefined,
-      expectedState: stored.expectedState ? {
-        ...stored.expectedState,
-        timestamp: new Date(stored.expectedState.timestamp),
-      } : undefined,
+      beforeState: stored.beforeState
+        ? {
+            ...stored.beforeState,
+            timestamp: new Date(stored.beforeState.timestamp),
+          }
+        : undefined,
+      afterState: stored.afterState
+        ? {
+            ...stored.afterState,
+            timestamp: new Date(stored.afterState.timestamp),
+          }
+        : undefined,
+      expectedState: stored.expectedState
+        ? {
+            ...stored.expectedState,
+            timestamp: new Date(stored.expectedState.timestamp),
+          }
+        : undefined,
     };
   }
 
@@ -223,33 +247,41 @@ export class StateComparison {
    */
   static async getRobustStatus(
     ctx: ConfigurationContext,
-    module: Module
+    module: Module,
   ): Promise<StatusResult> {
     const moduleId = module.id;
-    
+
     try {
       // Get current plan and state snapshots
       const plan = await module.plan(ctx);
       const hasPlannedChanges = plan.changes.length > 0;
       const currentSnapshot = await this.createSnapshot(moduleId, ctx, module);
-      const expectedSnapshot = await this.getExpectedStateSnapshot(moduleId, ctx, module);
-      
+      const expectedSnapshot = await this.getExpectedStateSnapshot(
+        moduleId,
+        ctx,
+        module,
+      );
+
       // Get metadata from last apply
       const metadata = this.getApplyMetadata(ctx, moduleId);
-      
+
       // Compare states
-      const expectedDiffers = this.compareSnapshots(module, currentSnapshot, expectedSnapshot);
-      
+      const expectedDiffers = this.compareSnapshots(
+        module,
+        currentSnapshot,
+        expectedSnapshot,
+      );
+
       // Priority 1: If plan shows changes, definitely stale (covers dynamic content changes)
       if (hasPlannedChanges) {
         return {
-          status: 'stale',
-          message: `Module has ${plan.changes.length} planned change${plan.changes.length === 1 ? '' : 's'}`,
+          status: "stale",
+          message: `Module has ${plan.changes.length} planned change${plan.changes.length === 1 ? "" : "s"}`,
           details: {
             current: currentSnapshot.state,
             desired: expectedSnapshot.state,
-            diff: plan.changes.map(c => c.summary),
-            issues: ['Module has planned changes that need to be applied'],
+            diff: plan.changes.map((c) => c.summary),
+            issues: ["Module has planned changes that need to be applied"],
           },
           metadata: {
             lastApplied: metadata?.appliedAt,
@@ -266,16 +298,16 @@ export class StateComparison {
           },
         };
       }
-      
+
       // Priority 2: If current state differs from expected state, also stale
       if (expectedDiffers) {
         return {
-          status: 'stale',
-          message: 'Current state differs from expected state',
+          status: "stale",
+          message: "Current state differs from expected state",
           details: {
             current: currentSnapshot.state,
             desired: expectedSnapshot.state,
-            issues: ['Module state differs from expected state'],
+            issues: ["Module state differs from expected state"],
           },
           metadata: {
             lastApplied: metadata?.appliedAt,
@@ -292,27 +324,35 @@ export class StateComparison {
           },
         };
       }
-      
+
       // Priority 3: Check for state changes since last apply (if we have metadata)
       if (metadata) {
         const lastAppliedState = metadata.afterState;
         const lastExpectedState = metadata.expectedState;
-        
-        const stateChanged = lastAppliedState ? this.compareSnapshots(module, lastAppliedState, currentSnapshot) : false;
-        const expectedChanged = lastExpectedState ? this.compareSnapshots(module, lastExpectedState, expectedSnapshot) : false;
-        
+
+        const stateChanged = lastAppliedState
+          ? this.compareSnapshots(module, lastAppliedState, currentSnapshot)
+          : false;
+        const expectedChanged = lastExpectedState
+          ? this.compareSnapshots(module, lastExpectedState, expectedSnapshot)
+          : false;
+
         if (stateChanged || expectedChanged) {
           return {
-            status: 'stale',
+            status: "stale",
             message: stateChanged
-              ? 'Module state has changed since last apply'
-              : 'Module expected state has changed',
+              ? "Module state has changed since last apply"
+              : "Module expected state has changed",
             details: {
               current: currentSnapshot.state,
               desired: expectedSnapshot.state,
               issues: [
-                ...(stateChanged ? ['Actual state differs from last applied state'] : []),
-                ...(expectedChanged ? ['Expected state differs from last planned state'] : []),
+                ...(stateChanged
+                  ? ["Actual state differs from last applied state"]
+                  : []),
+                ...(expectedChanged
+                  ? ["Expected state differs from last planned state"]
+                  : []),
               ],
             },
             metadata: {
@@ -331,11 +371,11 @@ export class StateComparison {
           };
         }
       }
-      
+
       // Everything looks good - module is applied
       return {
-        status: 'applied',
-        message: 'Module state matches expectations',
+        status: "applied",
+        message: "Module state matches expectations",
         details: {
           current: currentSnapshot.state,
           desired: expectedSnapshot.state,
@@ -354,27 +394,30 @@ export class StateComparison {
           },
         },
       };
-      
     } catch (error) {
-      ctx.logger.error({ module: moduleId, error }, 'Failed to perform robust status check');
-      
+      ctx.logger.error(
+        { module: moduleId, error },
+        "Failed to perform robust status check",
+      );
+
       // Fallback to traditional status check
       if (module.status) {
         try {
           return await module.status(ctx);
         } catch (statusError) {
-          ctx.logger.error({ module: moduleId, error: statusError }, 'Traditional status check also failed');
+          ctx.logger.error(
+            { module: moduleId, error: statusError },
+            "Traditional status check also failed",
+          );
         }
       }
-      
+
       // Ultimate fallback
       return {
-        status: 'stale',
-        message: 'Unable to determine status due to errors',
+        status: "stale",
+        message: "Unable to determine status due to errors",
         details: {
-          issues: [
-            error instanceof Error ? error.message : String(error),
-          ],
+          issues: [error instanceof Error ? error.message : String(error)],
         },
         metadata: {
           lastChecked: new Date(),
@@ -389,21 +432,25 @@ export class StateComparison {
   static async recordApplyExecution(
     ctx: ConfigurationContext,
     module: Module,
-    applyFn: () => Promise<any>
+    applyFn: () => Promise<any>,
   ): Promise<any> {
     const moduleId = module.id;
-    
+
     // Capture state before apply
     const beforeState = await this.createSnapshot(moduleId, ctx, module);
-    const expectedState = await this.getExpectedStateSnapshot(moduleId, ctx, module);
-    
+    const expectedState = await this.getExpectedStateSnapshot(
+      moduleId,
+      ctx,
+      module,
+    );
+
     try {
       // Execute the apply function
       const result = await applyFn();
-      
+
       // Capture final state and store metadata
       const afterState = await this.createSnapshot(moduleId, ctx, module);
-      
+
       // Store metadata about this apply operation
       const metadata: ModuleApplyMetadata = {
         moduleId,
@@ -413,18 +460,20 @@ export class StateComparison {
         expectedState,
         planChecksum: expectedState.checksum,
       };
-      
+
       // Store metadata before returning to ensure it's available for status checks
       this.storeApplyMetadata(ctx, metadata);
-      
+
       // Ensure state is flushed to disk
       await ctx.state.flush();
-      
+
       return result;
     } catch (error) {
       // Even if apply fails, we should still record what we attempted
-      const afterState = await this.createSnapshot(moduleId, ctx, module).catch(() => beforeState);
-      
+      const afterState = await this.createSnapshot(moduleId, ctx, module).catch(
+        () => beforeState,
+      );
+
       const metadata: ModuleApplyMetadata = {
         moduleId,
         appliedAt: new Date(),
@@ -433,13 +482,13 @@ export class StateComparison {
         expectedState,
         planChecksum: expectedState.checksum,
       };
-      
+
       // Store metadata even on failure
       this.storeApplyMetadata(ctx, metadata);
-      
+
       // Ensure state is flushed to disk
       await ctx.state.flush();
-      
+
       throw error;
     }
   }

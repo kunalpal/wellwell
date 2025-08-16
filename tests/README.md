@@ -34,14 +34,18 @@ npm test -- --testNamePattern="Platform Detection"
 ## Key Testing Principles
 
 ### 1. Host System Protection
+
 All tests use comprehensive mocking to prevent any changes to the host system:
+
 - Filesystem operations are mocked
 - Shell commands are mocked
 - Network requests are mocked
 - Package manager operations are mocked
 
 ### 2. Mock Architecture
+
 The `tests/mocks/index.ts` file provides centralized mock utilities:
+
 - `mockFs` - Mock filesystem operations
 - `mockExec` - Mock shell command execution
 - `mockOs` - Mock OS detection
@@ -51,7 +55,9 @@ The `tests/mocks/index.ts` file provides centralized mock utilities:
 ### 3. Test Categories
 
 #### Core Module Tests
+
 Test the fundamental functionality:
+
 - Platform detection logic
 - State management (JsonFileStateStore)
 - Logger configuration
@@ -59,14 +65,18 @@ Test the fundamental functionality:
 - Contribution system
 
 #### Package Manager Tests
+
 Test package manager integration:
+
 - Platform-specific applicability
 - Package installation planning and execution
 - Status checking
 - Error handling
 
 #### Application Module Tests
+
 Test application-specific configuration:
+
 - Package contribution registration
 - Configuration file management
 - Shell initialization
@@ -75,34 +85,38 @@ Test application-specific configuration:
 ## Mock Usage Examples
 
 ### Testing Commands
+
 ```typescript
 // Mock successful command
-mockCommandSuccess('output')(mockExecAsync);
+mockCommandSuccess("output")(mockExecAsync);
 
 // Mock command failure
-mockCommandFailure('Error message')(mockExecAsync);
+mockCommandFailure("Error message")(mockExecAsync);
 ```
 
 ### Testing File Operations
+
 ```typescript
 // Mock file exists
-mockFileExists('/path/to/file', true);
+mockFileExists("/path/to/file", true);
 
 // Mock file content
-mockFileContent('/path/to/file', 'content');
+mockFileContent("/path/to/file", "content");
 ```
 
 ### Creating Test Contexts
+
 ```typescript
 const ctx = createMockContext({
-  platform: 'macos',
-  homeDir: '/mock/home',
+  platform: "macos",
+  homeDir: "/mock/home",
 });
 ```
 
 ## CI Integration
 
 Tests run automatically on:
+
 - Push to main/develop branches
 - Pull requests to main
 - Multiple Node.js versions (18.x, 20.x)
