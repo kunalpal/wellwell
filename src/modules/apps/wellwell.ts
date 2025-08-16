@@ -61,12 +61,6 @@ export const wellwellModule = createAppModule({
   customPlan: async (ctx) => {
     const changes = [];
     
-    // Add ~/bin to PATH
-    addPathContribution(ctx, {
-      path: path.join(ctx.homeDir, 'bin'),
-      prepend: true,
-    });
-    
     const projectRoot = getProjectRoot();
     if (!projectRoot) {
       changes.push({ summary: 'Cannot find wellwell project root - ww command unavailable' });

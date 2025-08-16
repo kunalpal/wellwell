@@ -1,7 +1,8 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
-import type { ApplyResult, ConfigurationContext, ConfigurationModule, PlanResult, StatusResult } from '../../core/types.js';
+import type { ApplyResult, ConfigurationModule, PlanResult, StatusResult } from '../../core/types.js';
+import { addPathContribution } from '../../core/contrib.js';
 
 export const homeBinModule: ConfigurationModule = {
   id: 'common:homebin',
@@ -13,6 +14,7 @@ export const homeBinModule: ConfigurationModule = {
 
   async plan(ctx): Promise<PlanResult> {
     const target = path.join(ctx.homeDir, 'bin');
+    addPathContribution(ctx, { path: target, prepend: true });
     let exists = false;
     try {
       const st = await fs.stat(target);
