@@ -16,6 +16,9 @@ import {
 
 const execAsync = promisify(exec);
 
+/**
+ * Configuration options for a package manager, including command, supported platforms, and install flags.
+ */
 export interface PackageManagerConfig {
   name: string;
   command: string;
@@ -27,11 +30,18 @@ export interface PackageManagerConfig {
   installFlags?: string[];
 }
 
+/**
+ * Result of installing packages, including installed and failed package names.
+ */
 export interface PackageInstallResult {
   installed: string[];
   failed: string[];
 }
 
+/**
+ * Abstract base class for package manager modules.
+ * Handles package installation, status checking, and platform support.
+ */
 export abstract class PackageManager extends BaseModule {
   protected abstract config: PackageManagerConfig;
 

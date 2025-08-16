@@ -3,6 +3,9 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { getProjectRoot } from "./module-helpers.js";
 
+/**
+ * Terminal color definitions for theme JSON files.
+ */
 export interface TerminalColors {
   "terminal.background": string;
   "terminal.foreground": string;
@@ -26,6 +29,9 @@ export interface TerminalColors {
   "terminal.ansiYellow": string;
 }
 
+/**
+ * Base16 color variables derived from terminal colors.
+ */
 export interface ThemeColors {
   // Base16 color variables derived from terminal colors
   base00: string; // Default Background
@@ -46,6 +52,10 @@ export interface ThemeColors {
   base0F: string; // Deprecated
 }
 
+/**
+ * Provides theme context, including loading and caching theme colors, and generating template contexts.
+ * Used to support theme-aware configuration and rendering.
+ */
 export class ThemeContextProvider {
   private themeCache = new Map<string, ThemeColors>();
 
@@ -199,5 +209,7 @@ export class ThemeContextProvider {
   }
 }
 
-// Export a singleton instance
+/**
+ * Singleton instance of ThemeContextProvider for use throughout the application.
+ */
 export const themeContextProvider = new ThemeContextProvider();

@@ -1,11 +1,17 @@
 import type { ConfigurationContext, Platform } from "./types.js";
 
+/**
+ * Generic contribution interface for configuration modules.
+ */
 export interface Contribution<T = any> {
   id: string;
   data: T;
   platforms?: Platform[];
 }
 
+/**
+ * Interface for a contribution manager, providing add, list, resolve, write, and read methods.
+ */
 export interface ContributionManager<T = any> {
   add(ctx: ConfigurationContext, contribution: Contribution<T>): boolean;
   list(ctx: ConfigurationContext): T[];
@@ -14,6 +20,10 @@ export interface ContributionManager<T = any> {
   read(ctx: ConfigurationContext): T[] | undefined;
 }
 
+/**
+ * Generic implementation of a contribution manager for arbitrary types.
+ * Handles platform filtering, deduplication, and persistence.
+ */
 export class GenericContributionManager<T = any>
   implements ContributionManager<T>
 {
@@ -88,7 +98,9 @@ export class GenericContributionManager<T = any>
   }
 }
 
-// Specialized managers for common contribution types
+/**
+ * Specialized contribution manager for PATH entries.
+ */
 export class PathContributionManager extends GenericContributionManager<string> {
   constructor() {
     super("contrib.paths", "resolved.paths", (path) => path, undefined);
@@ -113,6 +125,9 @@ export class PathContributionManager extends GenericContributionManager<string> 
   }
 }
 
+/**
+ * Specialized contribution manager for shell aliases.
+ */
 export class AliasContributionManager extends GenericContributionManager<{
   name: string;
   value: string;
@@ -142,6 +157,9 @@ export class AliasContributionManager extends GenericContributionManager<{
   }
 }
 
+/**
+ * Specialized contribution manager for package contributions.
+ */
 export class PackageContributionManager
   implements
     ContributionManager<{
@@ -426,7 +444,9 @@ export class PackageContributionManager
   }
 }
 
-// Global instances
+/**
+ * Global instances of contribution managers for PATH, aliases, and packages.
+ */
 export const pathManager = new PathContributionManager();
 export const aliasManager = new AliasContributionManager();
 export const packageManager = new PackageContributionManager();

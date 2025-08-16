@@ -3,6 +3,9 @@ import path from "node:path";
 
 import type { StateStore } from "./types.js";
 
+/**
+ * State store interface for persistent configuration state.
+ */
 export class JsonFileStateStore implements StateStore {
   private readonly stateFilePath: string;
   private cache: Record<string, unknown> = {};

@@ -3,10 +3,17 @@ import path from "node:path";
 import Handlebars from "handlebars";
 import { getProjectRoot } from "./module-helpers.js";
 
+/**
+ * Context object for Handlebars template rendering.
+ */
 export interface TemplateContext {
   [key: string]: string | number | boolean | object;
 }
 
+/**
+ * Manages Handlebars templates and partials for module resource rendering.
+ * Provides methods to load, cache, render, and register templates and helpers.
+ */
 export class TemplateManager {
   private templateCache = new Map<string, HandlebarsTemplateDelegate>();
   private partialCache = new Map<string, string>();
@@ -140,5 +147,7 @@ export class TemplateManager {
   }
 }
 
-// Export a singleton instance
+/**
+ * Singleton instance of TemplateManager for use throughout the application.
+ */
 export const templateManager = new TemplateManager();

@@ -15,6 +15,9 @@ import {
 } from "./contrib.js";
 import { templateManager } from "./template-manager.js";
 
+/**
+ * Options for configuring a ShellConfig module, including shell file, markers, and supported platforms.
+ */
 export interface ShellConfigOptions extends BaseModuleOptions {
   shellFile: string;
   markerStart: string;
@@ -22,6 +25,10 @@ export interface ShellConfigOptions extends BaseModuleOptions {
   platforms?: string[];
 }
 
+/**
+ * Abstract base class for shell configuration modules.
+ * Handles shell file management, marker-based block insertion, and platform support.
+ */
 export abstract class ShellConfig extends BaseModule {
   protected shellFile!: string;
   protected markerStart!: string;
@@ -246,7 +253,9 @@ export abstract class ShellConfig extends BaseModule {
   }
 }
 
-// Specialized ZshConfig class
+/**
+ * Specialized ZshConfig class for managing .zshrc configuration.
+ */
 export class ZshConfig extends ShellConfig {
   protected shellFile = ".zshrc";
   protected markerStart = "# === wellwell:begin ===";

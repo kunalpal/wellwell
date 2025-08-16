@@ -9,8 +9,8 @@ import type {
 } from "./types.js";
 
 /**
- * Utility class for handling module state comparison and tracking
- * Provides robust status checking by comparing actual state before/after applying
+ * Utility class for handling module state comparison and tracking.
+ * Provides robust status checking by comparing actual state before/after applying.
  */
 export class StateComparison {
   private static readonly STATE_KEY_PREFIX = "state_comparison:";

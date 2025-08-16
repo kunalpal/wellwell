@@ -1,7 +1,7 @@
 import type { ModuleResult, PlanResult } from "./types.js";
 
 /**
- * Utility functions for module implementations to reduce inheritance dependency
+ * Helper functions for module implementations to reduce inheritance dependency.
  */
 export const ModuleHelpers = {
   /**
@@ -68,9 +68,9 @@ export const ModuleHelpers = {
 };
 
 /**
- * Get the wellwell project root directory
- * First checks for WELLWELL_PROJECT_ROOT environment variable,
- * then falls back to current working directory
+ * Get the wellwell project root directory.
+ * First checks for WELLWELL_PROJECT_ROOT environment variable, then falls back to current working directory.
+ * @returns The project root directory as a string.
  */
 export function getProjectRoot(): string {
   // First check if WELLWELL_PROJECT_ROOT environment variable is set

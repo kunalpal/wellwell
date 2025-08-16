@@ -2,6 +2,10 @@ import os from "node:os";
 
 import type { Platform } from "./types.js";
 
+/**
+ * Detects the current platform (macos, ubuntu, al2, or unknown) based on OS and environment variables.
+ * @returns The detected platform as a string.
+ */
 export function detectPlatform(): Platform {
   const platform = os.platform();
   // macOS (darwin)
