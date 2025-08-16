@@ -8,6 +8,10 @@ import { ModuleHelpers, getProjectRoot } from "../../core/module-helpers.js";
 
 const execAsync = promisify(exec);
 
+/**
+ * Checks if the "ww" command is available in the user's PATH.
+ * @returns Promise resolving to true if available, false otherwise.
+ */
 async function isWwCommandAvailable(): Promise<boolean> {
   try {
     await execAsync("which ww");
@@ -17,6 +21,12 @@ async function isWwCommandAvailable(): Promise<boolean> {
   }
 }
 
+/**
+ * Creates the "ww" wrapper script in the specified bin directory.
+ * @param projectRoot The root directory of the wellwell project.
+ * @param binDir The directory where the script should be created.
+ * @returns Promise that resolves when the script is created.
+ */
 async function createWwScript(
   projectRoot: string,
   binDir: string,
@@ -40,6 +50,11 @@ exec node "${wellwellExecutable}" "$@"
   await fs.writeFile(wwScript, scriptContent, { mode: 0o755 });
 }
 
+/**
+ * Rebuilds the wellwell project by running the build script if available.
+ * @param projectRoot The root directory of the wellwell project.
+ * @returns Promise resolving to true if the build succeeded, false otherwise.
+ */
 async function rebuildProject(projectRoot: string): Promise<boolean> {
   try {
     // Check if package.json exists and has build script
@@ -58,6 +73,11 @@ async function rebuildProject(projectRoot: string): Promise<boolean> {
   }
 }
 
+/**
+ * Wellwell self-management configuration module.
+ * Provides the "ww" command, ensures ~/bin exists, and manages the wellwell executable.
+ * Handles planning, applying, and status checking for the wellwell CLI.
+ */
 export const wellwellModule = createAppModule({
   id: "apps:wellwell",
   description: 'Wellwell self-management - provides "ww" command',

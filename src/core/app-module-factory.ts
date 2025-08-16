@@ -9,6 +9,9 @@ import type {
 import { ModuleHelpers } from "./module-helpers.js";
 import { addPackageContribution } from "./contrib.js";
 
+/**
+ * Configuration options for creating an app module, including package management and custom behavior.
+ */
 export interface AppModuleConfig {
   id: string;
   description: string;
@@ -42,8 +45,10 @@ export interface AppModuleConfig {
 }
 
 /**
- * Factory function to create standardized app modules
- * Reduces code duplication across similar app configurations
+ * Factory function to create standardized app modules.
+ * Reduces code duplication across similar app configurations.
+ * @param config The app module configuration.
+ * @returns A configuration module implementing the Module interface.
  */
 export function createAppModule(config: AppModuleConfig): Module {
   return {
@@ -161,7 +166,9 @@ export function createAppModule(config: AppModuleConfig): Module {
 }
 
 /**
- * Infer the appropriate package manager for a platform
+ * Infers the appropriate package manager for a platform.
+ * @param platform The platform string.
+ * @returns The inferred package manager or null if unknown.
  */
 function inferPackageManager(
   platform: Platform,
@@ -179,7 +186,10 @@ function inferPackageManager(
 }
 
 /**
- * Helper to create cross-platform package mappings
+ * Helper to create cross-platform package mappings for an app.
+ * @param packageName The package name.
+ * @param overrides Optional overrides for specific platforms.
+ * @returns A record mapping platforms to package manager info.
  */
 export function createCrossPlatformPackages(
   packageName: string,

@@ -4,8 +4,12 @@ import type { ThemeColors } from "../core/theme-context.js";
 import { getThemeColors } from "./theme-utils.js";
 
 /**
- * Format a configuration status with background colors for better visual distinction
- * Similar to Jest's test result format with consistent width and capitalization
+ * Formats a configuration status with background colors for better visual distinction.
+ * Similar to Jest's test result format with consistent width and capitalization.
+ * @param status The configuration status string.
+ * @param isUnsupported Whether the status is for an unsupported configuration.
+ * @param themeColors Optional theme colors for formatting.
+ * @returns The formatted status string with color and padding.
  */
 export function formatStatus(
   status: ConfigurationStatus,

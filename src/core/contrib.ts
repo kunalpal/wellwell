@@ -1,18 +1,27 @@
 import type { ConfigurationContext, Platform } from "./types.js";
 import { packageManager, type Contribution } from "./contribution-manager.js";
 
+/**
+ * Path contribution for PATH management.
+ */
 export interface PathContribution {
   path: string;
   prepend?: boolean;
   platforms?: Platform[];
 }
 
+/**
+ * Alias contribution for shell alias management.
+ */
 export interface AliasContribution {
   name: string;
   value: string;
   platforms?: Platform[];
 }
 
+/**
+ * Package contribution for package manager integration.
+ */
 export interface PackageContribution {
   name: string;
   manager: "homebrew" | "apt" | "yum" | "mise";
@@ -23,12 +32,18 @@ export interface PackageContribution {
   version?: string;
 }
 
+/**
+ * Shell initialization contribution for shell config management.
+ */
 export interface ShellInitContribution {
   name: string;
   initCode: string;
   platforms?: Platform[];
 }
 
+/**
+ * Environment variable contribution for shell environment management.
+ */
 export interface EnvVarContribution {
   name: string;
   value: string;
@@ -46,12 +61,22 @@ const RESOLVED_PACKAGES_KEY = "resolved.packages";
 const RESOLVED_SHELL_INIT_KEY = "resolved.shell.init";
 const RESOLVED_ENV_VARS_KEY = "resolved.env.vars";
 
+/**
+ * Lists all path contributions for the given context.
+ * @param ctx The configuration context.
+ * @returns Array of path contributions.
+ */
 export function listPathContributions(
   ctx: ConfigurationContext,
 ): PathContribution[] {
   return (ctx.state.get<PathContribution[]>(CONTRIB_PATHS_KEY) ?? []).slice();
 }
 
+/**
+ * Lists all alias contributions for the given context.
+ * @param ctx The configuration context.
+ * @returns Array of alias contributions.
+ */
 export function listAliasContributions(
   ctx: ConfigurationContext,
 ): AliasContribution[] {
@@ -60,6 +85,12 @@ export function listAliasContributions(
   ).slice();
 }
 
+/**
+ * Adds a path contribution to the context.
+ * @param ctx The configuration context.
+ * @param contribution The path contribution to add.
+ * @returns True if added, false if already present or not applicable.
+ */
 export function addPathContribution(
   ctx: ConfigurationContext,
   contribution: PathContribution,
@@ -76,6 +107,12 @@ export function addPathContribution(
   return false;
 }
 
+/**
+ * Adds an alias contribution to the context.
+ * @param ctx The configuration context.
+ * @param contribution The alias contribution to add.
+ * @returns True if added, false if already present or not applicable.
+ */
 export function addAliasContribution(
   ctx: ConfigurationContext,
   contribution: AliasContribution,
@@ -94,6 +131,11 @@ export function addAliasContribution(
   return false;
 }
 
+/**
+ * Resolves all path contributions for the given context, deduplicated and ordered.
+ * @param ctx The configuration context.
+ * @returns Array of resolved path strings.
+ */
 export function resolvePaths(ctx: ConfigurationContext): string[] {
   const contribs = listPathContributions(ctx);
   const prepend = contribs.filter((c) => c.prepend).map((c) => c.path);
@@ -106,6 +148,11 @@ export function resolvePaths(ctx: ConfigurationContext): string[] {
   return deduped;
 }
 
+/**
+ * Resolves all alias contributions for the given context, deduplicated.
+ * @param ctx The configuration context.
+ * @returns Array of resolved alias contributions.
+ */
 export function resolveAliases(ctx: ConfigurationContext): AliasContribution[] {
   const contribs = listAliasContributions(ctx);
   const map = new Map<string, AliasContribution>();
@@ -116,6 +163,11 @@ export function resolveAliases(ctx: ConfigurationContext): AliasContribution[] {
   return Array.from(map.values());
 }
 
+/**
+ * Writes resolved paths to the context state.
+ * @param ctx The configuration context.
+ * @param paths Array of resolved path strings.
+ */
 export function writeResolvedPaths(
   ctx: ConfigurationContext,
   paths: string[],
@@ -123,6 +175,11 @@ export function writeResolvedPaths(
   ctx.state.set(RESOLVED_PATHS_KEY, paths);
 }
 
+/**
+ * Writes resolved aliases to the context state.
+ * @param ctx The configuration context.
+ * @param aliases Array of resolved alias contributions.
+ */
 export function writeResolvedAliases(
   ctx: ConfigurationContext,
   aliases: AliasContribution[],
@@ -130,12 +187,22 @@ export function writeResolvedAliases(
   ctx.state.set(RESOLVED_ALIASES_KEY, aliases);
 }
 
+/**
+ * Reads resolved paths from the context state.
+ * @param ctx The configuration context.
+ * @returns Array of resolved path strings or undefined.
+ */
 export function readResolvedPaths(
   ctx: ConfigurationContext,
 ): string[] | undefined {
   return ctx.state.get<string[]>(RESOLVED_PATHS_KEY);
 }
 
+/**
+ * Reads resolved aliases from the context state.
+ * @param ctx The configuration context.
+ * @returns Array of resolved alias contributions or undefined.
+ */
 export function readResolvedAliases(
   ctx: ConfigurationContext,
 ): AliasContribution[] | undefined {
@@ -143,6 +210,11 @@ export function readResolvedAliases(
 }
 
 // Package contribution functions
+/**
+ * Lists all package contributions for the given context.
+ * @param ctx The configuration context.
+ * @returns Array of package contributions.
+ */
 export function listPackageContributions(
   ctx: ConfigurationContext,
 ): PackageContribution[] {
@@ -171,6 +243,12 @@ export function listPackageContributions(
   return [];
 }
 
+/**
+ * Adds a package contribution to the context.
+ * @param ctx The configuration context.
+ * @param contribution The package contribution to add.
+ * @returns True if added, false if already present or not applicable.
+ */
 export function addPackageContribution(
   ctx: ConfigurationContext,
   contribution: PackageContribution,
@@ -200,12 +278,22 @@ export function addPackageContribution(
   return false;
 }
 
+/**
+ * Resolves all package contributions for the given context, grouped by manager.
+ * @param ctx The configuration context.
+ * @returns Record of manager to array of package contributions.
+ */
 export function resolvePackages(
   ctx: ConfigurationContext,
 ): Record<string, PackageContribution[]> {
   return packageManager.resolveByManager(ctx);
 }
 
+/**
+ * Writes resolved packages to the context state.
+ * @param ctx The configuration context.
+ * @param packages Record of manager to array of package contributions.
+ */
 export function writeResolvedPackages(
   ctx: ConfigurationContext,
   packages: Record<string, PackageContribution[]>,
@@ -213,6 +301,11 @@ export function writeResolvedPackages(
   packageManager.writeByManager(ctx, packages);
 }
 
+/**
+ * Reads resolved packages from the context state.
+ * @param ctx The configuration context.
+ * @returns Record of manager to array of package contributions or undefined.
+ */
 export function readResolvedPackages(
   ctx: ConfigurationContext,
 ): Record<string, PackageContribution[]> | undefined {
@@ -220,6 +313,11 @@ export function readResolvedPackages(
 }
 
 // Shell init contribution functions
+/**
+ * Lists all shell init contributions for the given context.
+ * @param ctx The configuration context.
+ * @returns Array of shell init contributions.
+ */
 export function listShellInitContributions(
   ctx: ConfigurationContext,
 ): ShellInitContribution[] {
@@ -228,6 +326,12 @@ export function listShellInitContributions(
   ).slice();
 }
 
+/**
+ * Adds a shell init contribution to the context.
+ * @param ctx The configuration context.
+ * @param contribution The shell init contribution to add.
+ * @returns True if added, false if already present or not applicable.
+ */
 export function addShellInitContribution(
   ctx: ConfigurationContext,
   contribution: ShellInitContribution,
@@ -245,12 +349,22 @@ export function addShellInitContribution(
   return false;
 }
 
+/**
+ * Resolves all shell init contributions for the given context.
+ * @param ctx The configuration context.
+ * @returns Array of shell init contributions.
+ */
 export function resolveShellInit(
   ctx: ConfigurationContext,
 ): ShellInitContribution[] {
   return listShellInitContributions(ctx);
 }
 
+/**
+ * Writes resolved shell init contributions to the context state.
+ * @param ctx The configuration context.
+ * @param shellInit Array of shell init contributions.
+ */
 export function writeResolvedShellInit(
   ctx: ConfigurationContext,
   shellInit: ShellInitContribution[],
@@ -258,6 +372,11 @@ export function writeResolvedShellInit(
   ctx.state.set(RESOLVED_SHELL_INIT_KEY, shellInit);
 }
 
+/**
+ * Reads resolved shell init contributions from the context state.
+ * @param ctx The configuration context.
+ * @returns Array of resolved shell init contributions or undefined.
+ */
 export function readResolvedShellInit(
   ctx: ConfigurationContext,
 ): ShellInitContribution[] | undefined {
@@ -265,6 +384,11 @@ export function readResolvedShellInit(
 }
 
 // Environment variable contribution functions
+/**
+ * Lists all environment variable contributions for the given context.
+ * @param ctx The configuration context.
+ * @returns Array of environment variable contributions.
+ */
 export function listEnvVarContributions(
   ctx: ConfigurationContext,
 ): EnvVarContribution[] {
@@ -273,6 +397,12 @@ export function listEnvVarContributions(
   ).slice();
 }
 
+/**
+ * Adds an environment variable contribution to the context.
+ * @param ctx The configuration context.
+ * @param contribution The environment variable contribution to add.
+ * @returns True if added, false if already present or not applicable.
+ */
 export function addEnvVarContribution(
   ctx: ConfigurationContext,
   contribution: EnvVarContribution,
@@ -290,6 +420,11 @@ export function addEnvVarContribution(
   return false;
 }
 
+/**
+ * Resolves all environment variable contributions for the given context, deduplicated.
+ * @param ctx The configuration context.
+ * @returns Array of resolved environment variable contributions.
+ */
 export function resolveEnvVars(
   ctx: ConfigurationContext,
 ): EnvVarContribution[] {
@@ -302,6 +437,11 @@ export function resolveEnvVars(
   return Array.from(map.values());
 }
 
+/**
+ * Writes resolved environment variables to the context state.
+ * @param ctx The configuration context.
+ * @param envVars Array of resolved environment variable contributions.
+ */
 export function writeResolvedEnvVars(
   ctx: ConfigurationContext,
   envVars: EnvVarContribution[],
@@ -309,6 +449,11 @@ export function writeResolvedEnvVars(
   ctx.state.set(RESOLVED_ENV_VARS_KEY, envVars);
 }
 
+/**
+ * Reads resolved environment variables from the context state.
+ * @param ctx The configuration context.
+ * @returns Array of resolved environment variable contributions or undefined.
+ */
 export function readResolvedEnvVars(
   ctx: ConfigurationContext,
 ): EnvVarContribution[] | undefined {

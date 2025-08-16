@@ -9,12 +9,19 @@ import type {
 } from "./types.js";
 import { createHash } from "node:crypto";
 
+/**
+ * Options for configuring a BaseModule, including id, description, and dependencies.
+ */
 export interface BaseModuleOptions {
   id: string;
   description?: string;
   dependsOn?: string[];
 }
 
+/**
+ * Abstract base class for configuration modules.
+ * Provides common lifecycle methods, status helpers, and validation utilities.
+ */
 export abstract class BaseModule implements Module {
   public readonly id: string;
   public readonly description?: string;

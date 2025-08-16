@@ -2,7 +2,9 @@ import chalk from "chalk";
 import type { ThemeColors } from "../core/theme-context.js";
 
 /**
- * Get chalk color functions from theme colors
+ * Returns chalk color functions for the provided theme colors.
+ * @param themeColors The theme colors object.
+ * @returns An object with background, foreground, semantic, and status color functions.
  */
 export function getThemeChalkColors(themeColors: ThemeColors) {
   return {
@@ -42,7 +44,9 @@ export function getThemeChalkColors(themeColors: ThemeColors) {
 }
 
 /**
- * Get theme-aware chalk colors with fallback to default colors
+ * Returns theme-aware chalk colors, falling back to default colors if themeColors is null.
+ * @param themeColors The theme colors object or null.
+ * @returns An object with background, foreground, semantic, and status color functions.
  */
 export function getThemeColors(themeColors: ThemeColors | null) {
   if (!themeColors) {
