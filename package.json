@@ -13,7 +13,9 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "format": "prettier --write \"**/*.{ts,tsx,js}\""
+    "format": "prettier --write \"**/*.{ts,tsx,js}\"",
+    "docker:build": "docker build -f Dockerfile.ubuntu -t wellwell-ubuntu .",
+    "docker:shell": "docker run -it --rm --name wellwell-ubuntu wellwell-ubuntu /bin/zsh -l"
   },
   "repository": {
     "type": "git",

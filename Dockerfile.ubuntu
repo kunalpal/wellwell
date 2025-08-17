@@ -1,0 +1,40 @@
+# Minimal Ubuntu-based testbed for wellwell development
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    zsh \
+    sudo \
+    build-essential \
+    ca-certificates \
+    gnupg \
+    lsb-release \
+    software-properties-common \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js (latest LTS)
+RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get install -y nodejs
+
+# Create a non-root user for testing
+RUN useradd -m -s /bin/zsh testuser \
+    && echo 'testuser ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
+
+# Copy project files
+COPY . /workspace
+WORKDIR /workspace
+
+# Install dependencies and build as root (or switch to testuser if you prefer)
+RUN npm ci && npm run build
+
+# Set permissions (optional, if you want testuser to own everything)
+RUN chown -R testuser:testuser /workspace
+
+USER testuser
+ENV HOME=/home/testuser
+ENV SHELL=/bin/zsh
+RUN touch /home/testuser/.zshrc && chown testuser:testuser /home/testuser/.zshrc
+
+CMD ["/bin/zsh", "-l"]
